@@ -19,9 +19,13 @@ rag_service = RAGService()
 
 @router.post("/chat")
 async def chat(request: ChatRequest):
-    response = await rag_service.query(request.query)
+
+    response = rag_service.query(
+        request.query
+    )
 
     return {
         "success": True,
         "response": response
     }
+

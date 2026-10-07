@@ -188,7 +188,541 @@ async def relationship_ping():
         "message": "Relationship Integration API is running",
     }
 
+# ============================================================
+# RELATIONSHIP VISUALIZATION
+# ============================================================
 
+@router.get("/visualization/{cid}")
+async def relationship_visualization(
+    cid: str,
+    degree: str = "1",
+):
+    """
+    Returns relationship data in a graph format for visualization.
+
+    Degree 1:
+        Target + spouse + children
+
+    Degree 2:
+        Target + Degree 1 + parents + siblings
+
+    Degree 3:
+        Target + Degree 1 + Degree 2
+        + sibling spouses + sibling children
+
+    All:
+        Same as Degree 3
+    """
+
+    # --------------------------------------------------------
+    # 1. Validate requested degree
+    # --------------------------------------------------------
+
+    if degree not in {"1", "2", "3", "all"}:
+        raise HTTPException(
+            status_code=400,
+            detail="Degree must be 1, 2, 3, or all.",
+        )
+
+    cid = normalize_id(cid)
+
+    if not cid:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid CID.",
+        )
+
+    # --------------------------------------------------------
+    # 2. Get existing relationship data
+    # --------------------------------------------------------
+
+    try:
+
+        if degree == "all":
+            relationship_data = await get_relationships(
+                cid=cid,
+                degree="3",
+            )
+        else:
+            relationship_data = await get_relationships(
+                cid=cid,
+                degree=degree,
+            )
+
+        # ----------------------------------------------------
+        # 3. Prepare graph containers
+        # ----------------------------------------------------
+
+        nodes = {}
+        edges = []
+
+        # ----------------------------------------------------
+        # 4. Helper: Add node
+        # ----------------------------------------------------
+
+        def add_node(
+            person: dict,
+            node_degree: int | None,
+            relationship_type: str,
+            side: str = "TARGET",
+        ):
+
+            person_id = normalize_id(
+                person.get("cid")
+            )
+
+            if not person_id:
+                return
+
+            # ----------------------------------------------
+            # Target node
+            # ----------------------------------------------
+
+            if node_degree is None:
+
+                nodes[person_id] = {
+                    "id": person_id,
+                    "cid": person_id,
+                    "name": person.get("fullName"),
+                    "gender": person.get("gender"),
+                    "dob": person.get("dob"),
+                    "relationship": relationship_type,
+                    "side": side,
+                }
+
+                return
+
+            # ----------------------------------------------
+            # Normal relationship node
+            # ----------------------------------------------
+
+            if person_id not in nodes:
+
+                nodes[person_id] = {
+                    "id": person_id,
+                    "cid": person_id,
+                    "name": person.get("fullName"),
+                    "gender": person.get("gender"),
+                    "dob": person.get("dob"),
+                    "relationship": relationship_type,
+                    "side": side,
+                    "degree": node_degree,
+                }
+
+            else:
+
+                existing_degree = nodes[
+                    person_id
+                ].get("degree")
+
+                # Keep the closest relationship degree
+                if (
+                    existing_degree is not None
+                    and node_degree < existing_degree
+                ):
+
+                    nodes[person_id][
+                        "degree"
+                    ] = node_degree
+
+                    nodes[person_id][
+                        "relationship"
+                    ] = relationship_type
+
+                    nodes[person_id][
+                        "side"
+                    ] = side
+
+        # ----------------------------------------------------
+        # 5. Helper: Add edge
+        # ----------------------------------------------------
+
+        def add_edge(
+            source: str,
+            target: str,
+            relationship_type: str,
+            edge_degree: int,
+        ):
+
+            source = normalize_id(source)
+            target = normalize_id(target)
+
+            if not source or not target:
+                return
+
+            if source == target:
+                return
+
+            # Prevent duplicate edges
+            for existing in edges:
+
+                same_direction = (
+                    existing["source"] == source
+                    and existing["target"] == target
+                    and existing["relationship"]
+                    == relationship_type
+                )
+
+                reverse_direction = (
+                    existing["source"] == target
+                    and existing["target"] == source
+                    and existing["relationship"]
+                    == relationship_type
+                )
+
+                if (
+                    same_direction
+                    or reverse_direction
+                ):
+                    return
+
+            edges.append({
+                "source": source,
+                "target": target,
+                "relationship": relationship_type,
+                "degree": edge_degree,
+            })
+
+        # ----------------------------------------------------
+        # 6. Add target / suspect
+        #
+        # IMPORTANT:
+        # Target has NO degree.
+        # It is simply the central person.
+        # ----------------------------------------------------
+
+        target = relationship_data.get(
+            "target",
+            {},
+        )
+
+        target_id = normalize_id(
+            target.get("cid")
+        )
+
+        if not target_id:
+
+            raise HTTPException(
+                status_code=404,
+                detail="Target citizen was not found.",
+            )
+
+        add_node(
+            person=target,
+            node_degree=None,
+            relationship_type="TARGET",
+            side="TARGET",
+        )
+
+        # ----------------------------------------------------
+        # 7. Process relationships
+        # ----------------------------------------------------
+
+        relationships = relationship_data.get(
+            "relationships",
+            [],
+        )
+
+        for relationship in relationships:
+
+            relationship_type = relationship.get(
+                "type"
+            )
+
+            side = relationship.get(
+                "side",
+                "TARGET",
+            )
+
+            person = relationship.get(
+                "person",
+                {},
+            )
+
+            person_id = normalize_id(
+                person.get("cid")
+            )
+
+            if not person_id:
+                continue
+
+            # ------------------------------------------------
+            # Determine relationship degree
+            # ------------------------------------------------
+
+            if relationship_type == "TARGET":
+
+                # Target is NOT Degree 0.
+                # It has no degree.
+                node_degree = None
+
+            elif relationship_type in {
+                "SPOUSE",
+                "CHILD",
+            }:
+
+                node_degree = 1
+
+            elif relationship_type in {
+                "PARENT",
+                "SIBLING",
+            }:
+
+                node_degree = 2
+
+            elif relationship_type in {
+                "SIBLING_SPOUSE",
+                "SIBLING_CHILD",
+            }:
+
+                node_degree = 3
+
+            else:
+                continue
+
+            # ------------------------------------------------
+            # Filter according to requested degree
+            # ------------------------------------------------
+
+            if degree != "all":
+
+                requested_degree = int(degree)
+
+                # Target is always included.
+                if (
+                    node_degree is not None
+                    and node_degree > requested_degree
+                ):
+                    continue
+
+            # ------------------------------------------------
+            # Add node
+            # ------------------------------------------------
+
+            add_node(
+                person=person,
+                node_degree=node_degree,
+                relationship_type=relationship_type,
+                side=side,
+            )
+
+            # ------------------------------------------------
+            # Determine edge
+            # ------------------------------------------------
+
+            if relationship_type == "SPOUSE":
+
+                add_edge(
+                    source=target_id,
+                    target=person_id,
+                    relationship_type="SPOUSE",
+                    edge_degree=1,
+                )
+
+            elif relationship_type == "CHILD":
+
+                add_edge(
+                    source=target_id,
+                    target=person_id,
+                    relationship_type="CHILD",
+                    edge_degree=1,
+                )
+
+            elif relationship_type == "PARENT":
+
+                if side == "TARGET":
+
+                    add_edge(
+                        source=target_id,
+                        target=person_id,
+                        relationship_type="PARENT",
+                        edge_degree=2,
+                    )
+
+                elif side == "SPOUSE":
+
+                    spouses = relationship_data.get(
+                        "spouses",
+                        [],
+                    )
+
+                    if spouses:
+
+                        spouse_id = normalize_id(
+                            spouses[0].get("cid")
+                        )
+
+                        if spouse_id:
+
+                            add_edge(
+                                source=spouse_id,
+                                target=person_id,
+                                relationship_type="PARENT",
+                                edge_degree=2,
+                            )
+
+            elif relationship_type == "SIBLING":
+
+                if side == "TARGET":
+
+                    add_edge(
+                        source=target_id,
+                        target=person_id,
+                        relationship_type="SIBLING",
+                        edge_degree=2,
+                    )
+
+                elif side == "SPOUSE":
+
+                    spouses = relationship_data.get(
+                        "spouses",
+                        [],
+                    )
+
+                    if spouses:
+
+                        spouse_id = normalize_id(
+                            spouses[0].get("cid")
+                        )
+
+                        if spouse_id:
+
+                            add_edge(
+                                source=spouse_id,
+                                target=person_id,
+                                relationship_type="SIBLING",
+                                edge_degree=2,
+                            )
+
+            elif relationship_type in {
+                "SIBLING_SPOUSE",
+                "SIBLING_CHILD",
+            }:
+
+                related_to = relationship.get(
+                    "relatedTo",
+                    {},
+                )
+
+                sibling_id = normalize_id(
+                    related_to.get("cid")
+                )
+
+                if sibling_id:
+
+                    add_edge(
+                        source=sibling_id,
+                        target=person_id,
+                        relationship_type=relationship_type,
+                        edge_degree=3,
+                    )
+
+        # ----------------------------------------------------
+        # 8. Convert nodes dictionary to list
+        # ----------------------------------------------------
+
+        node_list = list(
+            nodes.values()
+        )
+
+        # ----------------------------------------------------
+        # 9. Sort nodes
+        #
+        # Target first, then Degree 1, 2, 3.
+        # Target has no degree.
+        # ----------------------------------------------------
+
+        def node_sort_key(node):
+
+            if node.get("relationship") == "TARGET":
+                return 0
+
+            return node.get(
+                "degree",
+                99,
+            )
+
+        node_list.sort(
+            key=node_sort_key
+        )
+
+        # ----------------------------------------------------
+        # 10. Count relationship degrees
+        # ----------------------------------------------------
+
+        degree1_count = 0
+        degree2_count = 0
+        degree3_count = 0
+
+        for node in node_list:
+
+            node_degree = node.get(
+                "degree"
+            )
+
+            if node_degree == 1:
+                degree1_count += 1
+
+            elif node_degree == 2:
+                degree2_count += 1
+
+            elif node_degree == 3:
+                degree3_count += 1
+
+        # ----------------------------------------------------
+        # 11. Return visualization-ready response
+        # ----------------------------------------------------
+
+        return {
+            "success": True,
+
+            "target": {
+                "cid": target_id,
+                "name": target.get(
+                    "fullName"
+                ),
+            },
+
+            "requestedDegree": degree,
+
+            "nodes": node_list,
+
+            "edges": edges,
+
+            "counts": {
+                "nodes": len(node_list),
+                "edges": len(edges),
+                "degree1": degree1_count,
+                "degree2": degree2_count,
+                "degree3": degree3_count,
+            },
+
+            "visualization": {
+                "type": "FAMILY_TREE",
+
+                "degreeLevels": {
+                    "1": "DEGREE_1",
+                    "2": "DEGREE_2",
+                    "3": "DEGREE_3",
+                },
+            },
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+
+        print(
+            "VISUALIZATION ERROR:",
+            repr(e)
+        )
+
+        raise HTTPException(
+            status_code=502,
+            detail="Unable to generate relationship visualization data.",
+        )
+     
 # ============================================================
 # Relationship API
 #
@@ -218,9 +752,7 @@ async def get_relationships(
     up to Degree 3.
     """
 
-    # ========================================================
     # Validate Degree
-    # ========================================================
 
     if degree not in {"1", "2", "3"}:
         raise HTTPException(
@@ -231,21 +763,15 @@ async def get_relationships(
             ),
         )
 
-    # ========================================================
     # Normalize CID
-    # ========================================================
 
     cid = normalize_id(cid)
 
-    # ========================================================
     # Main Processing
-    # ========================================================
 
     try:
 
-        # ----------------------------------------------------
         # 1. FETCH TARGET
-        # ----------------------------------------------------
 
         target = await fetch_citizen(cid)
 
@@ -257,9 +783,7 @@ async def get_relationships(
 
         target_id = get_person_id(target) or cid
 
-        # ----------------------------------------------------
         # 2. FIND TARGET'S CHILDREN
-        # ----------------------------------------------------
 
         target_household = []
 
@@ -297,10 +821,8 @@ async def get_relationships(
             child_details = await enrich_person(child)
             children_with_details.append(child_details)
 
-        # ----------------------------------------------------
         # 3. FIND TARGET'S SPOUSE(S)
-        # ----------------------------------------------------
-
+    
         spouse_ids = set()
 
         for child in children_with_details:
@@ -430,10 +952,8 @@ async def get_relationships(
         target_siblings = {}
         spouse_siblings = {}
 
-        # ----------------------------------------------------
         # Process Parents and Siblings
-        # ----------------------------------------------------
-
+    
         async def process_parents_and_siblings(
             person: dict,
             side: str,
@@ -447,10 +967,8 @@ async def get_relationships(
             father_id = get_father_id(person)
             mother_id = get_mother_id(person)
 
-            # ------------------------------------------------
             # Father
-            # ------------------------------------------------
-
+            
             if (
                 father_id
                 and father_id != person_id
@@ -480,9 +998,7 @@ async def get_relationships(
                         f"{father_id}: {error}"
                     )
 
-            # ------------------------------------------------
             # Mother
-            # ------------------------------------------------
 
             if (
                 mother_id
@@ -513,10 +1029,8 @@ async def get_relationships(
                         f"{mother_id}: {error}"
                     )
 
-            # ------------------------------------------------
             # Siblings
-            # ------------------------------------------------
-
+        
             person_household_no = person.get(
                 "householdNo"
             )
@@ -583,18 +1097,14 @@ async def get_relationships(
                         f"for {person_id}: {error}"
                     )
 
-        # ----------------------------------------------------
         # Process Target
-        # ----------------------------------------------------
 
         await process_parents_and_siblings(
             target,
             "TARGET",
         )
 
-        # ----------------------------------------------------
         # Process Spouse(s)
-        # ----------------------------------------------------
 
         for spouse in spouses:
 
@@ -603,9 +1113,7 @@ async def get_relationships(
                 "SPOUSE",
             )
 
-        # ----------------------------------------------------
         # Remove Degree 1 people from Degree 2
-        # ----------------------------------------------------
 
         degree1_ids = {
             target_id,
@@ -667,9 +1175,7 @@ async def get_relationships(
             *spouse_sibling_list,
         ]
 
-        # ====================================================
         # DEGREE 2 RESPONSE
-        # ====================================================
 
         if degree == "2":
 
@@ -867,9 +1373,7 @@ async def get_relationships(
             ],
         }
 
-        # ----------------------------------------------------
         # Process One Sibling's Family
-        # ----------------------------------------------------
 
         async def process_sibling_family(
             sibling: dict,
@@ -888,9 +1392,7 @@ async def get_relationships(
                 "householdNo"
             )
 
-            # ------------------------------------------------
             # Get sibling household
-            # ------------------------------------------------
 
             if sibling_household_no:
 
@@ -935,9 +1437,7 @@ async def get_relationships(
                                 child
                             )
 
-                            # --------------------------------
                             # Find sibling's spouse
-                            # --------------------------------
 
                             father_id = get_father_id(
                                 child
@@ -981,9 +1481,7 @@ async def get_relationships(
                         f"{error}"
                     )
 
-            # ------------------------------------------------
             # Fetch sibling spouse(s)
-            # ------------------------------------------------
 
             sibling_spouses = []
 
@@ -1008,9 +1506,7 @@ async def get_relationships(
                         f"{error}"
                     )
 
-            # ------------------------------------------------
             # Remove Degree 1 & Degree 2 people
-            # ------------------------------------------------
 
             filtered_spouses = [
                 person
@@ -1041,9 +1537,7 @@ async def get_relationships(
                 ],
             }
 
-        # ----------------------------------------------------
         # Process Target-side siblings
-        # ----------------------------------------------------
 
         for sibling in target_sibling_list:
 
@@ -1057,9 +1551,7 @@ async def get_relationships(
                     family
                 )
 
-        # ----------------------------------------------------
         # Process Spouse-side siblings
-        # ----------------------------------------------------
 
         for sibling in spouse_sibling_list:
 
@@ -1073,9 +1565,7 @@ async def get_relationships(
                     family
                 )
 
-        # ====================================================
         # BUILD DEGREE 3 RELATIONSHIPS
-        # ====================================================
 
         degree3_relationships = [
             {
@@ -1151,9 +1641,7 @@ async def get_relationships(
                 }
             )
 
-        # ----------------------------------------------------
         # Add sibling family relationships
-        # ----------------------------------------------------
 
         for family in sibling_families:
 
@@ -1191,9 +1679,7 @@ async def get_relationships(
                     }
                 )
 
-        # ====================================================
         # DEGREE 3 COUNTS
-        # ====================================================
 
         total_sibling_spouses = sum(
             len(family["spouses"])
@@ -1205,9 +1691,7 @@ async def get_relationships(
             for family in sibling_families
         )
 
-        # ====================================================
         # DEGREE 3 RESPONSE
-        # ====================================================
 
         return {
             "success": True,
@@ -1297,24 +1781,16 @@ async def get_relationships(
             },
         }
 
-    # ========================================================
-    # Error Handling
-    # ========================================================
-
     except HTTPException:
         raise
 
     except httpx.TimeoutException:
-
         raise HTTPException(
             status_code=504,
-            detail=(
-                "Relationship API request timed out."
-            ),
+            detail="Relationship API request timed out.",
         )
 
     except httpx.HTTPStatusError as error:
-
         raise HTTPException(
             status_code=502,
             detail=(
@@ -1323,27 +1799,17 @@ async def get_relationships(
             ),
         )
 
-    except httpx.RequestError as error:
-
+    except httpx.RequestError:
         raise HTTPException(
             status_code=502,
-            detail=(
-                "Unable to connect to the "
-                "Relationship API."
-            ),
+            detail="Unable to connect to the Relationship API.",
         )
 
     except Exception as error:
-
-        print(
-            f"Degree {degree} relationship API error: "
-            f"{error}"
-        )
-
+        print(f"Relationship lookup error: {error}")
         raise HTTPException(
             status_code=502,
-            detail=(
-                f"Unable to retrieve Degree "
-                f"{degree} relationship data."
-            ),
+            detail="Unable to retrieve relationship data.",
         )
+    
+
