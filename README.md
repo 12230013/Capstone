@@ -563,6 +563,58 @@ Currently Being Developed
 * Key entity extraction
 * Chronological timeline generation
 * Contradiction detection
-* OCR integration
 * Automatic document ingestion from the actual ACC/CIMS source
 * Authentication and RBAC
+
+## Tesseract OCR and frontend
+
+The OCR endpoints are mounted in the existing backend without replacing its chat,
+CDR, or relationship routes. Uploaded PDF/image files, SQLite metadata, and OCR
+result JSON are runtime data under `backend/data/` and are ignored by Git.
+
+Install the Python packages from the backend root:
+
+```powershell
+cd backend
+python -m pip install -r requirements.txt -r requirements-ocr.txt
+```
+
+Install native Tesseract OCR separately (it is not a Python package). On Windows,
+install Tesseract OCR, ensure `tesseract --version` works in PowerShell, or set
+`TESSERACT_CMD` in `backend/.env` to the full path of `tesseract.exe`. Start the
+existing API as usual with `uvicorn app.main:app --reload`; Swagger is available
+at `http://127.0.0.1:8000/docs`.
+
+`POST /documents/upload` accepts PDF, PNG, JPG, or JPEG uploads. PDFs with
+selectable text are detected and read using page-preserving direct extraction.
+Scanned PDFs are marked as requiring OCR; OCR is run only by explicitly calling
+`POST /documents/{document_id}/ocr`. Image uploads can also be OCR'd explicitly.
+Preprocessing is configurable through the `OCR_*` settings in `.env.example`;
+the original uploaded file is preserved.
+
+The basic upload endpoints do not yet authenticate uploaders or enforce case
+access. Use synthetic/test documents only until team authentication and access
+control are connected to these routes.
+
+To run the frontend, open another terminal:
+
+```powershell
+cd frontend
+npm ci
+npm run dev
+```
+
+The Vite development server proxies `/documents` to the backend on port 8000.
+Run frontend checks with `npm run lint` and `npm run build`.
+
+The OCR tests use only generated synthetic documents:
+
+```powershell
+cd backend
+python -m unittest discover -s tests
+python tools/evaluate_ocr_preprocessing.py
+```
+
+The evaluation script requires the native Tesseract executable and reports
+character error rates for baseline and preprocessed synthetic samples; it does
+not use ACC documents.
