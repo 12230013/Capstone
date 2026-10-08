@@ -1,0 +1,342 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.signup-page {
+  min-height: 100vh;
+  background: #0f1420;
+  color: white;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  padding-top: 42px;
+  padding-bottom: 14px;
+}
+
+
+/* =========================
+   BRANDING
+========================= */
+
+.brand-section {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.acc-logo {
+  width: 120px;
+  height: auto;
+  object-fit: contain;
+  margin-bottom: 3px;
+}
+
+.brand-section h1 {
+  margin: 0;
+
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 18px;
+  font-weight: 400;
+
+  color: #d99a13;
+}
+
+.brand-section p {
+  margin: 8px 0 0;
+
+  font-size: 12px;
+  letter-spacing: 0.3px;
+  color: #ffffff;
+}
+
+.gold-line {
+  width: 47px;
+  height: 1px;
+
+  background: #d99a13;
+
+  margin: 10px auto 0;
+}
+
+
+/* =========================
+   SIGNUP CARD
+========================= */
+
+.signup-card {
+  width: 340px;
+
+  background: #203453;
+
+  border: 1px solid #536783;
+  border-radius: 11px;
+
+  padding: 15px 35px 10px;
+
+  box-shadow: none;
+}
+
+.signup-card h2 {
+  margin: 0 0 20px;
+
+  font-size: 14px;
+  font-weight: 400;
+
+  color: #ffffff;
+}
+
+
+/* =========================
+   FORM
+========================= */
+
+.form-group {
+  margin-bottom: 11px;
+}
+
+.form-group label {
+  display: block;
+
+  font-size: 9px;
+  color: #ffffff;
+
+  margin-bottom: 5px;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  height: 31px;
+
+  padding: 0 12px;
+
+  border-radius: 11px;
+  border: 1px solid #5d708d;
+
+  background: #111e34;
+  color: #ffffff;
+
+  outline: none;
+
+  font-size: 9px;
+}
+
+.form-group input::placeholder {
+  color: #68768a;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  border-color: #d99a13;
+}
+
+
+/* =========================
+   SELECT / DROPDOWN
+========================= */
+
+.form-group select {
+  appearance: none;
+  -webkit-appearance: none;
+
+  cursor: pointer;
+
+  background-image:
+    linear-gradient(45deg, transparent 50%, #ffffff 50%),
+    linear-gradient(135deg, #ffffff 50%, transparent 50%);
+
+  background-position:
+    calc(100% - 15px) 13px,
+    calc(100% - 10px) 13px;
+
+  background-size:
+    5px 5px,
+    5px 5px;
+
+  background-repeat: no-repeat;
+}
+
+.form-group select option {
+  background: #111e34;
+  color: #ffffff;
+}
+
+
+/* =========================
+   PASSWORD
+========================= */
+
+.password-container {
+  position: relative;
+  width: 100%;
+}
+
+.password-container input {
+  padding-right: 40px;
+}
+
+.password-icon {
+  position: absolute;
+
+  right: 5px;
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  width: 28px;
+  height: 28px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: none;
+  background: transparent;
+
+  color: #ffffff;
+
+  cursor: pointer;
+
+  padding: 0;
+}
+
+.password-icon:hover {
+  color: #d99a13;
+}
+
+
+/* =========================
+   SIGN UP BUTTON
+========================= */
+
+.sign-up-btn {
+  display: block;
+
+  width: 85px;
+  height: 24px;
+
+  margin: 16px auto 14px;
+
+  border: none;
+  border-radius: 14px;
+
+  background: #df9808;
+  color: #111111;
+
+  font-size: 9px;
+
+  cursor: pointer;
+}
+
+.sign-up-btn:hover {
+  background: #eca914;
+}
+
+
+/* =========================
+   OR SECTION
+========================= */
+
+.or-section {
+  display: flex;
+  align-items: center;
+
+  width: 100%;
+
+  margin: 0 0 10px;
+}
+
+.or-section .line {
+  flex: 1;
+  height: 1px;
+
+  background: #c2c8d0;
+}
+
+.or-section span {
+  margin: 0 13px;
+
+  font-size: 9px;
+  color: #ffffff;
+}
+
+
+/* =========================
+   SIGN IN
+========================= */
+
+.signin-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  gap: 4px;
+
+  font-size: 8px;
+}
+
+.signin-section span {
+  color: #ffffff;
+}
+
+.signin-btn {
+  border: none;
+  background: transparent;
+
+  color: #df9808;
+
+  font-size: 8px;
+
+  padding: 0;
+
+  cursor: pointer;
+}
+
+.signin-btn:hover {
+  text-decoration: underline;
+}
+
+
+/* =========================
+   FOOTER
+========================= */
+
+footer {
+  margin-top: 19px;
+
+  font-size: 11px;
+
+  color: #ffffff;
+
+  text-align: center;
+}
+
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 500px) {
+
+  .signup-page {
+    padding: 30px 15px 15px;
+  }
+
+  .signup-card {
+    width: 100%;
+    max-width: 340px;
+
+    padding-left: 30px;
+    padding-right: 30px;
+  }
+
+  footer {
+    font-size: 10px;
+  }
+}
