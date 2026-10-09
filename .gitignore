@@ -3,3 +3,33 @@ backend/.venv/
 __pycache__/
 *.py[cod]
 backend/qdrant_storage/
+
+# Backend virtual environment
+backend/venv/
+backend/.venv/
+
+# Backend environment/secrets
+backend/.env
+backend/.env.*
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Frontend dependencies
+frontend/node_modules/
+
+# Frontend build
+frontend/dist/
+frontend/build/
+
+# IDE
+.vscode/
+.idea/
+
+backend/test_contradiction_detector.py
+backend/test_real_statements.py
+backend/test_cdr.py
+backend/test_llamaindex.py
+backend/test_rag_llamaindex.py
+backend/test_retrieval_llamaindex.py

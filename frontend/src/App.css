@@ -1,0 +1,561 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: #101521;
+  color: white;
+}
+
+
+/* =========================
+   MAIN PAGE
+========================= */
+
+.auth-page {
+  min-height: 100vh;
+  background: #101521;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  padding: 35px 20px 18px;
+}
+
+
+/* =========================
+   ACC HEADER
+========================= */
+
+.acc-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.acc-logo {
+  width: 115px;
+  height: auto;
+  object-fit: contain;
+  margin-bottom: 7px;
+}
+
+.acc-header h1 {
+  color: #d9950b;
+  font-family: Georgia, "Times New Roman", serif;
+
+  font-size: 22px;
+  font-weight: 500;
+
+  margin-bottom: 9px;
+}
+
+.acc-header p {
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  color: #f2f2f2;
+}
+
+.gold-line {
+  width: 60px;
+  height: 2px;
+
+  background: #d9950b;
+
+  margin: 12px auto 0;
+}
+
+
+/* =========================
+   AUTH CARD
+========================= */
+
+.auth-card {
+  width: 100%;
+
+  background: #213655;
+
+  border: 1px solid #526681;
+  border-radius: 12px;
+
+  padding: 30px 44px;
+
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.login-card {
+  max-width: 435px;
+}
+
+.signup-card {
+  max-width: 435px;
+}
+
+
+.auth-card h2 {
+  text-align: center;
+
+  font-size: 20px;
+  font-weight: 400;
+
+  color: #ffffff;
+
+  margin-bottom: 27px;
+}
+
+
+/* =========================
+   FORM
+========================= */
+
+.form-group {
+  margin-bottom: 17px;
+}
+
+.form-group label {
+  display: block;
+
+  font-size: 12px;
+  color: #ffffff;
+
+  margin-bottom: 7px;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  height: 43px;
+
+  background: #111e33;
+
+  border: 1px solid #61728c;
+  border-radius: 11px;
+
+  padding: 0 14px;
+
+  color: #ffffff;
+  font-size: 13px;
+
+  outline: none;
+
+  transition: 0.2s;
+}
+
+.form-group input::placeholder {
+  color: #536681;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  border-color: #d9950b;
+  box-shadow: 0 0 0 1px #d9950b;
+}
+
+
+/* =========================
+   SELECT
+========================= */
+
+.select-wrapper {
+  position: relative;
+}
+
+.select-wrapper select {
+  appearance: none;
+  -webkit-appearance: none;
+
+  cursor: pointer;
+
+  padding-right: 40px;
+}
+
+.select-wrapper select option {
+  background: #111e33;
+  color: white;
+}
+
+.select-icon {
+  position: absolute;
+
+  right: 13px;
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  color: #ffffff;
+
+  pointer-events: none;
+}
+
+
+/* =========================
+   PASSWORD
+========================= */
+
+.password-input {
+  position: relative;
+}
+
+.password-input input {
+  padding-right: 45px;
+}
+
+.password-toggle {
+  position: absolute;
+
+  right: 13px;
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  border: none;
+  background: transparent;
+
+  color: white;
+
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+/* =========================
+   FORGOT PASSWORD
+========================= */
+
+.forgot-password {
+  text-align: right;
+  margin-top: 9px;
+}
+
+.forgot-password a {
+  color: white;
+  text-decoration: none;
+
+  font-size: 13px;
+}
+
+.forgot-password a:hover {
+  color: #d9950b;
+}
+
+
+/* =========================
+   AUTH BUTTON
+========================= */
+
+.auth-button {
+  display: block;
+
+  width: 180px;
+  height: 44px;
+
+  margin: 25px auto 0;
+
+  background: #d9950b;
+
+  color: #000000;
+
+  border: none;
+  border-radius: 10px;
+
+  font-size: 16px;
+
+  cursor: pointer;
+
+  transition: 0.2s;
+}
+
+.auth-button:hover {
+  background: #efa915;
+  transform: translateY(-1px);
+}
+
+.auth-button:active {
+  transform: translateY(0);
+}
+
+
+/* =========================
+   OR
+========================= */
+
+.or-section {
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+
+  margin: 27px 0 14px;
+}
+
+.or-section span {
+  height: 1px;
+
+  flex: 1;
+
+  background: #aab3c1;
+}
+
+.or-section p {
+  font-size: 12px;
+  color: white;
+}
+
+
+/* =========================
+   LOGIN / SIGNUP SWITCH
+========================= */
+
+.switch-auth {
+  display: flex;
+
+  justify-content: center;
+  align-items: center;
+
+  gap: 9px;
+
+  font-size: 11px;
+
+  color: white;
+}
+
+.switch-auth a {
+  color: #d9950b;
+
+  text-decoration: none;
+}
+
+.switch-auth a:hover {
+  text-decoration: underline;
+}
+
+
+/* =========================
+   FOOTER
+========================= */
+
+footer {
+  margin-top: auto;
+
+  padding-top: 20px;
+
+  color: #ffffff;
+
+  font-size: 12px;
+
+  text-align: center;
+}
+
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 600px) {
+
+  .auth-page {
+    padding: 25px 15px 15px;
+  }
+
+  .acc-header h1 {
+    font-size: 19px;
+  }
+
+  .auth-card {
+    padding: 25px 25px;
+  }
+
+  .auth-card h2 {
+    font-size: 18px;
+  }
+
+  .login-card,
+  .signup-card {
+    max-width: 100%;
+  }
+
+}
+
+/* =========================================
+   FORGOT PASSWORD PAGES
+   ========================================= */
+
+.forgot-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+/* =========================================
+   FORGOT PASSWORD - EMAIL
+   ========================================= */
+
+.forgot-card {
+  width: 300px;
+  min-height: 200px;
+
+  background: #203452;
+
+  border-radius: 9px;
+
+  padding: 36px 35px;
+
+  box-sizing: border-box;
+}
+
+
+/* =========================================
+   OTP PAGE
+   ========================================= */
+
+.otp-card {
+  width: 380px;
+  min-height: 255px;
+
+  background: #203452;
+
+  border-radius: 9px;
+
+  padding: 45px 46px;
+
+  box-sizing: border-box;
+}
+
+.otp-title {
+  color: white;
+
+  font-size: 13px;
+
+  margin-bottom: 30px;
+}
+
+.otp-container {
+  display: flex;
+
+  justify-content: space-between;
+
+  gap: 10px;
+
+  margin-bottom: 50px;
+}
+
+.otp-input {
+  width: 35px;
+  height: 36px;
+
+  background: #111d33;
+
+  border: none;
+
+  color: white;
+
+  text-align: center;
+
+  font-size: 18px;
+
+  outline: none;
+}
+
+.otp-input:focus {
+  outline: 1px solid #d29111;
+}
+
+.otp-button {
+  width: 160px;
+
+  display: block;
+
+  margin: 0 auto;
+}
+
+
+/* =========================================
+   RESET PASSWORD
+   ========================================= */
+
+.reset-card {
+  width: 380px;
+
+  background: #203452;
+
+  border-radius: 9px;
+
+  padding: 48px 45px;
+
+  box-sizing: border-box;
+}
+
+.reset-card .form-group {
+  margin-bottom: 30px;
+}
+
+.reset-card label {
+  color: white;
+
+  font-size: 13px;
+
+  margin-bottom: 11px;
+
+  display: block;
+}
+
+.reset-button {
+  width: 160px;
+
+  display: block;
+
+  margin: 5px auto 0;
+}
+
+
+/* =========================================
+   PASSWORD INPUT
+   ========================================= */
+
+.password-input {
+  position: relative;
+
+  width: 100%;
+}
+
+.password-input input {
+  width: 100%;
+
+  box-sizing: border-box;
+
+  padding-right: 45px;
+}
+
+.password-toggle {
+  position: absolute;
+
+  right: 12px;
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  border: none;
+
+  background: transparent;
+
+  color: white;
+
+  cursor: pointer;
+
+  padding: 4px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+}
