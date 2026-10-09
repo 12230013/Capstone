@@ -42,6 +42,9 @@ function Login() {
 
       console.log("Login successful:", data);
 
+      // Save the logged-in user's details for the dashboard
+      localStorage.setItem("accUser", JSON.stringify(data.user));
+
       // Go to dashboard after successful login
       navigate("/dashboard");
 
