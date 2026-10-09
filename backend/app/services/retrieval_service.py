@@ -1,14 +1,40 @@
 import re
 
-from app.services.embedding_service import EmbeddingService
-from app.services.qdrant_service import QdrantService
+from llama_index.core import VectorStoreIndex
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+from llama_index.vector_stores.qdrant import QdrantVectorStore
+from qdrant_client import QdrantClient
 
 
 class RetrievalService:
-
     def __init__(self):
-        self.embedding_service = EmbeddingService()
-        self.qdrant_service = QdrantService()
+        # Connect to the existing local Qdrant database
+        self.qdrant_client = QdrantClient(
+            path="qdrant_storage"
+        )
+
+        # Use the existing Qdrant collection
+        self.vector_store = QdrantVectorStore(
+            client=self.qdrant_client,
+            collection_name="investigation_documents"
+        )
+
+        # Use the same embedding model as the existing RAG system
+        self.embed_model = HuggingFaceEmbedding(
+            model_name="sentence-transformers/all-MiniLM-L6-v2"
+        )
+
+        # Create LlamaIndex around the EXISTING vector store
+        self.index = VectorStoreIndex.from_vector_store(
+            vector_store=self.vector_store,
+            embed_model=self.embed_model
+        )
+
+        # Retriever only.
+        # LLM generation will still be handled by our existing LLMService.
+        self.retriever = self.index.as_retriever(
+            similarity_top_k=10
+        )
 
     def retrieve(
         self,
@@ -25,7 +51,10 @@ class RetrievalService:
         if limit <= 0:
             raise ValueError("Limit must be greater than 0.")
 
-        # Step 1: Detect investigation case from the query
+        # ---------------------------------------------------------
+        # Detect investigation case from the user's query
+        # ---------------------------------------------------------
+
         case_match = re.search(
             r"investigation\s+case\s+(\d+)",
             query,
@@ -37,72 +66,57 @@ class RetrievalService:
         if case_match:
             case_number = case_match.group(1).zfill(3)
 
-        # Step 2: Create query embedding
-        query_embedding = self.embedding_service.create_embedding(
-            query
-        )
+        # ---------------------------------------------------------
+        # LlamaIndex performs the vector retrieval
+        # ---------------------------------------------------------
 
-        # Step 3: Retrieve more results than needed
-        # so we can prioritize the requested case.
-        search_limit = max(limit * 3, 10)
+        retrieved_nodes = self.retriever.retrieve(query)
 
-        results = self.qdrant_service.search(
-            query_embedding=query_embedding,
-            limit=search_limit
-        )
-
-        # Step 4: Convert Qdrant results
         retrieved_chunks = []
 
-        for result in results:
+        for node in retrieved_nodes:
 
-            metadata = result.payload.get(
-                "metadata",
-                {}
-            )
-
-            filename = metadata.get(
-                "filename",
-                ""
-            )
+            metadata = node.metadata or {}
 
             retrieved_chunks.append({
-                "score": result.score,
-                "text": result.payload.get(
-                    "text",
-                    ""
-                ),
-                "metadata": metadata,
-                "_filename": filename
+                "score": node.score if node.score is not None else 0.0,
+                "text": node.get_content(),
+                "metadata": metadata
             })
 
-        # Step 5: If a case was specified,
-        # prioritize documents belonging to that case.
+        # ---------------------------------------------------------
+        # Preserve existing investigation-case prioritization
+        # ---------------------------------------------------------
+
         if case_number:
 
-            target_filename = (
-                f"case_{case_number}.txt"
-            )
+            target_filename = f"case_{case_number}.txt"
 
-            retrieved_chunks.sort(
-                key=lambda item: (
-                    item["_filename"].lower()
-                    != target_filename.lower(),
-                    -item["score"]
-                )
-            )
+            case_chunks = [
+                 chunk
+                 for chunk in retrieved_chunks
+                 if chunk["metadata"].get(
+                     "metadata",
+                     {}
+                 ).get("filename",
+                        ""
+                 ).lower() == target_filename.lower()
+            ]
+
+            if case_chunks:
+                retrieved_chunks = case_chunks
 
         else:
 
-            # No specific case was mentioned.
-            # Keep normal similarity ranking.
             retrieved_chunks.sort(
                 key=lambda item: -item["score"]
             )
 
-        # Step 6: Remove internal helper field
-        for chunk in retrieved_chunks:
-            chunk.pop("_filename", None)
+        # ---------------------------------------------------------
+        # Return only the requested number of chunks
+        # ---------------------------------------------------------
 
-        # Step 7: Return only the requested number
         return retrieved_chunks[:limit]
+
+    def close(self):
+        self.qdrant_client.close()

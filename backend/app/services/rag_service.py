@@ -1,9 +1,7 @@
-import re
-
 from app.services.retrieval_service import RetrievalService
 from app.services.prompt_service import PromptService
 from app.services.llm_service import LLMService
-
+import re
 
 class RAGService:
 
@@ -18,6 +16,10 @@ class RAGService:
         limit: int = 3
     ) -> dict:
 
+        # ---------------------------------------------------------
+        # Validate input
+        # ---------------------------------------------------------
+
         if not isinstance(query, str):
             raise ValueError("Query must be a string.")
 
@@ -27,14 +29,22 @@ class RAGService:
         if limit <= 0:
             raise ValueError("Limit must be greater than 0.")
 
+        # ---------------------------------------------------------
         # Step 1: Retrieve relevant evidence
+        #
+        # RetrievalService now uses LlamaIndex + Qdrant.
+        # It also handles investigation-case filtering.
+        # ---------------------------------------------------------
+
         retrieved_chunks = self.retrieval_service.retrieve(
             query=query,
             limit=limit
         )
 
-        # Step 2: Detect whether a specific investigation
-        # case was mentioned in the user's query.
+        # ---------------------------------------------------------
+        # Detect whether the query specifies an investigation case
+        # ---------------------------------------------------------
+
         case_match = re.search(
             r"investigation\s+case\s+(\d+)",
             query,
@@ -46,50 +56,104 @@ class RAGService:
         if case_match:
             case_number = case_match.group(1).zfill(3)
 
-        # Step 3: If a specific case was requested,
-        # keep only evidence belonging to that case.
-        if case_number:
+        # ---------------------------------------------------------
+        # If no case is specified and multiple cases were retrieved,
+        # ask the user to specify the case.
+        # ---------------------------------------------------------
 
-            target_filename = (
-                f"case_{case_number}.txt"
+        if case_number is None:
+
+            case_numbers = set()
+
+            for chunk in retrieved_chunks:
+
+                metadata = chunk.get("metadata", {})
+                file_metadata = metadata.get("metadata", {})
+
+                filename = file_metadata.get("filename", "")
+
+                match = re.search(
+                     r"case_(\d+)",
+                     filename,
+                     re.IGNORECASE
+                )
+
+                if match:
+                    case_numbers.add(
+                    match.group(1)
+                )
+
+            if len(case_numbers) > 1:
+
+                cases = ", ".join(
+                    sorted(case_numbers)
             )
 
-            filtered_chunks = [
-                chunk
-                for chunk in retrieved_chunks
-                if chunk["metadata"].get(
-                    "filename",
-                    ""
-                ).lower() == target_filename.lower()
-            ]
+                return {
+                    "answer": (
+                        "Your question is ambiguous because the "
+                        "available evidence relates to multiple "
+                        f"investigation cases ({cases}). "
+                        "Please specify the investigation case "
+                        "you are referring to."
+                    ),
+                    "sources": []
+                }
 
-            # Only replace the retrieved evidence if
-            # matching case evidence was found.
-            if filtered_chunks:
-                retrieved_chunks = filtered_chunks
+        # ---------------------------------------------------------
+        # Step 2: Build prompt using retrieved evidence
+        # ---------------------------------------------------------
 
-        # Step 4: Build prompt using the selected evidence
         prompt = self.prompt_service.build_prompt(
             query=query,
             retrieved_chunks=retrieved_chunks
         )
 
-        # Step 5: Generate answer using Mistral
+        # ---------------------------------------------------------
+        # Step 3: Generate answer using local Mistral
+        # ---------------------------------------------------------
+
         answer = self.llm_service.generate(prompt)
 
-        # Step 6: Prepare sources
+        # ---------------------------------------------------------
+        # Step 4: Prepare sources
+        # ---------------------------------------------------------
+
         sources = []
 
         for chunk in retrieved_chunks:
+
+            metadata = chunk.get("metadata", {})
+
+            # LlamaIndex metadata is currently nested:
+            # {
+            #     "metadata": {
+            #         "filename": "...",
+            #         ...
+            #     }
+            # }
+
+            file_metadata = metadata.get(
+                "metadata",
+                {}
+            )
+
             sources.append({
-                "filename": chunk["metadata"].get(
+                "filename": file_metadata.get(
                     "filename",
                     "Unknown source"
                 ),
                 "score": chunk["score"]
             })
 
+        # ---------------------------------------------------------
+        # Step 5: Return final RAG response
+        # ---------------------------------------------------------
+
         return {
             "answer": answer,
             "sources": sources
         }
+
+    def close(self):
+        self.retrieval_service.close()
