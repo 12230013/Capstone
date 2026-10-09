@@ -1,1 +1,5 @@
 .env
+backend/.venv/
+__pycache__/
+*.py[cod]
+backend/qdrant_storage/
