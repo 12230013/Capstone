@@ -332,7 +332,8 @@ def detect_irregular_patterns(
             })
 
         # 2. ONE-SIDED COMMUNICATION
-        if total > 0:
+        # Only evaluate contacts with at least 5 interactions with the contact
+        if total >= 5:
             incoming_ratio = incoming / total
             outgoing_ratio = outgoing / total
 
@@ -569,6 +570,9 @@ def generate_communication_network(
             contact_cid = "unknown"
 
         else:
+            continue
+
+        if not contact_number:
             continue
 
         # Add contact node

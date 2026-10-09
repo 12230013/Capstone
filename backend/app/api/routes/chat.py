@@ -1,7 +1,7 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from app.services.rag_service import RAGService
+from app.services.chat_service import ChatService
 
 
 router = APIRouter(
@@ -14,18 +14,15 @@ class ChatRequest(BaseModel):
     query: str
 
 
-rag_service = RAGService()
+chat_service = ChatService()
 
 
 @router.post("/chat")
 async def chat(request: ChatRequest):
-
-    response = rag_service.query(
-        request.query
-    )
-
-    return {
-        "success": True,
-        "response": response
-    }
-
+    try:
+        return await chat_service.query(request.query)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc),
+        )
