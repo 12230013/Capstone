@@ -3,74 +3,93 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 function VerifyOTP() {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const inputRefs = useRef([]);
-
   const navigate = useNavigate();
   const location = useLocation();
-
   const email = location.state?.email || "";
 
   const handleChange = (value, index) => {
-    // Only allow numbers
-    if (!/^\d?$/.test(value)) {
-      return;
-    }
+    if (!/^\d?$/.test(value)) return;
 
     const newOtp = [...otp];
     newOtp[index] = value;
-
     setOtp(newOtp);
 
-    // Move to next box
     if (value && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
   };
 
   const handleKeyDown = (e, index) => {
-    // Move to previous box when backspace is pressed
-    if (
-      e.key === "Backspace" &&
-      !otp[index] &&
-      index > 0
-    ) {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
 
     const enteredOTP = otp.join("");
 
     if (enteredOTP.length !== 6) {
-      alert("Please enter the complete OTP.");
+      setError("Please enter the complete OTP.");
       return;
     }
 
-    // Backend/OTP verification will be connected later
-    console.log("OTP:", enteredOTP);
-    console.log("Email:", email);
+    if (!email) {
+      setError("Email is missing. Please request a new OTP.");
+      return;
+    }
 
-    navigate("/reset-password", {
-      state: { email },
-    });
+    setLoading(true);
+
+    try {
+      const response = await fetch(
+        "http://127.0.0.1:8000/api/auth/verify-otp",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email,
+            otp: enteredOTP,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "OTP verification failed.");
+      }
+
+      if (!data.reset_token) {
+        throw new Error("Reset token was not returned by the backend.");
+      }
+
+      navigate("/reset-password", {
+        state: {
+          email,
+          resetToken: data.reset_token,
+        },
+      });
+    } catch (err) {
+      setError(err.message || "Unable to connect to the backend.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="auth-page forgot-page">
-
       <div className="otp-card">
-
         <form onSubmit={handleSubmit}>
-
-          <div className="otp-title">
-            OTP
-          </div>
+          <div className="otp-title">OTP</div>
 
           <div className="otp-container">
-
             {otp.map((digit, index) => (
               <input
                 key={index}
@@ -81,26 +100,25 @@ function VerifyOTP() {
                 inputMode="numeric"
                 maxLength="1"
                 value={digit}
-                onChange={(e) =>
-                  handleChange(e.target.value, index)
-                }
-                onKeyDown={(e) =>
-                  handleKeyDown(e, index)
-                }
+                onChange={(e) => handleChange(e.target.value, index)}
+                onKeyDown={(e) => handleKeyDown(e, index)}
                 className="otp-input"
+                aria-label={`OTP digit ${index + 1}`}
               />
             ))}
-
           </div>
 
-          <button type="submit" className="auth-button otp-button">
-            Enter
+          {error && <p style={{ color: "red" }}>{error}</p>}
+
+          <button
+            type="submit"
+            className="auth-button otp-button"
+            disabled={loading}
+          >
+            {loading ? "Verifying..." : "Enter"}
           </button>
-
         </form>
-
       </div>
-
     </div>
   );
 }

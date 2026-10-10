@@ -11,3 +11,4 @@ client = MongoClient(MONGO_URI, authSource="admin")
 db = client["acc_database"]
 
 users_collection = db["users"]
+password_reset_collection = db["password_reset_otps"]
