@@ -13,6 +13,11 @@ router = APIRouter(
 
 @router.post("/signup")
 def signup(user: UserCreate):
+    if users_collection is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Database connection is not available."
+        )
 
     existing_employee = users_collection.find_one({
         "employee_id": user.employee_id
@@ -55,6 +60,11 @@ def signup(user: UserCreate):
 
 @router.post("/login")
 def login(user: UserLogin):
+    if users_collection is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Database connection is not available."
+        )
 
     # Find user by email
     existing_user = users_collection.find_one({

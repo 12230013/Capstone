@@ -79,7 +79,7 @@ export default function Chat() {
             typeof answer === "string"
               ? answer
               : JSON.stringify(answer, null, 2),
-          sources: data.response?.sources ?? [],
+          sources:  data.response?.sources ?? data.sources ??[],
           visualization: data.response?.visualization ?? null,
         },
       ]);
@@ -187,25 +187,75 @@ export default function Chat() {
                   <RelationshipNetwork data={item.visualization.data} />
                 )}
 
-              {item.role === "assistant" && item.sources?.length > 0 && (
-                <div className="chat-sources">
-                  <strong>Sources</strong>
 
-                  {item.sources.map((source, sourceIndex) => (
-                    <div key={sourceIndex} className="chat-source-item">
-                      {source.type === "CDR analysis" ? (
-                        <>
-                          <span>CDR analytics</span>
-                          <span>Phone: {source.phone_number}</span>
-                          <span>Analysis: {source.analysis}</span>
-                        </>
-                      ) : (
-                        <span>{source.type}</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
+{item.role === "assistant" && item.sources?.length > 0 && (
+  <div className="chat-sources">
+    <strong className="chat-sources-title">
+      Sources ({item.sources.length})
+    </strong>
+
+    {item.sources.map((source, sourceIndex) => (
+      <div
+        key={`${source.doc_id || source.filename || source.type || "source"}-${sourceIndex}`}
+        className="chat-source-item"
+      >
+        {source.type === "CDR analysis" ? (
+          <>
+            <strong>CDR Analytics</strong>
+            {source.phone_number && (
+              <span>Phone: {source.phone_number}</span>
+            )}
+            {source.analysis && (
+              <span>Analysis: {source.analysis}</span>
+            )}
+          </>
+        ) : (
+          <>
+            <strong>
+              {source.person_name ||
+                source.filename ||
+                source.doc_id ||
+                source.type ||
+                `Source ${sourceIndex + 1}`}
+            </strong>
+
+            {source.case_no && (
+              <span>Case: {source.case_no}</span>
+            )}
+
+            {source.statement_date && (
+              <span>Statement date: {source.statement_date}</span>
+            )}
+
+            {source.filename && (
+              <span>Document: {source.filename}</span>
+            )}
+
+            {source.sentence_ids?.length > 0 && (
+              <span>
+                Sentence IDs: {source.sentence_ids.join(", ")}
+              </span>
+            )}
+
+            {source.excerpt && (
+              <details className="chat-source-excerpt">
+                <summary>View retrieved passage</summary>
+                <p>{source.excerpt}</p>
+              </details>
+            )}
+
+            {/* {source.score != null && (
+              <span className="chat-source-score">
+                Retrieval score: {source.score}
+              </span>
+            )} */}
+          </>
+        )}
+      </div>
+    ))}
+  </div>
+)}
+
             </div>
           ))}
 

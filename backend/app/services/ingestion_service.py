@@ -32,6 +32,13 @@ class IngestionService:
         if "page_count" in document:
             metadata["page_count"] = document["page_count"]
 
+        # Preserve ACC statement metadata if present
+        for field in ["is_statement", "person_name", "cid", "phone_number", "occupation"]:
+            if field in document:
+                metadata[field] = document[field]
+        if "statement_metadata" in document and isinstance(document["statement_metadata"], dict):
+            metadata["statement_metadata"] = document["statement_metadata"]
+
         # Step 4: Create chunks
         chunks = chunk_text(
             cleaned_text,

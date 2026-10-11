@@ -1,40 +1,12 @@
+
 import re
 
-from llama_index.core import VectorStoreIndex
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.vector_stores.qdrant import QdrantVectorStore
-from qdrant_client import QdrantClient
+from acc_statements.index import search as search_statements
+from acc_statements.index import close_client
 
 
 class RetrievalService:
-    def __init__(self):
-        # Connect to the existing local Qdrant database
-        self.qdrant_client = QdrantClient(
-            path="qdrant_storage"
-        )
-
-        # Use the existing Qdrant collection
-        self.vector_store = QdrantVectorStore(
-            client=self.qdrant_client,
-            collection_name="investigation_documents"
-        )
-
-        # Use the same embedding model as the existing RAG system
-        self.embed_model = HuggingFaceEmbedding(
-            model_name="sentence-transformers/all-MiniLM-L6-v2"
-        )
-
-        # Create LlamaIndex around the EXISTING vector store
-        self.index = VectorStoreIndex.from_vector_store(
-            vector_store=self.vector_store,
-            embed_model=self.embed_model
-        )
-
-        # Retriever only.
-        # LLM generation will still be handled by our existing LLMService.
-        self.retriever = self.index.as_retriever(
-            similarity_top_k=10
-        )
+    """Retrieve evidence from the existing ACC statements index."""
 
     def retrieve(
         self,
@@ -42,81 +14,64 @@ class RetrievalService:
         limit: int = 5
     ) -> list[dict]:
 
-        if not isinstance(query, str):
-            raise ValueError("Query must be a string.")
-
-        if not query.strip():
+        if not isinstance(query, str) or not query.strip():
             raise ValueError("Query cannot be empty.")
 
         if limit <= 0:
             raise ValueError("Limit must be greater than 0.")
 
-        # ---------------------------------------------------------
-        # Detect investigation case from the user's query
-        # ---------------------------------------------------------
-
+        # Filter by the exact case identifier when one is supplied.
         case_match = re.search(
-            r"investigation\s+case\s+(\d+)",
+            r"\bACC/\d{4}/\d{3}\b",
             query,
             re.IGNORECASE
         )
 
-        case_number = None
+        case_nos = (
+            [case_match.group(0).upper()]
+            if case_match
+            else None
+        )
 
-        if case_match:
-            case_number = case_match.group(1).zfill(3)
-
-        # ---------------------------------------------------------
-        # LlamaIndex performs the vector retrieval
-        # ---------------------------------------------------------
-
-        retrieved_nodes = self.retriever.retrieve(query)
+        # Search the existing BGE-M3/Qdrant index.
+        results = search_statements(
+            query=query,
+            case_nos=case_nos,
+            top_k=limit
+        )
 
         retrieved_chunks = []
 
-        for node in retrieved_nodes:
+        for result in results:
+            doc_id = result.get("doc_id", "unknown")
+            filename = f"{doc_id}.txt"
 
-            metadata = node.metadata or {}
+            # The existing index stores numbered sentence text here.
+            text = result.get("text_numbered", "")
+
+            if not text.strip():
+                continue
 
             retrieved_chunks.append({
-                "score": node.score if node.score is not None else 0.0,
-                "text": node.get_content(),
-                "metadata": metadata
+                "score": result.get("score", 0.0),
+                "text": text,
+                "metadata": {
+                    "metadata": {
+                        "filename": filename,
+                        "case_no": result.get("case_no", ""),
+                        "doc_id": doc_id,
+                        "person_name": result.get("person_name", ""),
+                        "statement_date": result.get(
+                            "statement_date", ""
+                        ),
+                        "sentence_ids": result.get(
+                            "sentence_ids", []
+                        )
+                    }
+                }
             })
 
-        # ---------------------------------------------------------
-        # Preserve existing investigation-case prioritization
-        # ---------------------------------------------------------
-
-        if case_number:
-
-            target_filename = f"case_{case_number}.txt"
-
-            case_chunks = [
-                 chunk
-                 for chunk in retrieved_chunks
-                 if chunk["metadata"].get(
-                     "metadata",
-                     {}
-                 ).get("filename",
-                        ""
-                 ).lower() == target_filename.lower()
-            ]
-
-            if case_chunks:
-                retrieved_chunks = case_chunks
-
-        else:
-
-            retrieved_chunks.sort(
-                key=lambda item: -item["score"]
-            )
-
-        # ---------------------------------------------------------
-        # Return only the requested number of chunks
-        # ---------------------------------------------------------
-
-        return retrieved_chunks[:limit]
+        return retrieved_chunks
 
     def close(self):
-        self.qdrant_client.close()
+        close_client()

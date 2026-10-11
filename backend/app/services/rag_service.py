@@ -70,18 +70,9 @@ class RAGService:
                 metadata = chunk.get("metadata", {})
                 file_metadata = metadata.get("metadata", {})
 
-                filename = file_metadata.get("filename", "")
-
-                match = re.search(
-                     r"case_(\d+)",
-                     filename,
-                     re.IGNORECASE
-                )
-
-                if match:
-                    case_numbers.add(
-                    match.group(1)
-                )
+                case_no = file_metadata.get("case_no", "")
+                if case_no:
+                    case_numbers.add(case_no)
 
             if len(case_numbers) > 1:
 
@@ -118,42 +109,36 @@ class RAGService:
         # ---------------------------------------------------------
         # Step 4: Prepare sources
         # ---------------------------------------------------------
-
         sources = []
+        seen_sources = set()
 
         for chunk in retrieved_chunks:
-
             metadata = chunk.get("metadata", {})
+            file_metadata = metadata.get("metadata", {})
 
-            # LlamaIndex metadata is currently nested:
-            # {
-            #     "metadata": {
-            #         "filename": "...",
-            #         ...
-            #     }
-            # }
+            doc_id = file_metadata.get("doc_id", "")
+            filename = file_metadata.get("filename", "Unknown source")
 
-            file_metadata = metadata.get(
-                "metadata",
-                {}
-            )
-
+            # Identify each file uniquely
+            source_key = doc_id or filename
+            if source_key in seen_sources:
+                continue
+            seen_sources.add(source_key)
             sources.append({
-                "filename": file_metadata.get(
-                    "filename",
-                    "Unknown source"
-                ),
-                "score": chunk["score"]
+                    "filename": filename,
+                    "doc_id": doc_id,
+                    "case_no": file_metadata.get("case_no", ""),
+                    "person_name": file_metadata.get("person_name", ""),
+                    "statement_date": file_metadata.get("statement_date", ""),
+                    "sentence_ids": file_metadata.get("sentence_ids", []),
+                    "excerpt": chunk.get("text", ""),
             })
-
-        # ---------------------------------------------------------
-        # Step 5: Return final RAG response
-        # ---------------------------------------------------------
-
         return {
             "answer": answer,
             "sources": sources
         }
+
+
 
     def close(self):
         self.retrieval_service.close()

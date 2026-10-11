@@ -33,3 +33,17 @@ backend/test_cdr.py
 backend/test_llamaindex.py
 backend/test_rag_llamaindex.py
 backend/test_retrieval_llamaindex.py
+
+# Local investigation data and generated vector database
+# Local statement-analysis data and environments
+backend/acc_statements/.venv/
+backend/acc_statements/__pycache__/
+backend/acc_statements/outputs/
+backend/acc_statements/qdrant_db/
+backend/app/statement_documents/
+backend/qdrant_storage/
+
+# Local environment files
+.env
+.env.*
+!backend/.env.example

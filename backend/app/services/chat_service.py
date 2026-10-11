@@ -174,10 +174,42 @@ def format_relationship_answer(data: dict, query: str) -> str:
 
 class ChatService:
     def __init__(self):
-        self.rag_service = RAGService()
-        self.cdr_service = CDRService()
-        self.llm_service = LLMService()
-        self.prompt_service = PromptService()
+        self._rag_service = None
+        self._cdr_service = None
+        self._llm_service = None
+        self._prompt_service = None
+        self._statement_service = None
+
+    @property
+    def rag_service(self):
+        if self._rag_service is None:
+            self._rag_service = RAGService()
+        return self._rag_service
+
+    @property
+    def cdr_service(self):
+        if self._cdr_service is None:
+            self._cdr_service = CDRService()
+        return self._cdr_service
+
+    @property
+    def llm_service(self):
+        if self._llm_service is None:
+            self._llm_service = LLMService()
+        return self._llm_service
+
+    @property
+    def prompt_service(self):
+        if self._prompt_service is None:
+            self._prompt_service = PromptService()
+        return self._prompt_service
+
+    @property
+    def statement_service(self):
+        if self._statement_service is None:
+            from app.services.statement_service import StatementService
+            self._statement_service = StatementService()
+        return self._statement_service
 
     async def query(self, query: str) -> dict:
         if not isinstance(query, str) or not query.strip():
@@ -1133,7 +1165,216 @@ class ChatService:
 
 
         # ---------------------------------------------------------
-        # NORMAL RAG QUERY
+        # STATEMENT CONTRADICTION DETECTION
+        # ---------------------------------------------------------
+        contradiction_keywords = [
+            "contradiction",
+            "contradictions",
+            "conflicting statement",
+            "conflicting statements",
+            "discrepancy",
+            "discrepancies",
+        ]
+        is_contradiction_query = any(k in query_lower for k in contradiction_keywords) and (
+            "statement" in query_lower or "witness" in query_lower or "accused" in query_lower
+        )
+
+        if is_contradiction_query:
+            try:
+                from app.services.statement_service import StatementService
+                stmt_service = StatementService()
+                contradiction_data = stmt_service.detect_contradictions()
+                result = contradiction_data["result"]
+
+                findings = result.get("findings", [])
+                overall = result.get("overall_result", "NO CONTRADICTION FOUND")
+
+                lines = [f"### Statement Contradiction Analysis: {overall}\n"]
+                if findings:
+                    lines.append(f"Identified {len(findings)} factual contradiction(s) across witness/suspect statements:\n")
+                    for idx, f in enumerate(findings, 1):
+                        lines.append(f"**{idx}. Subject: {f.get('subject', 'Unknown').title()} ({f.get('type', 'Attribute').title()})**")
+                        for val in f.get("values", []):
+                            stmts = ", ".join(val.get("statements", []))
+                            lines.append(f"- *Claim:* \"{val.get('value')}\" (Source: {stmts})")
+                        lines.append("")
+                else:
+                    lines.append("No explicit factual contradictions were found across the analyzed statement claims.")
+
+                return {
+                    "success": True,
+                    "response": {
+                        "answer": "\n".join(lines),
+                        "sources": [
+                            {
+                                "type": "Statement Contradiction Analysis",
+                                "statements": contradiction_data["analyzed_statements"]
+                            }
+                        ]
+                    }
+                }
+            except Exception as e:
+                print(f"Statement contradiction analysis error: {e}")
+
+        # ---------------------------------------------------------
+        # LIST ALL STATEMENTS QUERY
+        # ---------------------------------------------------------
+        is_list_statements = (
+            any(phrase in query_lower for phrase in [
+                "list statements",
+                "list the statements",
+                "list all statements",
+                "show statements",
+                "show all statements",
+                "available statements",
+                "what statements do we have",
+                "what statements are available",
+                "witness statements available",
+                "all witness statements",
+            ])
+            and not any(k in query_lower for k in ["contradiction", "summarize", "summary"])
+        )
+
+        if is_list_statements:
+            try:
+                from app.services.statement_service import StatementService
+                stmt_service = StatementService()
+                statements = stmt_service.list_statements()
+                if statements:
+                    lines = [f"Found {len(statements)} statement document(s) in the system:\n"]
+                    for idx, s in enumerate(statements, 1):
+                        lines.append(
+                            f"{idx}. **{s['name']}** (Document ID: `{s['statement_id']}`)\n"
+                            f"   - **CID:** {s['cid']}\n"
+                            f"   - **Occupation:** {s['occupation']}\n"
+                            f"   - **Dzongkhang:** {s['dzongkhang']}\n"
+                            f"   - **Phone:** {s['phone_number']}"
+                        )
+                    return {
+                        "success": True,
+                        "response": {
+                            "answer": "\n".join(lines),
+                            "sources": [
+                                {
+                                    "type": "Statement Documents",
+                                    "statement_id": s["statement_id"],
+                                    "name": s["name"]
+                                }
+                                for s in statements
+                            ]
+                        }
+                    }
+            except Exception as e:
+                print(f"List statements error: {e}")
+
+        # ---------------------------------------------------------
+        # STATEMENT SUMMARIZATION QUERY
+        # ---------------------------------------------------------
+        is_summary_query = any(k in query_lower for k in ["summarize", "summary", "brief overview", "key points"]) and (
+            "statement" in query_lower or any(n in query_lower for n in ["kinga", "prem", "tashi"])
+        )
+
+        if is_summary_query:
+            try:
+                from app.services.statement_service import StatementService
+                stmt_service = StatementService()
+                all_stmts = stmt_service.list_statements()
+                target_stmt = None
+                st_match = re.search(r"statement\s*[_#]?\s*(\d+)", query_lower)
+                if st_match:
+                    st_id = f"statement_{st_match.group(1)}"
+                    target_stmt = next((s for s in all_stmts if s["statement_id"] == st_id), None)
+                if not target_stmt:
+                    for s in all_stmts:
+                        if s["name"].lower() in query_lower:
+                            target_stmt = s
+                            break
+                if not target_stmt and all_stmts:
+                    target_stmt = all_stmts[0]
+
+                if target_stmt:
+                    summary_res = stmt_service.summarize_statement(target_stmt["statement_id"])
+                    if summary_res.get("success"):
+                        lines = [f"### Summary of Statement: {target_stmt['name']} ({target_stmt['statement_id']})\n"]
+                        lines.append(summary_res.get("summary", ""))
+                        if summary_res.get("key_points"):
+                            lines.append("\n**Key Points:**")
+                            for kp in summary_res["key_points"]:
+                                cits = " ".join(f"[{cid}]" for cid in kp.get("sentence_ids", []))
+                                lines.append(f"- {kp['point']} {cits}".strip())
+                        return {
+                            "success": True,
+                            "response": {
+                                "answer": "\n".join(lines),
+                                "sources": [
+                                    {
+                                        "type": "Statement Summary",
+                                        "statement_id": target_stmt["statement_id"],
+                                        "name": target_stmt["name"]
+                                    }
+                                ]
+                            }
+                        }
+            except Exception as e:
+                print(f"Statement summarization error: {e}")
+
+        # ---------------------------------------------------------
+        # STATEMENT TIMELINE QUERY
+        # ---------------------------------------------------------
+        is_timeline_query = any(k in query_lower for k in ["timeline", "chronology", "sequence of events"]) and (
+            "statement" in query_lower or "witness" in query_lower or "case" in query_lower
+        )
+        if is_timeline_query:
+            try:
+                from app.services.statement_service import StatementService
+                stmt_service = StatementService()
+                timeline = stmt_service.build_timeline()
+                if timeline:
+                    lines = ["### Chronological Case Timeline from Statements:\n"]
+                    for ev in timeline:
+                        dt = ev.get("date") or "(no date)"
+                        tm = f" ({ev.get('time')})" if ev.get("time") else ""
+                        sid = f" [{ev.get('source', {}).get('sentence_id')}]" if ev.get("source") else ""
+                        lines.append(f"- **{dt}{tm}:** {ev.get('event')}{sid}")
+                    return {
+                        "success": True,
+                        "response": {
+                            "answer": "\n".join(lines),
+                            "sources": [
+                                {
+                                    "type": "Statement Timeline",
+                                    "events_count": len(timeline)
+                                }
+                            ]
+                        }
+                    }
+            except Exception as e:
+                print(f"Statement timeline error: {e}")
+
+        # ---------------------------------------------------------
+        # STATEMENT EVIDENCE RAG QUERY (WITH SENTENCE CITATIONS)
+        # ---------------------------------------------------------
+        is_statement_query = ("statement" in query_lower or any(n in query_lower for n in ["kinga norbu", "prem kr rai", "tashi topden"]))
+        if is_statement_query:
+            try:
+                from app.services.statement_service import StatementService
+                stmt_service = StatementService()
+                stmt_rag = stmt_service.query_statement_evidence(query=query)
+                if stmt_rag.get("success") and stmt_rag.get("answer"):
+                    return {
+                        "success": True,
+                        "response": {
+                            "answer": stmt_rag["answer"],
+                            "sources": stmt_rag.get("sources", []),
+                            "warnings": stmt_rag.get("warnings", []),
+                            "disclaimer": stmt_rag.get("disclaimer", "")
+                        }
+                    }
+            except Exception as e:
+                print(f"Statement RAG error: {e}")
+
+        # ---------------------------------------------------------
+        # NORMAL RAG QUERY (Investigation Cases & Statements)
         # ---------------------------------------------------------
         rag_result = self.rag_service.query(query)
 
@@ -1143,6 +1384,9 @@ class ChatService:
         }
 
     def close(self):
-        self.rag_service.close()
-        self.cdr_service.close()
-        self.llm_service.close()
+        if self._rag_service and hasattr(self._rag_service, "close"):
+            self._rag_service.close()
+        if self._cdr_service and hasattr(self._cdr_service, "close"):
+            self._cdr_service.close()
+        if self._llm_service and hasattr(self._llm_service, "close"):
+            self._llm_service.close()
