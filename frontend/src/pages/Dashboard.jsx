@@ -1,5 +1,5 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Plus,
   Search,
@@ -54,17 +54,20 @@ const suggestions = [
   "What patterns do you see in the CDR data?",
 ];
 
-function Sidebar({
+export function Sidebar({
   folders,
   onCreateFolder,
   onDeleteFolder,
   onNewConversation,
+  onSelectConversation,
+  activeConversationId,
   user,
 }) {
   const [showFolderInput, setShowFolderInput] = useState(false);
   const [folderName, setFolderName] = useState("");
   const [activeTab, setActiveTab] = useState("history");
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
 
   const handleCreateFolder = (e) => {
     e.preventDefault();
@@ -187,41 +190,39 @@ function Sidebar({
       </div>
 
       {/* Chat history / activity log */}
-      <div className="sidebar-section history-section">
-        {activeTab === "history" ? (
-          <>
-            <div className="sidebar-section-heading">
-              <span>RECENT CONVERSATIONS</span>
-            </div>
+      
+    <div className="sidebar-section history-section">
+      {activeTab === "history" ? (
+        <>
+          <div className="sidebar-section-heading">
+            <span>RECENT CONVERSATIONS</span>
+          </div>
 
-            <div className="empty-history">
-              <MessageSquare size={23} />
-              <p>No conversations yet</p>
-              <span>Start a new conversation to see it here.</span>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="sidebar-section-heading">
-              <span>ACTIVITY</span>
-            </div>
+          <div className="empty-history">
+            <MessageSquare size={23} />
+            <p>No conversations yet</p>
+            <span>Start a new conversation to see it here.</span>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="sidebar-section-heading">
+            <span>ACTIVITY</span>
+          </div>
 
-            <div className="empty-history">
-              <Clock size={23} />
-              <p>No activity yet</p>
-              <span>Your recent activity will appear here.</span>
-            </div>
-          </>
-        )}
-      </div>
+          <div className="empty-history">
+            <Clock size={23} />
+            <p>No activity yet</p>
+            <span>Your recent activity will appear here.</span>
+          </div>
+        </>
+      )}
+    </div>
 
-      {/* Decorative Bhutanese dragon.
-          Add your image later at public/dragon.png */}
+
+      {/* Decorative Bhutanese dragon.*/}
       <div className="sidebar-dragon" aria-hidden="true" />
 
-      {/* User profile */}
-
-      {/* User profile */}
 
       {/* User profile */}
       <div className="sidebar-user">
@@ -310,6 +311,7 @@ function SuggestedQuestion({ text, onClick }) {
 }
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [user] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem("accUser") || "null");
@@ -320,7 +322,8 @@ export default function Dashboard() {
 
   const [message, setMessage] = useState("");
   const [folders, setFolders] = useState([]);
-  const [conversationStarted, setConversationStarted] = useState(false);
+
+  const [loading, setLoading] = useState(false);
 
   const createFolder = (name) => {
     const exists = folders.some(
@@ -355,27 +358,25 @@ export default function Dashboard() {
 
   const startNewConversation = () => {
     setMessage("");
-    setConversationStarted(false);
+    navigate("/chat");
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     const question = message.trim();
 
     if (!question) return;
 
-    setConversationStarted(true);
-
-    // Temporary frontend behaviour.
-    // We will connect this to the AI backend later.
-    console.log("User question:", question);
-
-    setMessage("");
+    navigate("/chat", {
+      state: { initialQuestion: question },
+    });
   };
 
   const chooseSuggestion = (question) => {
-    setMessage(question);
+    navigate("/chat", {
+      state: { initialQuestion: question },
+    });
   };
 
   return (
@@ -456,17 +457,6 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* Intro message for a new conversation */}
-        {conversationStarted && (
-          <div className="local-notice">
-            <MessageSquare size={16} />
-            <span>
-              Your question is ready for backend integration. AI responses are
-              not connected yet.
-            </span>
-          </div>
-        )}
-
         {/* Flexible space */}
         <div className="content-spacer" />
 
@@ -496,7 +486,7 @@ export default function Dashboard() {
             <button
               type="submit"
               className="send-button"
-              disabled={!message.trim()}
+              disabled={!message.trim() || loading}
               aria-label="Send message"
               title="Send message"
             >

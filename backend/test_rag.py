@@ -10,10 +10,10 @@ llm_service = LLMService()
 
 #query = "Where did the accused meet the witness?"
 #query = " Where did the accused meet the witness in Investigation Case 002"
-#query = "What was the amount of the financial transaction in Investigation Case 002?"
+query = "What was the amount of the financial transaction in Investigation Case 002?"
 #query = "What financial matter was discussed in Investigation Case 002?"
 #query = "When did the meeting in Investigation Case 002 take place?"
-query = "Where and when did the accused meet the witness in Investigation Case 002, and how long did the meeting last?"
+#query = "Where and when did the accused meet the witness in Investigation Case 002, and how long did the meeting last?"
 
 # Step 1: Retrieve relevant evidence
 retrieved_chunks = retrieval_service.retrieve(

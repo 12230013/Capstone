@@ -1015,3 +1015,42 @@ input:focus-visible {
 .logout-confirm-button:hover {
   background: #921c13;
 }
+
+
+.chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 900px;
+  margin: 24px auto;
+  padding: 0 20px;
+  overflow-y: auto;
+}
+
+.chat-message {
+  padding: 14px 18px;
+  border-radius: 12px;
+  overflow-wrap: anywhere;
+}
+
+.chat-message.user {
+  align-self: flex-end;
+  max-width: 80%;
+  background: #e8eef7;
+}
+
+.chat-message.assistant {
+  align-self: flex-start;
+  max-width: 90%;
+  background: #f4f4f4;
+}
+
+.chat-message p {
+  margin: 8px 0 0;
+  white-space: pre-wrap;
+}
+
+.chat-error {
+  color: #b42318;
+}

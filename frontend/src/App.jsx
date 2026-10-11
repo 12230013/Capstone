@@ -6,6 +6,7 @@ import VerifyOTP from "./pages/VerifyOTP";
 import ResetPassword from "./pages/ResetPassword";
 import "./App.css";
 import Dashboard from "./pages/Dashboard";
+import Chat from "./pages/Chat"
 
 function App() {
   return (
@@ -18,7 +19,7 @@ function App() {
         <Route path="/verify-otp" element={<VerifyOTP />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/Dashboard" element={<Dashboard />} />
-
+        <Route path="/chat" element={<Chat />} />
 
       </Routes>
     </BrowserRouter>

@@ -1,0 +1,147 @@
+
+.cdr-network {
+  width: 100%;
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid #d9dee7;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #202938;
+  box-sizing: border-box;
+}
+
+.cdr-network-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.cdr-network-heading h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+}
+
+.cdr-network-heading p {
+  margin: 0;
+  color: #667085;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.cdr-network-stats {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cdr-network-stats span {
+  padding: 5px 9px;
+  border-radius: 16px;
+  background: #f0f3f8;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.cdr-network-canvas {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 8px;
+  background: #fafbfd;
+}
+
+.cdr-network-canvas svg {
+  display: block;
+  width: 100%;
+  min-width: 480px;
+  height: auto;
+}
+
+.cdr-network-edge {
+  stroke: #a8b3c5;
+  stroke-width: 1.5;
+  opacity: 0.8;
+}
+
+.cdr-network-edge-label {
+  fill: #475467;
+  font-size: 11px;
+  paint-order: stroke;
+  stroke: #fafbfd;
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+.cdr-network-node {
+  fill: #5b8def;
+  stroke: #ffffff;
+  stroke-width: 2.5;
+}
+
+.cdr-network-node.target {
+  fill: #d97706;
+  stroke: #ffedd5;
+  stroke-width: 3;
+}
+
+.cdr-network-node-label {
+  fill: #344054;
+  font-size: 11px;
+  pointer-events: none;
+}
+
+.cdr-network-legend {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  color: #667085;
+  font-size: 12px;
+}
+
+.cdr-network-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.cdr-network-legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #5b8def;
+  display: inline-block;
+}
+
+.cdr-network-legend-dot.target-dot {
+  background: #d97706;
+}
+
+.cdr-network-legend-line {
+  width: 18px;
+  height: 2px;
+  background: #a8b3c5;
+  display: inline-block;
+}
+
+.cdr-network-empty,
+.cdr-network-note {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #667085;
+  font-size: 13px;
+}
+
+@media (max-width: 600px) {
+  .cdr-network {
+    padding: 12px;
+  }
+
+  .cdr-network-canvas svg {
+    min-width: 480px;
+  }
+}

@@ -371,6 +371,8 @@ Follow these rules carefully:
 13. Keep the answer concise, structured, and relevant to
     the investigator's question.
 
+
+
 Relationship Mapping API Data:
 
 {json.dumps(relationship_data, indent=2, default=str, ensure_ascii=False)}
