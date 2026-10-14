@@ -18,6 +18,7 @@ from app.ocr.document_detection import (
     open_pdf_document,
 )
 
+from app.ocr.document_postprocessing import clean_text_for_rag
 
 SUPPORTED_IMAGE_TYPES = {
     "image/png",
@@ -213,7 +214,7 @@ def _paddleocr_page(image: Image.Image) -> tuple[str, float, dict]:
                 if fallback_text:
                     extracted_parts.append(fallback_text)
 
-            text = "\n\n".join(extracted_parts).strip()
+            text = clean_text_for_rag("\n\n".join(extracted_parts).strip())
             confidence = _estimate_vlm_confidence(text, image)
 
             metadata = {

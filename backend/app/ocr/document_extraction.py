@@ -9,6 +9,8 @@ from app.ocr.document_detection import (
     open_pdf_document,
 )
 
+from app.ocr.document_postprocessing import clean_text_for_rag 
+
 
 def extract_digital_pdf(pdf_path: str, document_id: str) -> dict:
     """Extract normalized page text, refusing scanned PDFs instead of running OCR."""
@@ -39,7 +41,7 @@ def extract_digital_pdf(pdf_path: str, document_id: str) -> dict:
         pages = [
             {
                 "page_number": page_number,
-                "text": normalize_extracted_page_text(text),
+                "text": clean_text_for_rag(normalize_extracted_page_text(text)),
             }
             for page_number, text in enumerate(raw_page_texts, start=1)
         ]
