@@ -1,4 +1,4 @@
-"""Conservative, in-memory image preprocessing for OCR input."""
+"""Conservative, in-memory image preprocessing optimized for PaddleOCR-VL 1.6."""
 
 from typing import Any
 
@@ -11,8 +11,6 @@ from app.ocr.config import (
     OCR_DESKEW_ENABLED,
     OCR_DENOISE_ENABLED,
     OCR_PREPROCESSING_ENABLED,
-    OCR_THRESHOLD_ENABLED,
-    OCR_THRESHOLD_METHOD,
 )
 
 MAX_DESKEW_ANGLE_DEGREES = 7.0
@@ -30,8 +28,6 @@ def preprocessing_settings() -> dict[str, Any]:
         "grayscale": OCR_PREPROCESSING_ENABLED,
         "denoise": OCR_PREPROCESSING_ENABLED and OCR_DENOISE_ENABLED,
         "contrast": OCR_PREPROCESSING_ENABLED and OCR_CONTRAST_ENABLED,
-        "threshold": OCR_PREPROCESSING_ENABLED and OCR_THRESHOLD_ENABLED,
-        "threshold_method": OCR_THRESHOLD_METHOD,
         "deskew": OCR_PREPROCESSING_ENABLED and OCR_DESKEW_ENABLED,
     }
 
@@ -68,37 +64,11 @@ def enhance_contrast(grayscale: np.ndarray) -> np.ndarray:
     return clahe.apply(grayscale)
 
 
-def threshold_image(
-    grayscale: np.ndarray,
-    method: str = OCR_THRESHOLD_METHOD,
-) -> np.ndarray:
-    """Binarize an image using adaptive Gaussian or global Otsu thresholding."""
-    _validate_grayscale(grayscale)
-    method = method.strip().lower()
-    if method == "binary":
-        return cv2.threshold(
-            grayscale,
-            0,
-            255,
-            cv2.THRESH_BINARY | cv2.THRESH_OTSU,
-        )[1]
-    if method == "adaptive":
-        return cv2.adaptiveThreshold(
-            grayscale,
-            255,
-            cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-            cv2.THRESH_BINARY,
-            31,
-            10,
-        )
-    raise ImagePreprocessingError(
-        "OCR_THRESHOLD_METHOD must be 'adaptive' or 'binary'."
-    )
-
-
 def estimate_skew_angle(grayscale: np.ndarray) -> float | None:
     """Estimate text-line skew; return None when there is not enough evidence."""
     _validate_grayscale(grayscale)
+    # Use Otsu solely for calculating geometric contours/skew angle, 
+    # without returning the binary image to the main pipeline.
     binary = cv2.threshold(
         grayscale,
         0,
@@ -140,7 +110,7 @@ def deskew_image(grayscale: np.ndarray) -> tuple[np.ndarray, float | None]:
         (width, height),
         flags=cv2.INTER_CUBIC,
         borderMode=cv2.BORDER_CONSTANT,
-        borderValue=255,
+        borderValue=255,  # Keep padding clean white
     )
     return corrected, angle
 
@@ -158,7 +128,10 @@ def _validate_grayscale(image: np.ndarray) -> None:
 
 
 def preprocess_image(image: Image.Image) -> tuple[Image.Image, dict[str, Any]]:
-    """Preprocess an OCR image without changing the caller's source image."""
+    """
+    Preprocess an OCR image for VLM input, preserving grayscale depth, 
+    resolution, and structure without converting to black-and-white binarization.
+    """
     if not isinstance(image, Image.Image) or image.width < 1 or image.height < 1:
         raise ImagePreprocessingError("A valid PIL image is required.")
 
@@ -174,19 +147,23 @@ def preprocess_image(image: Image.Image) -> tuple[Image.Image, dict[str, Any]]:
     try:
         rgb = np.asarray(image.convert("RGB"))
         processed = to_grayscale(rgb)
+        
         if settings["denoise"]:
             processed = denoise_image(processed)
+            
         if settings["contrast"]:
             processed = enhance_contrast(processed)
+            
         if settings["deskew"]:
             processed, angle = deskew_image(processed)
             details["deskew_applied"] = angle is not None
             details["deskew_angle_degrees"] = (
                 round(angle, 3) if angle is not None else None
             )
-        if settings["threshold"]:
-            processed = threshold_image(processed, settings["threshold_method"])
+            
+        # Returns a high-res 8-bit grayscale image ideal for PaddleOCR-VL 1.6
         return Image.fromarray(processed), details
+        
     except ImagePreprocessingError:
         raise
     except cv2.error as exc:

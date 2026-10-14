@@ -9,7 +9,6 @@ load_dotenv(BACKEND_ROOT / ".env")
 DATA_DIR = Path(os.getenv("OCR_DATA_DIR", BACKEND_ROOT / "data")).resolve()
 DOCUMENTS_DIR = DATA_DIR / "documents"
 OCR_RESULTS_DIR = DATA_DIR / "ocr"
-TESSERACT_CMD = os.getenv("TESSERACT_CMD")
 OCR_RENDER_DPI = int(os.getenv("OCR_RENDER_DPI", "250"))
 
 
