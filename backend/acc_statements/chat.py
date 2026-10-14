@@ -36,7 +36,7 @@ def ask(question: str, case_nos=None) -> dict:
         if d["doc_id"] in retrieved_doc_ids
         for s in d["sentences"]
     }
-
+    
     cited = sorted(set(re.findall(r"[A-Za-z0-9_]+-s\d+", answer)))
     warnings = []
     bad = [c for c in cited if c not in known]

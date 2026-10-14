@@ -27,13 +27,6 @@ frontend/build/
 .vscode/
 .idea/
 
-backend/test_contradiction_detector.py
-backend/test_real_statements.py
-backend/test_cdr.py
-backend/test_llamaindex.py
-backend/test_rag_llamaindex.py
-backend/test_retrieval_llamaindex.py
-
 # Local investigation data and generated vector database
 # Local statement-analysis data and environments
 backend/acc_statements/.venv/

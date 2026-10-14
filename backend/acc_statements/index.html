@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ACC Statement Analysis</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --card:#ffffff; --ink:#1b2330; --mute:#667085; --line:#e2e6ec;
+    --accent:#1f5eff; --accent-ink:#ffffff;
+    --ok:#067647; --okbg:#e6f6ed; --warn:#9a5b00; --warnbg:#fff3e0; --bad:#b42318; --badbg:#fdecea;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#12161c; --card:#1a2029; --ink:#e8ecf2; --mute:#9aa4b2; --line:#2a3240;
+      --accent:#6b97ff; --accent-ink:#0b1220;
+      --ok:#6ee7a8; --okbg:#10301f; --warn:#f5b361; --warnbg:#33260f; --bad:#ff8a80; --badbg:#3a1714;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  header{background:var(--card);border-bottom:1px solid var(--line);padding:12px 20px;display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+  header h1{font-size:17px;margin:0;margin-right:auto}
+  label{font-size:13px;color:var(--mute);display:flex;gap:6px;align-items:center}
+  select,input,textarea,button{font:inherit;color:inherit}
+  select,textarea{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+  textarea{width:100%;resize:vertical}
+  button{background:var(--accent);color:var(--accent-ink);border:0;border-radius:6px;padding:7px 14px;cursor:pointer}
+  button.secondary{background:transparent;color:var(--accent);border:1px solid var(--line)}
+  button:disabled{opacity:.5;cursor:default}
+  nav{display:flex;gap:4px;padding:10px 20px 0;border-bottom:1px solid var(--line);background:var(--card)}
+  nav button{background:transparent;color:var(--mute);border-radius:6px 6px 0 0;border-bottom:2px solid transparent}
+  nav button.active{color:var(--ink);border-bottom-color:var(--accent)}
+  main{max-width:1000px;margin:0 auto;padding:18px 20px 60px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:12px}
+  .card h3{margin:0 0 4px;font-size:15px}
+  .meta{color:var(--mute);font-size:13px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  #busy{position:sticky;top:0;z-index:5;background:var(--warnbg);color:var(--warn);padding:8px 20px;font-size:14px;border-bottom:1px solid var(--line)}
+  .error{background:var(--badbg);color:var(--bad);padding:10px 12px;border-radius:8px;margin:10px 0;white-space:pre-wrap}
+  .note{background:var(--warnbg);color:var(--warn);padding:8px 12px;border-radius:8px;margin:10px 0;font-size:13px}
+  .badge{display:inline-block;font-size:12px;border-radius:999px;padding:1px 8px;border:1px solid var(--line);color:var(--mute);margin-right:4px}
+  .badge.ok{background:var(--okbg);color:var(--ok);border-color:transparent}
+  .badge.bad{background:var(--badbg);color:var(--bad);border-color:transparent}
+  .cite{font-family:ui-monospace,Consolas,monospace;font-size:12px;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:0 5px;margin-right:4px;white-space:nowrap}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--mute);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.03em}
+  blockquote{margin:6px 0;padding:4px 10px;border-left:3px solid var(--line);color:var(--mute);font-size:13px}
+  .answer{white-space:pre-wrap}
+  .conflict{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+  @media (max-width:640px){.conflict{grid-template-columns:1fr}}
+  .conflict > div{background:var(--bg);border-radius:8px;padding:8px 10px;font-size:14px}
+  .hint{color:var(--mute);font-size:13px;margin:4px 0 12px}
+  [hidden]{display:none !important}
+</style>
+</head>
+<body>
+<div id="busy" hidden></div>
+
+<header>
+  <h1>ACC Statement Analysis <span class="meta">prototype</span></h1>
+  <label>User
+    <select id="user">
+      <option value="demo-admin">demo-admin (all cases)</option>
+      <option value="demo-investigator">demo-investigator</option>
+      <option value="demo-no-access">demo-no-access</option>
+    </select>
+  </label>
+  <label>Case
+    <select id="case"></select>
+  </label>
+</header>
+
+<nav id="tabs">
+  <button data-tab="statements" class="active">Statements</button>
+  <button data-tab="timeline">Timeline</button>
+  <button data-tab="contradictions">Contradictions</button>
+  <button data-tab="ask">Ask</button>
+</nav>
+
+<main>
+  <div id="error" class="error" hidden></div>
+  <div class="note">AI-generated analytical aid. Everything below is for investigator review and is not a finding of fact. Verify against the original statements.</div>
+
+  <section id="tab-statements">
+    <p class="hint">Open a statement to generate its summary and entities. Results are cached until the server restarts.</p>
+    <div id="statementList"></div>
+  </section>
+
+  <section id="tab-timeline" hidden>
+    <div class="row">
+      <button id="btnTimeline">Build timeline for selected case</button>
+      <button id="btnTimelineRefresh" class="secondary">Rebuild</button>
+    </div>
+    <div id="timelineOut"></div>
+  </section>
+
+  <section id="tab-contradictions" hidden>
+    <div class="row">
+      <button id="btnContra">Check selected case for inconsistencies</button>
+      <button id="btnContraRefresh" class="secondary">Re-run</button>
+    </div>
+    <p class="hint">Needs two or more statements in the case. This is the slowest step.</p>
+    <div id="contraOut"></div>
+  </section>
+
+  <section id="tab-ask" hidden>
+    <textarea id="question" rows="3" placeholder="e.g. What did the witness say about payments to forest officials?"></textarea>
+    <div class="row" style="margin-top:8px">
+      <button id="btnAsk">Ask</button>
+      <label><input type="checkbox" id="scopeCase" checked> Only search the selected case</label>
+    </div>
+    <div id="askOut"></div>
+  </section>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const cite = id => `<span class="cite">${esc(id)}</span>`;
+const badge = (ok, yes="verified", no="unverified") =>
+  `<span class="badge ${ok ? "ok" : "bad"}">${ok ? yes : no}</span>`;
+
+/* ---------- plumbing ---------- */
+async function call(path, opts = {}) {
+  const res = await fetch(path, {
+    ...opts,
+    headers: { "X-User": $("#user").value, "Content-Type": "application/json", ...(opts.headers || {}) },
+  });
+  let data = null;
+  try { data = await res.json(); } catch (e) {}
+  if (!res.ok) throw new Error((data && (data.detail || JSON.stringify(data))) || res.statusText);
+  return data;
+}
+
+async function busy(label, fn) {
+  const bar = $("#busy"), t0 = Date.now();
+  const tick = () => bar.textContent = `${label}... ${Math.round((Date.now() - t0) / 1000)}s (a local model can take a few minutes)`;
+  bar.hidden = false; tick();
+  const id = setInterval(tick, 1000);
+  document.querySelectorAll("button").forEach(b => b.disabled = true);
+  try { return await fn(); }
+  finally {
+    clearInterval(id); bar.hidden = true;
+    document.querySelectorAll("button").forEach(b => b.disabled = false);
+  }
+}
+
+function showError(e) { const el = $("#error"); el.textContent = String(e.message || e); el.hidden = false; }
+function clearError() { $("#error").hidden = true; }
+
+async function guarded(label, fn) {
+  clearError();
+  try { return await busy(label, fn); } catch (e) { showError(e); }
+}
+
+/* ---------- tabs ---------- */
+document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("active", x === b));
+  ["statements", "timeline", "contradictions", "ask"].forEach(t => $("#tab-" + t).hidden = (t !== b.dataset.tab));
+  clearError();
+});
+
+/* ---------- statements ---------- */
+let statements = [];
+
+async function loadStatements() {
+  clearError();
+  $("#statementList").innerHTML = "";
+  try {
+    statements = await call("/api/v1/statements");
+  } catch (e) { statements = []; showError(e); }
+  const cases = [...new Set(statements.map(s => s.case_no))];
+  $("#case").innerHTML = cases.length
+    ? cases.map(c => `<option value="${esc(c)}">${esc(c || "(no case no.)")}</option>`).join("")
+    : `<option value="">(no accessible cases)</option>`;
+
+  $("#statementList").innerHTML = statements.length ? statements.map(s => `
+    <div class="card" id="card-${esc(s.doc_id)}">
+      <div class="row">
+        <div style="flex:1">
+          <h3>${esc(s.name || s.doc_id)}</h3>
+          <div class="meta">${esc(s.doc_id)} · case ${esc(s.case_no)} · ${esc(s.statement_date)} · ${esc(s.place)} · ${s.sentences} sentences</div>
+        </div>
+        <button data-doc="${esc(s.doc_id)}">Summarise and extract entities</button>
+      </div>
+      <div class="detail"></div>
+    </div>`).join("") : `<div class="card meta">No statements available for this user.</div>`;
+
+  document.querySelectorAll("#statementList button[data-doc]").forEach(b =>
+    b.onclick = () => openStatement(b.dataset.doc));
+}
+
+async function openStatement(docId) {
+  const out = await guarded("Analysing statement", () => call(`/api/v1/summarization/document/${encodeURIComponent(docId)}`));
+  if (!out) return;
+  const s = out.summary, ents = out.entities.entities;
+  const groups = {};
+  ents.forEach(e => (groups[e.type] = groups[e.type] || []).push(e));
+
+  const detail = `
+    <h3 style="margin-top:14px">Summary</h3>
+    <div class="answer">${esc(s.summary)}</div>
+    <h3 style="margin-top:14px">Key points</h3>
+    <table><tbody>${s.key_points.map(k => `
+      <tr><td>${esc(k.point)}</td>
+          <td style="white-space:nowrap">${k.sentence_ids.map(cite).join("")} ${badge(k.citations_valid, "cited", "check citation")}</td></tr>`).join("")}
+    </tbody></table>
+    <h3 style="margin-top:14px">Entities</h3>
+    <table>
+      <thead><tr><th>Type</th><th>Value</th><th>Context</th><th>Source</th></tr></thead>
+      <tbody>${Object.keys(groups).sort().map(t => groups[t].map((e, i) => `
+        <tr><td>${i === 0 ? esc(t) : ""}</td><td>${esc(e.value)}</td><td>${esc(e.role_or_context)}</td>
+            <td style="white-space:nowrap">${e.source === "header" ? `<span class="badge">header</span>` : cite(e.sentence_id) + badge(e.verified)}</td></tr>`).join("")).join("")}
+      </tbody>
+    </table>`;
+  document.querySelector(`#card-${CSS.escape(docId)} .detail`).innerHTML = detail;
+}
+
+/* ---------- timeline ---------- */
+async function runTimeline(refresh) {
+  const c = $("#case").value;
+  if (!c) return showError(new Error("Select a case first."));
+  const ev = await guarded("Building timeline", () => call(`/api/v1/timeline?case_no=${encodeURIComponent(c)}${refresh ? "&refresh=true" : ""}`));
+  if (!ev) return;
+  $("#timelineOut").innerHTML = ev.length ? `
+    <div class="card" style="margin-top:12px"><table>
+      <thead><tr><th>When</th><th>Event</th><th>Source</th></tr></thead>
+      <tbody>${ev.map(e => `
+        <tr>
+          <td style="white-space:nowrap">${esc(e.date || "no date")}${e.time ? " " + esc(e.time) : ""}
+              <div class="meta">${esc(e.date_text)} ${esc(e.time_text)}</div>
+              <span class="badge">${esc(e.precision.replaceAll("_", " "))}</span></td>
+          <td>${esc(e.event)}${e.people.length ? `<div class="meta">People: ${esc(e.people.join(", "))}</div>` : ""}
+              ${e.location ? `<div class="meta">Place: ${esc(e.location)}</div>` : ""}</td>
+          <td>${esc(e.source.person)} ${cite(e.source.sentence_id)} ${badge(e.verified)}
+              <blockquote>${esc(e.source.quote)}</blockquote></td>
+        </tr>`).join("")}
+      </tbody></table></div>`
+    : `<div class="card meta" style="margin-top:12px">No dated events found.</div>`;
+}
+$("#btnTimeline").onclick = () => runTimeline(false);
+$("#btnTimelineRefresh").onclick = () => runTimeline(true);
+
+/* ---------- contradictions ---------- */
+function claimBox(c, label) {
+  return `<div><strong>${esc(label)}: ${esc(c.person)}</strong> ${cite(c.sentence_id)} ${badge(c.verified)}
+    <div>${esc(c.claim)}</div><blockquote>${esc(c.quote)}</blockquote></div>`;
+}
+function conflictCard(c, kind) {
+  return `<div class="card">
+    <span class="badge ${kind === "bad" ? "bad" : ""}">${kind === "bad" ? "possible contradiction" : "difference in detail"}</span>
+    ${c.detail_a || c.detail_b ? `<strong>${esc(c.detail_a)} <span class="meta">vs</span> ${esc(c.detail_b)}</strong>` : ""}
+    <div>${esc(c.explanation)}</div>
+    <div class="conflict">${claimBox(c.a, "A")}${claimBox(c.b, "B")}</div>
+  </div>`;
+}
+
+async function runContra(refresh) {
+  const c = $("#case").value;
+  if (!c) return showError(new Error("Select a case first."));
+  const r = await guarded("Checking for inconsistencies", () => call(`/api/v1/inconsistencies?case_no=${encodeURIComponent(c)}${refresh ? "&refresh=true" : ""}`));
+  if (!r) return;
+  $("#contraOut").innerHTML = `
+    <div class="meta" style="margin:10px 0">${r.claims_extracted} claims compared in ${r.pairs_judged} pairs.</div>
+    ${r.metadata_issues.map(m => `<div class="note">Header check: ${esc(m)}</div>`).join("")}
+    <h3>Possible contradictions (${r.contradictions.length})</h3>
+    ${r.contradictions.map(x => conflictCard(x, "bad")).join("") || `<div class="card meta">None flagged.</div>`}
+    <h3>Differences in detail (${r.different_detail.length})</h3>
+    ${r.different_detail.map(x => conflictCard(x, "warn")).join("") || `<div class="card meta">None.</div>`}
+    <div class="note">${esc(r.disclaimer)}</div>`;
+}
+$("#btnContra").onclick = () => runContra(false);
+$("#btnContraRefresh").onclick = () => runContra(true);
+
+/* ---------- ask ---------- */
+async function runAsk() {
+  const q = $("#question").value.trim();
+  if (!q) return showError(new Error("Type a question first."));
+  const body = { question: q, case_no: $("#scopeCase").checked && $("#case").value ? $("#case").value : null };
+  const r = await guarded("Searching statements", () => call("/api/v1/rag/query", { method: "POST", body: JSON.stringify(body) }));
+  if (!r) return;
+  $("#askOut").innerHTML = `
+    <div class="card" style="margin-top:12px"><div class="answer">${esc(r.answer)}</div></div>
+    ${(r.warnings || []).map(w => `<div class="note">${esc(w)}</div>`).join("")}
+    ${r.sources && r.sources.length ? `<h3>Sources</h3><div class="card"><table><tbody>
+      ${r.sources.map(s => `<tr><td style="white-space:nowrap">${cite(s.sentence_id)}</td><td>${esc(s.text)}</td></tr>`).join("")}
+    </tbody></table></div>` : ""}
+    ${r.retrieved && r.retrieved.length ? `<div class="meta">Retrieved from: ${r.retrieved.map(h => `${esc(h.person)} (${h.score})`).join(", ")}</div>` : ""}
+    ${r.disclaimer ? `<div class="note">${esc(r.disclaimer)}</div>` : ""}`;
+}
+$("#btnAsk").onclick = runAsk;
+$("#question").addEventListener("keydown", e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) runAsk(); });
+
+/* ---------- start ---------- */
+$("#user").onchange = () => {
+  ["timelineOut", "contraOut", "askOut"].forEach(id => $("#" + id).innerHTML = "");
+  loadStatements();
+};
+loadStatements();
+</script>
+</body>
+</html>

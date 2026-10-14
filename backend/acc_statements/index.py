@@ -122,7 +122,7 @@ def search(query: str, case_nos=None, doc_ids=None,
         {"score": round(p.score, 4), **p.payload}
         for p in res.points
     ]
-
+    
 def close_client():
     global _client
     if _client is not None:

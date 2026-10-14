@@ -70,3 +70,4 @@ def ask_json(system: str, user: str, model_cls: type[BaseModel]):
             messages += [{"role": "assistant", "content": raw},
                          {"role": "user", "content": f"Your JSON was invalid: {e}. Return corrected JSON only."}]
     raise RuntimeError(f"LLM failed to return valid JSON: {last_error}")
+
