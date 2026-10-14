@@ -1,5 +1,6 @@
 import requests
 
+
 class LLMService:
 
     def __init__(
@@ -25,8 +26,13 @@ class LLMService:
                 "prompt": prompt,
                 "stream": False
             },
-            timeout=120
+            timeout=300
         )
+
+        # Show Ollama's actual error instead of hiding it
+        if response.status_code != 200:
+            print("\nOllama Error:")
+            print(response.text)
 
         response.raise_for_status()
 

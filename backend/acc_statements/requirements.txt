@@ -1,0 +1,8 @@
+requests
+pydantic>=2
+sentence-transformers
+qdrant-client
+dateparser
+numpy
+fastapi
+uvicorn

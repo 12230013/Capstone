@@ -1,6 +1,14 @@
 from pathlib import Path
-from pypdf import PdfReader
-from docx import Document
+
+try:
+    from pypdf import PdfReader
+except ImportError:
+    PdfReader = None
+
+try:
+    from docx import Document
+except ImportError:
+    Document = None
 
 SUPPORTED_EXTENSIONS = {
     ".pdf",
@@ -99,8 +107,24 @@ def load_txt(path: Path):
         encoding="utf-8"
     ).strip()
 
-    return {
+    result = {
         "filename": path.name,
         "file_type": "txt",
         "text": text
     }
+
+    try:
+        from acc_statements.statement_parser import StatementParser
+        parser = StatementParser()
+        parsed = parser.parse_text(text, filename=path.name)
+        if parsed.get("person_name") != "Unknown" or parsed.get("cid") != "Unknown":
+            result["is_statement"] = True
+            result["person_name"] = parsed.get("person_name")
+            result["cid"] = parsed.get("cid")
+            result["phone_number"] = parsed.get("phone_number")
+            result["occupation"] = parsed.get("occupation")
+            result["statement_metadata"] = parsed.get("metadata", {})
+    except Exception:
+        pass
+
+    return result
