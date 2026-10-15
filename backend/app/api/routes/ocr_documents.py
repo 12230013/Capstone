@@ -22,6 +22,7 @@ from app.ocr.document_ocr import (
     run_document_ocr,
     save_ocr_result,
 )
+from app.services.ingestion_service import IngestionService
 
 
 
@@ -251,13 +252,23 @@ def extract_document_text(
             detail="Text extraction supports PDF files only",
         )
 
+    file_path = _document_path(document)
+
     try:
         extraction_result = extract_digital_pdf(
-            _document_path(document),
+            file_path,
             document.document_id,
         )
         document.status = "extracted"
         db.commit()
+
+        # Trigger automatic Qdrant ingestion after successful digital text extraction
+        try:
+            ingestion_service = IngestionService()
+            ingestion_service.ingest_document(file_path)
+        except Exception as exc:
+            print(f"Warning: Vector ingestion failed after extraction: {exc}")
+
         return extraction_result
 
     except InvalidPDFError as exc:
@@ -366,6 +377,14 @@ def ocr_document(
             status_code=500,
             detail="Could not save the OCR result.",
         ) from exc
+
+    # Trigger automatic Qdrant ingestion after successful OCR completion
+    if document.status == "completed":
+        try:
+            ingestion_service = IngestionService()
+            ingestion_service.ingest_document(file_path)
+        except Exception as exc:
+            print(f"Warning: Vector ingestion failed after OCR: {exc}")
 
     if document.status == "failed":
         return JSONResponse(
