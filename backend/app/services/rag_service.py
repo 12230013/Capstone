@@ -13,7 +13,8 @@ class RAGService:
     def query(
         self,
         query: str,
-        limit: int = 3
+        limit: int = 3,
+        user_query: str | None = None,
     ) -> dict:
 
         # ---------------------------------------------------------
@@ -28,6 +29,9 @@ class RAGService:
 
         if limit <= 0:
             raise ValueError("Limit must be greater than 0.")
+
+        if user_query is None:
+            user_query = query
 
         # ---------------------------------------------------------
         # Step 1: Retrieve relevant evidence
@@ -96,7 +100,7 @@ class RAGService:
         # ---------------------------------------------------------
 
         prompt = self.prompt_service.build_prompt(
-            query=query,
+            query=user_query,
             retrieved_chunks=retrieved_chunks
         )
 

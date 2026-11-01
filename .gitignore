@@ -3,6 +3,7 @@ backend/.venv/
 __pycache__/
 *.py[cod]
 backend/qdrant_storage/
+backend/node_modules/
 
 # Backend virtual environment
 backend/venv/

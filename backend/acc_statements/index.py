@@ -18,7 +18,7 @@ def get_embedder():
     global _embedder
     if _embedder is None:
         print(f"  loading embedding model {config.EMBED_MODEL} (first run downloads it)...")
-        _embedder = SentenceTransformer(config.EMBED_MODEL)
+        _embedder = SentenceTransformer(config.EMBED_MODEL, device="cpu")
     return _embedder
 
 

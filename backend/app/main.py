@@ -6,6 +6,8 @@ from app.api.routes.chat import router as chat_router
 from app.api.routes.cdr import router as cdr_router
 from app.api.routes.relationship import router as relationship_router
 from app.api.routes.statements import router as statements_router
+from app.api.routes.conversations import router as conversations_router
+from app.api.routes.folders import router as folders_router
 
 # Authentication route from the frontend/backend integration
 from app.routes.auth import router as auth_router
@@ -38,3 +40,5 @@ app.include_router(cdr_router)
 app.include_router(relationship_router)
 app.include_router(auth_router)
 app.include_router(statements_router)
+app.include_router(conversations_router)
+app.include_router(folders_router)

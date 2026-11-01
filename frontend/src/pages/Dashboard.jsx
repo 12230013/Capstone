@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Plus,
@@ -54,20 +54,140 @@ const suggestions = [
   "What patterns do you see in the CDR data?",
 ];
 
+function formatConversationTime(dateValue) {
+  if (!dateValue) return "";
+
+  const date = new Date(dateValue);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const now = new Date();
+
+  const startOfToday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+  );
+
+  const startOfConversationDay = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+  );
+
+  const differenceInDays = Math.round(
+    (startOfToday - startOfConversationDay) / 86400000,
+  );
+
+  const time = date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  if (differenceInDays === 0) {
+    return `Today · ${time}`;
+  }
+
+  if (differenceInDays === 1) {
+    return `Yesterday · ${time}`;
+  }
+
+  const day = date.toLocaleDateString([], {
+    month: "short",
+    day: "numeric",
+  });
+
+  return `${day} · ${time}`;
+}
+
 export function Sidebar({
   folders,
+  conversations = [],
+  onLogoClick,
   onCreateFolder,
   onDeleteFolder,
+  onAddConversationToFolder,
+  onSelectFolder,
   onNewConversation,
   onSelectConversation,
+  onDeleteConversation,
   activeConversationId,
   user,
 }) {
   const [showFolderInput, setShowFolderInput] = useState(false);
   const [folderName, setFolderName] = useState("");
   const [activeTab, setActiveTab] = useState("history");
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [openConversationMenu, setOpenConversationMenu] = useState(null);
+  const [conversationPendingDelete, setConversationPendingDelete] =
+    useState(null);
+  const [folderPickerConversationId, setFolderPickerConversationId] =
+    useState(null);
+  const conversationMenuRef = useRef(null);
+  const [openFolderMenu, setOpenFolderMenu] = useState(null);
+  const [folderPendingDelete, setFolderPendingDelete] = useState(null);
+  const folderMenuRef = useRef(null);
 
+  useEffect(() => {
+    if (!openConversationMenu) return;
+
+    const handleOutsideClick = (event) => {
+      if (
+        conversationMenuRef.current &&
+        !conversationMenuRef.current.contains(event.target)
+      ) {
+        setOpenConversationMenu(null);
+        setConversationPendingDelete(null);
+      }
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") {
+        setOpenConversationMenu(null);
+        setConversationPendingDelete(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [openConversationMenu]);
+
+  useEffect(() => {
+    if (!openFolderMenu) return;
+
+    const handleOutsideClick = (event) => {
+      if (
+        folderMenuRef.current &&
+        !folderMenuRef.current.contains(event.target)
+      ) {
+        setOpenFolderMenu(null);
+        setFolderPendingDelete(null);
+      }
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") {
+        setOpenFolderMenu(null);
+        setFolderPendingDelete(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [openFolderMenu]);
+
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const handleCreateFolder = (e) => {
     e.preventDefault();
@@ -81,10 +201,18 @@ export function Sidebar({
     setShowFolderInput(false);
   };
 
+  const recentConversations = conversations.filter(
+    (conversation) => !conversation.folder_id,
+  );
+
   return (
     <aside className="sidebar">
       {/* ACC branding */}
-      <div className="logo-section">
+      <div
+        className="logo-section logo-section-clickable"
+        onClick={onLogoClick}
+        title="Go to Dashboard"
+      >
         <img
           src="/acc-logo.png"
           alt="Anti-Corruption Commission"
@@ -93,6 +221,7 @@ export function Sidebar({
       </div>
 
       {/* Sidebar actions */}
+      {/* New folder */}
       <div className="sidebar-actions">
         <button
           type="button"
@@ -101,15 +230,6 @@ export function Sidebar({
         >
           {showFolderInput ? <X size={17} /> : <FolderPlus size={17} />}
           <span>{showFolderInput ? "Cancel" : "New Folder"}</span>
-        </button>
-
-        <button
-          type="button"
-          className="sidebar-action"
-          onClick={onNewConversation}
-        >
-          <Plus size={17} />
-          <span>New Conversation</span>
         </button>
       </div>
 
@@ -134,6 +254,105 @@ export function Sidebar({
         </form>
       )}
 
+      {/* Folder list */}
+      {folders.length > 0 && (
+        <div className="sidebar-quick-folders">
+          {folders.map((item) => (
+            <div
+              key={item.id}
+              className="sidebar-quick-folder"
+              onClick={() => onSelectFolder?.(item)}
+            >
+              <Folder size={16} />
+
+              <span title={item.name}>{item.name}</span>
+
+              <div
+                className="conversation-menu-wrapper"
+                ref={openFolderMenu === item.id ? folderMenuRef : null}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  className="conversation-menu-button folder-menu-button"
+                  aria-label="Folder options"
+                  onClick={() => {
+                    setOpenFolderMenu((current) =>
+                      current === item.id ? null : item.id,
+                    );
+
+                    setFolderPendingDelete(null);
+                  }}
+                >
+                  ⋮
+                </button>
+
+                {openFolderMenu === item.id && (
+                  <div className="conversation-options-menu folder-options-menu">
+                    {folderPendingDelete === item.id ? (
+                      <div className="conversation-delete-confirm">
+                        <span className="conversation-delete-text">
+                          Delete this folder?
+                        </span>
+
+                        <span className="folder-delete-note">
+                          Conversations will be kept.
+                        </span>
+
+                        <div className="conversation-delete-actions">
+                          <button
+                            type="button"
+                            className="conversation-delete-cancel"
+                            onClick={() => {
+                              setFolderPendingDelete(null);
+                              setOpenFolderMenu(null);
+                            }}
+                          >
+                            Cancel
+                          </button>
+
+                          <button
+                            type="button"
+                            className="conversation-delete-confirm-button"
+                            onClick={() => {
+                              setFolderPendingDelete(null);
+                              setOpenFolderMenu(null);
+                              onDeleteFolder(item.id);
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        className="conversation-option delete"
+                        onClick={() => setFolderPendingDelete(item.id)}
+                      >
+                        <Trash2 size={16} />
+                        <span>Delete</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="sidebar-actions sidebar-new-conversation">
+        <button
+          type="button"
+          className="sidebar-action"
+          onClick={onNewConversation}
+        >
+          <Plus size={17} />
+          <span>New Conversation</span>
+        </button>
+      </div>
+
       {/* Sidebar tabs */}
       <div className="history-tabs">
         <button
@@ -155,74 +374,184 @@ export function Sidebar({
         </button>
       </div>
 
-      {/* Folder list */}
-      <div className="sidebar-section">
-        <div className="sidebar-section-heading">
-          <span>YOUR FOLDERS</span>
-          <span className="folder-count">{folders.length}</span>
-        </div>
+      {/* Chat history / activity log */}
 
-        {folders.length === 0 ? (
-          <p className="sidebar-empty">Your folders will appear here.</p>
-        ) : (
-          <div className="folder-list">
-            {folders.map((item) => (
-              <div className="folder-item" key={item.id}>
-                <Folder size={17} />
-
-                <span className="folder-name" title={item.name}>
-                  {item.name}
-                </span>
-
-                <button
-                  type="button"
-                  className="delete-folder-button"
-                  title={`Delete ${item.name}`}
-                  aria-label={`Delete folder ${item.name}`}
-                  onClick={() => onDeleteFolder(item.id)}
-                >
-                  <Trash2 size={15} />
-                </button>
+      <div className="sidebar-section history-section">
+        {activeTab === "history" ? (
+          <>
+            {recentConversations.length === 0 ? (
+              <div className="empty-history">
+                <MessageSquare size={23} />
+                <p>No conversations yet</p>
+                <span>Start a new conversation to see it here.</span>
               </div>
-            ))}
-          </div>
+            ) : (
+              <div className="conversation-history-list">
+                {recentConversations.map((conversation) => (
+                  <div
+                    key={conversation.id}
+                    className={`conversation-history-item ${
+                      activeConversationId === conversation.id ? "active" : ""
+                    }`}
+                    onClick={() => onSelectConversation?.(conversation.id)}
+                  >
+                    <MessageSquare
+                      className="conversation-history-icon"
+                      size={17}
+                    />
+
+                    <div className="conversation-history-content">
+                      <span
+                        className="conversation-history-title"
+                        title={conversation.title}
+                      >
+                        {conversation.title}
+                      </span>
+
+                      <span className="conversation-history-time">
+                        {formatConversationTime(conversation.updated_at)}
+                      </span>
+                    </div>
+
+                    <div
+                      className="conversation-menu-wrapper"
+                      ref={
+                        openConversationMenu === conversation.id
+                          ? conversationMenuRef
+                          : null
+                      }
+                    >
+                      <button
+                        type="button"
+                        className="conversation-menu-button"
+                        aria-label="Conversation options"
+                        onClick={(event) => {
+                          event.stopPropagation();
+
+                          setOpenConversationMenu((current) =>
+                            current === conversation.id
+                              ? null
+                              : conversation.id,
+                          );
+                        }}
+                      >
+                        ⋮
+                      </button>
+
+                      {openConversationMenu === conversation.id && (
+                        <div
+                          className="conversation-options-menu"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <button
+                            type="button"
+                            className="conversation-option"
+                            onClick={() => {
+                              setFolderPickerConversationId((current) =>
+                                current === conversation.id
+                                  ? null
+                                  : conversation.id,
+                              );
+                            }}
+                          >
+                            <Folder size={16} />
+                            <span>Add to folder</span>
+                          </button>
+
+                          {folderPickerConversationId === conversation.id && (
+                            <div className="conversation-folder-picker">
+                              {folders.length === 0 ? (
+                                <span className="conversation-folder-empty">
+                                  No folders available
+                                </span>
+                              ) : (
+                                folders.map((folder) => (
+                                  <button
+                                    key={folder.id}
+                                    type="button"
+                                    className="conversation-folder-option"
+                                    onClick={async () => {
+                                      await onAddConversationToFolder?.(
+                                        folder.id,
+                                        conversation.id,
+                                      );
+
+                                      setFolderPickerConversationId(null);
+                                      setOpenConversationMenu(null);
+                                    }}
+                                  >
+                                    <Folder size={15} />
+                                    <span>{folder.name}</span>
+                                  </button>
+                                ))
+                              )}
+                            </div>
+                          )}
+
+                          {conversationPendingDelete === conversation.id ? (
+                            <div className="conversation-delete-confirm">
+                              <span className="conversation-delete-text">
+                                Delete this conversation?
+                              </span>
+
+                              <div className="conversation-delete-actions">
+                                <button
+                                  type="button"
+                                  className="conversation-delete-cancel"
+                                  onClick={() => {
+                                    setConversationPendingDelete(null);
+                                    setOpenConversationMenu(null);
+                                  }}
+                                >
+                                  Cancel
+                                </button>
+
+                                <button
+                                  type="button"
+                                  className="conversation-delete-confirm-button"
+                                  onClick={() => {
+                                    setConversationPendingDelete(null);
+                                    setOpenConversationMenu(null);
+                                    onDeleteConversation?.(conversation.id);
+                                  }}
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              className="conversation-option delete"
+                              onClick={() => {
+                                setConversationPendingDelete(conversation.id);
+                              }}
+                            >
+                              <Trash2 size={16} />
+                              <span>Delete</span>
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="empty-history">
+              <Clock size={23} />
+              <p>No activity yet</p>
+              <span>Your recent activity will appear here.</span>
+            </div>
+          </>
         )}
       </div>
 
-      {/* Chat history / activity log */}
-      
-    <div className="sidebar-section history-section">
-      {activeTab === "history" ? (
-        <>
-          <div className="sidebar-section-heading">
-            <span>RECENT CONVERSATIONS</span>
-          </div>
-
-          <div className="empty-history">
-            <MessageSquare size={23} />
-            <p>No conversations yet</p>
-            <span>Start a new conversation to see it here.</span>
-          </div>
-        </>
-      ) : (
-        <>
-          <div className="sidebar-section-heading">
-            <span>ACTIVITY</span>
-          </div>
-
-          <div className="empty-history">
-            <Clock size={23} />
-            <p>No activity yet</p>
-            <span>Your recent activity will appear here.</span>
-          </div>
-        </>
-      )}
-    </div>
-
-
       {/* Decorative Bhutanese dragon.*/}
       <div className="sidebar-dragon" aria-hidden="true" />
-
 
       {/* User profile */}
       <div className="sidebar-user">
@@ -279,11 +608,7 @@ export function Sidebar({
 
 function FeatureCard({ icon: Icon, title, description, onClick }) {
   return (
-    <button
-      type="button"
-      className="feature-card"
-      onClick={onClick}
-    >
+    <button type="button" className="feature-card" onClick={onClick}>
       <div className="feature-icon">
         <Icon size={25} strokeWidth={1.8} />
       </div>
@@ -296,11 +621,7 @@ function FeatureCard({ icon: Icon, title, description, onClick }) {
 
 function SuggestedQuestion({ text, onClick }) {
   return (
-    <button
-      type="button"
-      className="suggestion-card"
-      onClick={onClick}
-    >
+    <button type="button" className="suggestion-card" onClick={onClick}>
       <span className="suggestion-icon">
         <MessageSquare size={15} />
       </span>
@@ -322,43 +643,158 @@ export default function Dashboard() {
 
   const [message, setMessage] = useState("");
   const [folders, setFolders] = useState([]);
+  const [conversations, setConversations] = useState([]);
+
+  const selectFolder = (folder) => {
+    if (!folder?.id) return;
+
+    navigate(`/folders/${folder.id}`);
+  };
 
   const [loading, setLoading] = useState(false);
 
-  const createFolder = (name) => {
-    const exists = folders.some(
-      (folder) => folder.name.toLowerCase() === name.toLowerCase()
-    );
+  const loadFolders = async () => {
+    if (!user?.id) return;
+    console.log("LOAD FOLDERS USER ID:", user?.id);
 
-    if (exists) {
-      window.alert("A folder with this name already exists.");
-      return;
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:8000/api/folders?user_id=${encodeURIComponent(
+          user.id,
+        )}`,
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Unable to load folders.");
+      }
+
+      setFolders(data.folders || []);
+    } catch (error) {
+      console.error("Failed to load folders:", error);
     }
-
-    setFolders((previous) => [
-      ...previous,
-      {
-        id: `${Date.now()}-${previous.length}`,
-        name,
-      },
-    ]);
   };
 
-  const deleteFolder = (folderId) => {
-  const confirmed = window.confirm(
-    "Are you sure you want to delete this folder?"
-  );
+  const loadConversations = async () => {
+    if (!user?.id) return;
 
-  if (!confirmed) return;
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:8000/api/conversations?user_id=${encodeURIComponent(
+          user.id,
+        )}`,
+      );
 
-  setFolders((previous) =>
-    previous.filter((folder) => folder.id !== folderId)
-  );
-};
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Unable to load conversations.");
+      }
+
+      setConversations(data.conversations || []);
+    } catch (error) {
+      console.error("Failed to load dashboard conversations:", error);
+    }
+  };
+
+  useEffect(() => {
+    loadConversations();
+    loadFolders();
+  }, [user?.id]);
+
+  const selectConversation = (conversationId) => {
+    if (!conversationId) return;
+
+    navigate(`/chat/${conversationId}`);
+  };
+
+  const createFolder = async (name) => {
+    if (!user?.id) return;
+
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/folders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_id: user.id,
+          name: name,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Unable to create folder.");
+      }
+
+      await loadFolders();
+    } catch (error) {
+      console.error("Failed to create folder:", error);
+      window.alert(error.message || "Unable to create folder.");
+    }
+  };
+
+  const deleteFolder = async (folderId) => {
+    if (!folderId) return;
+
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:8000/api/folders/${folderId}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Unable to delete folder.");
+      }
+
+      await loadFolders();
+      await loadConversations();
+    } catch (error) {
+      console.error("Failed to delete folder:", error);
+      window.alert(error.message || "Unable to delete folder.");
+    }
+  };
+
+  const addConversationToFolder = async (folderId, conversationId) => {
+    if (!folderId || !conversationId) return;
+
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:8000/api/folders/${folderId}/conversations`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            conversation_id: conversationId,
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Unable to add conversation to folder.");
+      }
+
+      await loadConversations();
+      await loadFolders();
+    } catch (error) {
+      console.error("Failed to add conversation to folder:", error);
+    }
+  };
 
   const startNewConversation = () => {
     setMessage("");
-    navigate("/chat");
+    navigate("/Dashboard");
   };
 
   const handleSubmit = async (e) => {
@@ -369,13 +805,21 @@ export default function Dashboard() {
     if (!question) return;
 
     navigate("/chat", {
-      state: { initialQuestion: question },
+      state: {
+        initialQuestion: question,
+        folders: folders,
+        conversations: conversations,
+      },
     });
   };
 
   const chooseSuggestion = (question) => {
     navigate("/chat", {
-      state: { initialQuestion: question },
+      state: {
+        initialQuestion: question,
+        folders: folders,
+        conversations: conversations,
+      },
     });
   };
 
@@ -383,9 +827,15 @@ export default function Dashboard() {
     <div className="dashboard">
       <Sidebar
         folders={folders}
+        conversations={conversations}
+        onLogoClick={() => navigate("/Dashboard")}
         onCreateFolder={createFolder}
         onDeleteFolder={deleteFolder}
+        onAddConversationToFolder={addConversationToFolder}
+        onSelectFolder={selectFolder}
         onNewConversation={startNewConversation}
+        onSelectConversation={selectConversation}
+        activeConversationId={null}
         user={user}
       />
 

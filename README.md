@@ -10,7 +10,7 @@ python -m venv .venv
 Activate it on Windows:
 .venv\Scripts\activate
 
-3. Install Deoendencies
+3. Install Dependencies
 pip install -r requirements.txt
 
 4. Configure Environment Variables

@@ -438,3 +438,39 @@ class StatementService:
         except Exception as e:
             print(f"build_case_timeline error: {e}")
             return []
+
+    #mine
+    def retrieve_statement_evidence(
+        self,
+        query: str,
+        case_nos: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """Retrieve statement evidence without generating a separate answer."""
+        try:
+            try:
+                from acc_statements.chat import retrieve_evidence
+            except ImportError:
+                from chat import retrieve_evidence
+
+            result = retrieve_evidence(
+                question=query,
+                case_nos=case_nos,
+            )
+
+            return {
+                "success": result.get("success", False),
+                "engine": "acc_statements_rag",
+                "evidence": result.get("evidence", []),
+                "warnings": result.get("warnings", []),
+            }
+
+        except Exception as exc:
+            print(f"Statement evidence retrieval error: {exc}")
+            return {
+                "success": False,
+                "engine": "acc_statements_rag",
+                "evidence": [],
+                "warnings": [
+                    "Statement evidence retrieval failed."
+                ],
+            }

@@ -111,8 +111,8 @@
 
 .chat-message.assistant {
   align-self: flex-start;
-  background: #151C2C;
-  color: #ffffff;
+  background: #ffffff;
+  color: #000000;
   border: 1px solid #e2e8f0;
   box-shadow: 0 2px 8px rgb(15 23 42 / 4%);
 }
@@ -130,8 +130,8 @@
 }
 
 .typing-indicator span {
-  width: 8px;
-  height: 8px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background: #64748b;
   animation: typing-bounce 1.2s infinite ease-in-out;
@@ -202,7 +202,7 @@
   align-items: center;
   gap: 10px;
   width: 100%;
-  max-width: 900px;
+  max-width: 1050px;
   margin: 0 auto;
   padding: 8px 10px 8px 16px;
   border: 1px solid #cbd5e1;
@@ -226,7 +226,7 @@
 
 .chat-prompt-area .disclaimer {
   margin: 10px auto 0;
-  max-width: 900px;
+  max-width: 1050px;
   text-align: center;
   font-size: 11px;
   line-height: 1.5;
@@ -359,4 +359,51 @@
 
 .message-content tbody tr:hover {
   background: #e8eef6;
+}
+
+.chat-conversation-header {
+  flex-shrink: 0;
+  width: 100%;
+  padding: 18px 28px 16px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+  background: #ffffff;
+}
+
+.chat-conversation-header-content {
+  width: 100%;
+}
+
+.chat-conversation-header h1 {
+  margin: 0;
+  color: #111827;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.chat-header-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 5px;
+
+  color: #718198;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.chat-header-status-dot {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #10b981;
+}
+
+.chat-conversation-header span {
+  display: block;
+  margin-top: 4px;
+  color: #718198;
+  font-size: 12px;
+  font-weight: 400;
 }

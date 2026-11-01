@@ -7,6 +7,7 @@ import ResetPassword from "./pages/ResetPassword";
 import "./App.css";
 import Dashboard from "./pages/Dashboard";
 import Chat from "./pages/Chat"
+import FolderView from "./pages/FolderView";
 
 function App() {
   return (
@@ -20,6 +21,8 @@ function App() {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/Dashboard" element={<Dashboard />} />
         <Route path="/chat" element={<Chat />} />
+        <Route path="/chat/:conversationId" element={<Chat />} />
+        <Route path="/folders/:folderId" element={<FolderView />} />
 
       </Routes>
     </BrowserRouter>

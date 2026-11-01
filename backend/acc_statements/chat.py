@@ -48,3 +48,42 @@ def ask(question: str, case_nos=None) -> dict:
             "sources": [{"sentence_id": c, "text": known[c]} for c in cited if c in known],
             "retrieved": [{"doc_id": h["doc_id"], "person": h["person_name"], "score": h["score"]} for h in hits],
             "warnings": warnings, "disclaimer": config.DISCLAIMER}
+
+
+def retrieve_evidence(
+    question: str,
+    case_nos=None,
+) -> dict:
+    """
+    Retrieve statement evidence without generating an answer.
+
+    Keeps sentence-level text and source metadata for downstream
+    cross-system evidence comparison.
+    """
+    hits = search(question, case_nos=case_nos)
+
+    if not hits:
+        return {
+            "success": True,
+            "evidence": [],
+            "warnings": ["No accessible statements matched."],
+        }
+
+    evidence = []
+
+    for hit in hits:
+        evidence.append({
+            "source_type": "statement",
+            "statement_id": hit.get("doc_id"),
+            "person_name": hit.get("person_name"),
+            "statement_date": hit.get("statement_date"),
+            "case_no": hit.get("case_no"),
+            "retrieval_score": hit.get("score"),
+            "text": hit.get("text_numbered", ""),
+        })
+
+    return {
+        "success": True,
+        "evidence": evidence,
+        "warnings": [],
+    }
