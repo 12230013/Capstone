@@ -40,4 +40,4 @@ backend/qdrant_storage/
 # Local environment files
 .env
 .env.*
-!backend/.env.example
+!backend/.env.examplebackend/test_documents/
