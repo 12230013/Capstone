@@ -45,6 +45,24 @@ class RouterBranchTests(unittest.TestCase):
         self.assertEqual(response["response"]["answer"], "Supported")
         self.service._rag_service.query.assert_called_once()
 
+    def test_primary_contradiction_result_does_not_fall_through_to_rag(self):
+        self.service._statement_service.detect_contradictions.return_value = {
+            "success": True, "analyzed_statements": ["synthetic_a", "synthetic_b"],
+            "contradictions": [{"explanation": "Different amounts for the same payment.",
+                "a": {"doc_id": "synthetic_a", "person": "Witness A", "sentence_id": "synthetic_a-s1", "quote": "Paid 100."},
+                "b": {"doc_id": "synthetic_b", "person": "Witness B", "sentence_id": "synthetic_b-s1", "quote": "Received 200."}}],
+        }
+        result = self.ask("Are there contradictions between the statements?")
+        self.assertIn("Different amounts", result["response"]["answer"])
+        self.assertEqual(len(result["response"]["sources"]), 2)
+        self.service._rag_service.query.assert_not_called()
+
+    def test_failed_comparison_does_not_return_unrelated_search_answer(self):
+        self.service._statement_service.detect_contradictions.side_effect = RuntimeError("Model offline")
+        with self.assertRaisesRegex(RuntimeError, "no conclusion"):
+            self.ask("Are there contradictions between the statements?")
+        self.service._rag_service.query.assert_not_called()
+
     def test_phone_and_citizen_ids_route_to_different_systems(self):
         self.service._handle_cdr_query = AsyncMock(return_value={"response": {"answer": "CDR"}})
         self.service._handle_relationship_query = AsyncMock(return_value={"response": {"answer": "Family"}})
@@ -98,9 +116,7 @@ class RagBranchTests(unittest.TestCase):
         }}}
 
     def generated(self, has_information=True):
-        return json.dumps({"has_information": has_information, "claims": [{
-            "statement": "Pema owns the sawmill.", "evidence": [{"sentence_id": "stmt_01-s1", "quote": "Pema owns the sawmill."}],
-        }] if has_information else [], "missing_information": []})
+        return "Pema owns the sawmill. [stmt_01-s1]" if has_information else NO_INFORMATION
 
     def test_invalid_rag_inputs_are_rejected(self):
         for query, limit in ((None, 3), ("", 3), ("Question", 0)):
@@ -119,10 +135,12 @@ class RagBranchTests(unittest.TestCase):
         self.assertIn("[stmt_01-s1]", response["answer"])
         self.assertEqual(response["sources"][0]["sentence_ids"], ["stmt_01-s1"])
 
-    def test_missing_fact_in_retrieved_documents_returns_no_information(self):
+    def test_model_can_explain_a_gap_without_a_backend_rejection(self):
         self.rag.retrieval_service.retrieve.return_value = [self.chunk]
         self.rag.llm_service.generate.return_value = self.generated(False)
-        self.assertEqual(self.rag.query("What is the salary?"), {"answer": NO_INFORMATION, "sources": []})
+        result = self.rag.query("What is the salary?")
+        self.assertEqual(result["answer"], NO_INFORMATION)
+        self.assertEqual(result["sources"][0]["doc_id"], "stmt_01")
 
     def test_ambiguous_cases_request_clarification_before_generation(self):
         other = {"text": "[stmt_02-s1] Another case.", "metadata": {"metadata": {"case_no": "20/25-26"}}}

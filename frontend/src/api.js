@@ -1,5 +1,5 @@
 const apiBase = import.meta.env.VITE_API_BASE_URL || (
-  import.meta.env.DEV ? `${window.location.protocol}//${window.location.hostname}:8000` : window.location.origin
+  import.meta.env.DEV ? `${window.location.protocol}//${window.location.hostname}:${import.meta.env.VITE_API_PORT || "8000"}` : window.location.origin
 );
 
 let csrfToken = null;
@@ -55,7 +55,32 @@ export async function apiFetch(path, options = {}) {
     }
     headers.set("X-CSRF-Token", csrfToken);
   }
-  const response = await fetch(url, { ...requestOptions, headers, credentials: "include" });
+  const controller = publicEndpoint ? new AbortController() : null;
+  let timedOut = false;
+  const timer = controller ? setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, 15000) : null;
+  const forwardAbort = () => controller?.abort();
+  if (controller && requestOptions.signal) {
+    if (requestOptions.signal.aborted) controller.abort();
+    else requestOptions.signal.addEventListener("abort", forwardAbort, { once: true });
+  }
+  let response;
+  try {
+    response = await fetch(url, {
+      ...requestOptions, headers, credentials: "include",
+      ...(controller ? { signal: controller.signal } : {}),
+    });
+  } catch (error) {
+    if (timedOut) {
+      throw new Error("The sign-in service took too long to respond. Check that the backend is running and try again.");
+    }
+    throw error;
+  } finally {
+    if (timer !== null) clearTimeout(timer);
+    requestOptions.signal?.removeEventListener("abort", forwardAbort);
+  }
   if (!publicEndpoint && response.status === 401) sessionExpired();
   return response;
 }

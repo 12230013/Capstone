@@ -1,4 +1,4 @@
-from app.services.evidence_grounding import answer_from_evidence, numbered_sentences, NO_INFORMATION
+from app.services.evidence_grounding import answer_document_question, numbered_sentences, NO_INFORMATION
 from app.services.retrieval_service import RetrievalService
 from app.services.llm_service import LLMService
 import re
@@ -13,7 +13,7 @@ class RAGService:
     def query(
         self,
         query: str,
-        limit: int = 3,
+        limit: int = 6,
         user_query: str | None = None,
     ) -> dict:
 
@@ -109,7 +109,12 @@ class RAGService:
         for chunk in retrieved_chunks:
             sentences.update(numbered_sentences(chunk.get("text", "")))
         print("Document search: checking evidence and generating answer...", flush=True)
-        grounded = answer_from_evidence(user_query, sentences, self.llm_service.generate)
+        context = "\n".join(dict.fromkeys(
+            f"{meta.get('doc_id', '')}: statement by {meta.get('person_name', 'Unknown')}, "
+            f"case {meta.get('case_no', '')}, dated {meta.get('statement_date', '')}"
+            for meta in (chunk.get('metadata', {}).get('metadata', {}) for chunk in retrieved_chunks)
+        ))
+        grounded = answer_document_question(user_query, sentences, self.llm_service.generate, document_context=context)
         if not grounded["has_information"]:
             return {"answer": grounded["answer"], "sources": []}
         answer = grounded["answer"]

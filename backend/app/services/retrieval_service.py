@@ -39,6 +39,8 @@ class RetrievalService:
             case_nos=case_nos,
             top_k=limit
         )
+        from acc_statements.overview import overview_hits
+        results = overview_hits(query, results, case_nos=case_nos)
 
         retrieved_chunks = []
 

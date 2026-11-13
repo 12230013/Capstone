@@ -7,13 +7,20 @@ except (ImportError, ModuleNotFoundError):
 
 
 def ask(question: str, case_nos=None) -> dict:
-    from app.services.evidence_grounding import answer_from_evidence, numbered_sentences
+    from app.services.evidence_grounding import answer_document_question, numbered_sentences
     from app.services.llm_service import LLMService
     hits = search(question, case_nos=case_nos)
+    from acc_statements.overview import overview_hits
+    hits = overview_hits(question, hits, case_nos=case_nos)
     sentences = {}
     for hit in hits:
         sentences.update(numbered_sentences(hit.get("text_numbered", "")))
-    grounded = answer_from_evidence(question, sentences, LLMService().generate)
+    context = "\n".join(dict.fromkeys(
+        f"{hit['doc_id']}: statement by {hit.get('person_name', 'Unknown')}, "
+        f"case {hit.get('case_no', '')}, dated {hit.get('statement_date', '')}"
+        for hit in hits
+    ))
+    grounded = answer_document_question(question, sentences, LLMService().generate, document_context=context)
     sources = []
     cited = set(grounded["sentence_ids"])
     for hit in hits:

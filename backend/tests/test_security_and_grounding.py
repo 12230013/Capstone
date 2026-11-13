@@ -288,7 +288,7 @@ class EvidenceGroundingTests(unittest.TestCase):
             {"sentence_id": "stmt_01-s1", "quote": "His salary is 50000"},
         ):
             generator = self.generated(claims=[{"statement": "His salary is 50000.", "evidence": [evidence]}])
-            self.assertEqual(answer_from_evidence("What is his salary?", self.sentences, generator)["answer"], NO_INFORMATION)
+            self.assertFalse(answer_from_evidence("What is his salary?", self.sentences, generator)["has_information"])
 
     def test_grounded_claims_keep_verified_citations(self):
         result = answer_from_evidence("Who owns the sawmill?", self.sentences, self.generated())
@@ -297,17 +297,29 @@ class EvidenceGroundingTests(unittest.TestCase):
 
     def test_partial_answers_disclose_missing_information(self):
         result = answer_from_evidence("Who owns it and what is his salary?", self.sentences, self.generated(missing_information=["salary"]))
-        self.assertIn("remaining requested details", result["answer"])
+        self.assertIn("do not provide: salary", result["answer"])
+        self.assertNotIn("remaining requested details", result["answer"])
 
     def test_malformed_output_abstains(self):
         result = answer_from_evidence("Who owns it?", self.sentences, MagicMock(return_value="an invented answer"))
-        self.assertEqual(result["answer"], NO_INFORMATION)
+        self.assertIn("couldn't produce a verifiable answer", result["answer"])
 
     def test_whitespace_quotes_do_not_validate_a_claim(self):
         generator = self.generated(claims=[{"statement": "Unsupported claim", "evidence": [
             {"sentence_id": "stmt_01-s1", "quote": " "},
         ]}])
-        self.assertEqual(answer_from_evidence("Question", self.sentences, generator)["answer"], NO_INFORMATION)
+        self.assertFalse(answer_from_evidence("Question", self.sentences, generator)["has_information"])
+
+    def test_overviews_request_synthesis_and_include_speaker_context(self):
+        generator = self.generated(claims=[{"statement": "According to the statement, Kinga Norbu operates a sawmill in Haa.",
+            "evidence": [{"sentence_id": "stmt_01-s1", "quote": self.sentences["stmt_01-s1"]}]}])
+        result = answer_from_evidence("Tell me about the Haa case", self.sentences, generator,
+            document_context="stmt_01: statement by Kinga Norbu, case 19/25-26")
+        prompt = generator.call_args.args[0]
+        self.assertIn("coherent paragraphs", prompt)
+        self.assertIn("statement by Kinga Norbu", prompt)
+        self.assertIn("According to the statement", result["answer"])
+        self.assertNotIn("remaining requested details", result["answer"])
 
     def test_structured_generation_is_deterministic_and_has_no_output_cap(self):
         from app.services.llm_service import LLMService
@@ -333,7 +345,7 @@ class EvidenceGroundingTests(unittest.TestCase):
             self.assertTrue(evidence["success"])
             self.assertEqual(evidence["evidence"][0]["statement_id"], "stmt_01")
             with patch("app.services.llm_service.LLMService") as model:
-                model.return_value.generate = self.generated()
+                model.return_value.generate.return_value = "Kinga Norbu owns Kuenga Sawmill in Haa. [stmt_01-s1]"
                 answer = statements.ask("Who owns it?")
             self.assertEqual(answer["sources"][0]["doc_id"], "stmt_01")
             self.assertIn("[stmt_01-s1]", answer["answer"])

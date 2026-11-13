@@ -5,12 +5,13 @@ import json
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
-# Ensure acc_statements and backend are on sys.path
+# Add only the package root. Adding acc_statements itself lets Python load
+# index.py twice (as index and acc_statements.index), duplicating model memory.
 _this_file = Path(__file__).resolve()
 _backend_dir = _this_file.parent.parent.parent
 _acc_dir = _backend_dir / "acc_statements"
 
-for _p in [_backend_dir, _acc_dir]:
+for _p in [_backend_dir]:
     if _p.exists() and str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
@@ -368,32 +369,10 @@ class StatementService:
                 "metadata_issues": meta_issues,
                 "contradictions": detector_result.get("contradictions", []),
                 "different_detail": detector_result.get("different_detail", []),
+                "warnings": detector_result.get("warnings", []),
+                "pairs_judged": detector_result.get("pairs_judged", 0),
+                "pairs_selected": detector_result.get("pairs_selected", 0),
                 "disclaimer": detector_result.get("disclaimer", "")
-            }
-        except Exception as e:
-            print(f"acc_statements detect_contradictions fallback: {e}")
-
-        # Fallback to app.statement_analysis.contradiction_detector if Ollama not running
-        try:
-            from app.statement_analysis.contradiction_detector import ContradictionDetector
-            detector = ContradictionDetector()
-            payload = [
-                {
-                    "statement_id": d["doc_id"],
-                    "id": d["doc_id"],
-                    "name": d.get("header", {}).get("name", "Unknown"),
-                    "text": " ".join(s["text"] for s in d.get("sentences", []))
-                }
-                for d in docs
-            ]
-            raw_res = detector.analyze(payload)
-            parsed_res = json.loads(raw_res) if isinstance(raw_res, str) else raw_res
-            return {
-                "success": True,
-                "engine": "fallback_contradictions",
-                "analyzed_statements": [d["doc_id"] for d in docs],
-                "metadata_issues": meta_issues,
-                "result": parsed_res
             }
         except Exception as ex:
             return {

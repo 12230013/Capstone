@@ -582,14 +582,18 @@ export default function Chat() {
     }
   };
 
-  const deleteFolder = (folderId) => {
-    if (!window.confirm("Are you sure you want to delete this folder?")) {
-      return;
+  const deleteFolder = async (folderId) => {
+    if (!folderId) return;
+    try {
+      const response = await apiFetch(`/api/folders/${folderId}`, { method: "DELETE" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Unable to delete folder.");
+      setFolders((previous) => previous.filter((folder) => folder.id !== folderId));
+      await loadConversations();
+    } catch (error) {
+      console.error("Failed to delete folder:", error);
+      window.alert(error.message || "Unable to delete folder.");
     }
-
-    setFolders((previous) =>
-      previous.filter((folder) => folder.id !== folderId),
-    );
   };
 
   const addConversationToFolder = async (folderId, conversationId) => {

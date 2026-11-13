@@ -2,19 +2,21 @@ import argparse
 import json
 
 try:
-    import config
-    from analyze import build_case_timeline, extract_entities, summarize
-    from chat import ask
-    from contradictions import detect_contradictions
-    from index import build_index, close_client
-    from ingest import load_docs, run_ingest
-except (ImportError, ModuleNotFoundError):
     from acc_statements import config
     from acc_statements.analyze import build_case_timeline, extract_entities, summarize
     from acc_statements.chat import ask
     from acc_statements.contradictions import detect_contradictions
     from acc_statements.index import build_index, close_client
     from acc_statements.ingest import load_docs, run_ingest
+except (ImportError, ModuleNotFoundError):
+    if __package__:
+        raise
+    import config
+    from analyze import build_case_timeline, extract_entities, summarize
+    from chat import ask
+    from contradictions import detect_contradictions
+    from index import build_index, close_client
+    from ingest import load_docs, run_ingest
 
 
 def save(name: str, data):

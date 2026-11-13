@@ -13,6 +13,31 @@ beforeEach(async () => {
 });
 
 describe("authenticated API client", () => {
+  it("keeps the browser hostname when configuring a development API port", async () => {
+    vi.stubEnv("VITE_API_BASE_URL", "");
+    vi.stubEnv("VITE_API_PORT", "8001");
+    vi.stubEnv("DEV", true);
+    vi.resetModules();
+    const localApi = await import("./api");
+    fetchMock.mockResolvedValue(response({}));
+    await localApi.apiFetch("/api/auth/login", { method: "POST" });
+    const url = fetchMock.mock.calls[0][0];
+    expect(url.hostname).toBe(window.location.hostname);
+    expect(url.port).toBe("8001");
+  });
+
+  it("times out a stalled sign-in request with a useful error", async () => {
+    vi.useFakeTimers();
+    fetchMock.mockImplementation((_url, options) => new Promise((_resolve, reject) => {
+      options.signal.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+    }));
+    const result = expect(api.apiFetch("/api/auth/login", { method: "POST" }))
+      .rejects.toThrow("The sign-in service took too long to respond");
+    await vi.advanceTimersByTimeAsync(15000);
+    await result;
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it("verifies the session and stores only the public profile", async () => {
     localStorage.setItem("accSessionToken", "obsolete");
     fetchMock.mockResolvedValue(response({ user: { id: "alice" }, csrf_token: "csrf" }));

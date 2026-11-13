@@ -1,16 +1,17 @@
 import re
 from datetime import datetime
 
-import dateparser
 
 try:
-    import config
-    from llm import ask_json
-    from schemas import EntityList, StatementSummary, TimelineExtraction
-except (ImportError, ModuleNotFoundError):
     from acc_statements import config
     from acc_statements.llm import ask_json
     from acc_statements.schemas import EntityList, StatementSummary, TimelineExtraction
+except (ImportError, ModuleNotFoundError):
+    if __package__:
+        raise
+    import config
+    from llm import ask_json
+    from schemas import EntityList, StatementSummary, TimelineExtraction
 
 
 # ---------- shared helpers ----------
@@ -44,6 +45,7 @@ def locate_quote(doc: dict, quote: str, hint_id: str = ""):
 
 
 def statement_base_date(doc: dict) -> datetime:
+    import dateparser
     d = dateparser.parse(doc["header"].get("statement_date", ""), settings={"DATE_ORDER": "DMY"})
     return d or datetime.now()
 
@@ -163,6 +165,7 @@ def extract_timeline(doc: dict) -> list[dict]:
 
 
 def build_case_timeline(docs: list[dict]) -> list[dict]:
+    import dateparser
     events = [e for d in docs for e in extract_timeline(d)]
     # dated events first in chronological order, undated ones at the end
     events.sort(key=lambda e: (e["date"] is None, e["date"] or "", e["time"] or "99:99"))

@@ -118,6 +118,21 @@ export default function FolderView() {
     navigate("/Dashboard");
   };
 
+  const deleteFolder = async (id) => {
+    if (!id) return;
+    try {
+      const response = await apiFetch(`/api/folders/${id}`, { method: "DELETE" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Unable to delete folder.");
+      setFolders((previous) => previous.filter((folder) => folder.id !== id));
+      if (id === folderId) navigate("/Dashboard", { replace: true });
+      else await loadConversations();
+    } catch (error) {
+      console.error("Failed to delete folder:", error);
+      window.alert(error.message || "Unable to delete folder.");
+    }
+  };
+
   const deleteConversation = async (conversationId) => {
     if (!conversationId) return;
 
@@ -168,6 +183,7 @@ export default function FolderView() {
         conversations={conversations}
         onLogoClick={() => navigate("/Dashboard")}
         onSelectFolder={selectFolder}
+        onDeleteFolder={deleteFolder}
         onNewConversation={startNewConversation}
         onSelectConversation={selectConversation}
         activeConversationId={null}

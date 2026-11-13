@@ -1922,9 +1922,41 @@ class ChatService:
 
         if is_contradiction_query:
             try:
-                contradiction_data = (
-                    self.statement_service.detect_contradictions()
-                )
+                contradiction_data = await run_in_threadpool(self.statement_service.detect_contradictions)
+                if contradiction_data.get("success") is False:
+                    raise RuntimeError(contradiction_data.get("error", "Contradiction analysis failed."))
+                if "contradictions" in contradiction_data:
+                    analyzed = contradiction_data.get("analyzed_statements", [])
+                    if not analyzed:
+                        return self._response("No statement documents are available for comparison.")
+                    findings = contradiction_data["contradictions"]
+                    lines = ["## Statement comparison", ""]
+                    sources = {}
+                    if findings:
+                        lines.append("Potential contradictions for investigator review:")
+                        for index, finding in enumerate(findings, 1):
+                            lines.append(f"\n**{index}.** {finding.get('explanation', '')}")
+                            for side in ("a", "b"):
+                                claim = finding[side]
+                                sid = claim["sentence_id"]
+                                lines.append(f"- {claim.get('person', 'Witness')}: {claim['quote']} [{sid}]")
+                                doc_id = claim["doc_id"]
+                                source = sources.setdefault(doc_id, {
+                                    "doc_id": doc_id, "filename": f"{doc_id}.txt",
+                                    "person_name": claim.get("person", ""),
+                                    "sentence_ids": [], "excerpt": "",
+                                })
+                                if sid not in source["sentence_ids"]:
+                                    source["sentence_ids"].append(sid)
+                                    source["excerpt"] += f"[{sid}] {claim['quote']}\n"
+                    elif contradiction_data.get("warnings"):
+                        lines.append("The comparison is incomplete. No contradiction finding can be given for the pairs that could not be evaluated.")
+                    else:
+                        lines.append("No explicit factual contradictions were identified in the compared claims. This does not establish that every statement is consistent.")
+                    if "pairs_judged" in contradiction_data:
+                        lines.append(f"\nReviewed {contradiction_data['pairs_judged']} of {contradiction_data.get('pairs_selected', 0)} selected sentence pairs; this is not an exhaustive comparison.")
+                    lines.append(f"\nAnalyzed {len(analyzed)} statement document(s). Verify findings against the original statements.")
+                    return self._response("\n".join(lines), list(sources.values()))
                 result = contradiction_data["result"]
                 findings = result.get("findings", [])
                 overall = result.get(
@@ -1972,6 +2004,7 @@ class ChatService:
                 )
             except Exception as exc:
                 print(f"Statement contradiction analysis error: {exc}")
+                raise RuntimeError("Statement comparison could not be completed. Please retry; no conclusion about contradictions was reached.") from exc
 
         # ---------------------------------------------------------
         # List available statements

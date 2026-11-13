@@ -50,13 +50,13 @@ SUMMARY_WARN_CHARS = 15000           # warn if a statement may not fit the conte
 CLAIM_PAIR_THRESHOLD = 0.55          # min cosine similarity for two claims to be compared
 CLAIMS_PER_NEIGHBOUR = 3             # compare each claim to its N most similar claims in other statements
 COMPARE_SAME_DOC = False             # set True to also look for self-contradiction inside one statement
-MAX_PAIRS = 80                       # cap LLM judge calls
+MAX_PAIRS = 12                       # bounded review of the highest-similarity source pairs
 
 DISCLAIMER = ("AI-generated analytical aid. Flags are for investigator review and are "
               "not findings of fact. Verify against the original statements.")
 
 LLM_IDLE_TIMEOUT = 600          # seconds of silence before giving up (not total time)
-LLM_MAX_OUTPUT_TOKENS = 2048    # hard cap so one call can't ramble forever
+LLM_MAX_OUTPUT_TOKENS = 2048   # bounded internal analysis; ordinary prose answers remain uncapped
 SHOW_PROGRESS = True
 
 import atexit
