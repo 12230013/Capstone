@@ -26,6 +26,32 @@ from app.document_processing.document_loader import load_document
 
 
 class RouterBranchTests(unittest.TestCase):
+    def test_cdr_direction_and_summary_use_computed_data_without_model(self):
+        from datetime import datetime
+        def record(incoming, dt='2025-11-01T12:00:00'):
+            return types.SimpleNamespace(datetime=datetime.fromisoformat(dt),
+                calling_number='17123456' if incoming else '77725777',
+                called_number='77725777' if incoming else '17123456',
+                called_party_name='Synthetic contact', called_party_cid='', service='Voice',
+                duration_seconds=1, duration='1', called_number_freq=1)
+        records = [record(True) for _ in range(544)] + [record(False) for _ in range(533)]
+        self.service._cdr_service = MagicMock()
+        self.service._cdr_service.get_summary = AsyncMock(return_value=types.SimpleNamespace(
+            records=records + [record(True, '2026-01-01T12:00:00')]))
+        self.service._llm_service = MagicMock()
+        result = self.ask('Compare incoming and outgoing communication for 77725777 between 2025-10-01 and 2025-12-31, and explain which direction had more interactions')
+        answer = result['response']['answer']
+        self.assertIn('| Incoming | 544 |', answer)
+        self.assertIn('| Outgoing | 533 |', answer)
+        self.assertIn('Incoming had 11 more interactions', answer)
+        self.assertIn('2025-10-01 to 2025-12-31', answer)
+        self.assertTrue(result['response']['sources'])
+        self.service._cdr_service.get_summary.return_value = types.SimpleNamespace(records=records)
+        result = self.ask('Give me a summary of the communication activity for 77725777')
+        self.assertIn('**Total interactions:** 1,077', result['response']['answer'])
+        self.assertIn('Incoming had 11 more interactions', result['response']['answer'])
+        self.service._llm_service.generate.assert_not_called()
+
     def setUp(self):
         self.service = RealChatService()
         self.service._rag_service = MagicMock()
@@ -44,6 +70,29 @@ class RouterBranchTests(unittest.TestCase):
         response = self.ask("Who owns the demonstration sawmill?")
         self.assertEqual(response["response"]["answer"], "Supported")
         self.service._rag_service.query.assert_called_once()
+
+    def test_labelled_target_contact_and_overnight_filters_use_records_without_llm(self):
+        query = ('show outgoing calls between 10 PM and 2 AM from 2026-10-01 to 2026-10-13 '
+                 'for contact number 17981380 involving target number 77725777')
+        def record(dt, caller='77725777', called='17981380'):
+            return {'datetime': dt, 'calling_number': caller, 'called_number': called,
+                    'service': 'Voice', 'duration': '25', 'duration_seconds': 25}
+        cdr = MagicMock()
+        cdr.get_summary = AsyncMock(return_value=types.SimpleNamespace(records=[
+            record('2026-10-02T23:00:00'), record('2026-10-03T01:00:00'),
+            record('2026-10-03T02:00:00'), record('2026-10-14T23:00:00'),
+            record('2026-10-02T23:00:00', '17981380', '77725777'),
+            record('2026-10-02T23:00:00', called='17111111'),
+        ]))
+        self.service._cdr_service = cdr
+        self.service._llm_service = MagicMock()
+        result = self.ask(query)
+        cdr.get_summary.assert_awaited_once_with('77725777')
+        answer = result['response']['answer']
+        self.assertIn('**Matching records:** 2', answer)
+        self.assertIn('**Contact:** 17981380', answer)
+        self.assertIn('**Direction:** Outgoing', answer)
+        self.service._llm_service.generate.assert_not_called()
 
     def test_primary_contradiction_result_does_not_fall_through_to_rag(self):
         self.service._statement_service.detect_contradictions.return_value = {

@@ -98,7 +98,7 @@ def parse_time_range(query: str):
         r"(\d{1,2})"
         r"(?::(\d{2}))?"
         r"\s*(a\.?m\.?|p\.?m\.?)?"
-        r"\s*(?:to|through|until|[-–])\s*"
+        r"\s*(?:to|and|through|until|[-–])\s*"
         r"(\d{1,2})"
         r"(?::(\d{2}))?"
         r"\s*(a\.?m\.?|p\.?m\.?)?"
@@ -921,6 +921,21 @@ class ChatService:
         summary = await self.cdr_service.get_summary(number)
         records = list(summary.records or [])
 
+        contact_match = re.search(r"\bcontact(?:\s+number)?\s*[:=]?\s*([0-9]{8})(?!\d)", query, re.I)
+        contact = contact_match.group(1) if contact_match else None
+        outgoing = bool(re.search(r"\boutgoing\b", query_lower))
+        incoming = bool(re.search(r"\bincoming\b", query_lower))
+        if contact or outgoing != incoming:
+            records = [record for record in records if (
+                (str(_get(record, "calling_number")) == number and
+                 (not contact or str(_get(record, "called_number")) == contact))
+                if outgoing and not incoming else
+                (str(_get(record, "called_number")) == number and
+                 (not contact or str(_get(record, "calling_number")) == contact))
+                if incoming and not outgoing else
+                ({str(_get(record, "calling_number")), str(_get(record, "called_number"))} == {number, contact})
+            )]
+
         # Explicit time ranges take priority over pattern detection.
         time_range = parse_time_range(query)
         date_values = re.findall(r"\b\d{4}-\d{2}-\d{2}\b", query)
@@ -985,6 +1000,10 @@ class ChatService:
                 f"**Time range:** {time_label}",
                 f"**Matching records:** {len(filtered_records)}",
             ]
+            if contact:
+                lines.append(f"**Contact:** {contact}")
+            if outgoing != incoming:
+                lines.append(f"**Direction:** {'Outgoing' if outgoing else 'Incoming'}")
 
             if start_date and end_date:
                 lines.append(
@@ -1665,23 +1684,41 @@ class ChatService:
                 "most_frequent_contacts": frequency[:10],
             }
 
-        cdr_data = {
-            "target_number": number,
-            "analysis_type": analysis_type,
-            "data": analysis_data,
-        }
-
-        record_id = f"cdr_{number}_{analysis_type}"
-        grounded = await run_in_threadpool(
-            answer_from_evidence, query,
-            {record_id: json.dumps(cdr_data, ensure_ascii=False, default=str)},
-            self.llm_service.generate,
-        )
-        answer = grounded["answer"]
+        # These values are already computed from CDR records. A document-quote
+        # validator must not decide whether numeric API statistics are answerable.
+        stats = analysis_data.get("statistics", analysis_data)
+        lines = [f"## Communication activity for {number}"]
+        if analysis_type == "period_statistics":
+            lines.append(f"**Date range:** {analysis_data['start_date']} to {analysis_data['end_date']}")
+        if "incoming" in stats and "outgoing" in stats:
+            incoming_count = stats["incoming"].get("count", 0)
+            outgoing_count = stats["outgoing"].get("count", 0)
+            lines.extend([
+                f"**Total interactions:** {stats.get('total_interactions', incoming_count + outgoing_count):,}",
+                "", "| Direction | Interactions | Duration (seconds) |", "|---|---:|---:|",
+                f"| Incoming | {incoming_count:,} | {stats['incoming'].get('duration_seconds', 0):,} |",
+                f"| Outgoing | {outgoing_count:,} | {stats['outgoing'].get('duration_seconds', 0):,} |", "",
+            ])
+            if incoming_count == outgoing_count:
+                lines.append("Incoming and outgoing had the same number of interactions.")
+            else:
+                higher = "Incoming" if incoming_count > outgoing_count else "Outgoing"
+                lines.append(f"{higher} had {abs(incoming_count - outgoing_count):,} more interactions.")
+            if not incoming_count and not outgoing_count:
+                lines.append("No communication records matched the requested scope.")
+        contacts = analysis_data.get("most_frequent_contacts", analysis_data.get("contacts", []))
+        contact_count = analysis_data.get("total_unique_contacts", analysis_data.get("total_contacts"))
+        if contact_count is not None:
+            lines.append(f"\n**Unique contacts:** {contact_count:,}")
+        if contacts:
+            lines.extend(["", "**Most frequent contacts**", "", "| Contact | Interactions |", "|---|---:|"])
+            lines.extend(f"| {item.get('contact_number', 'Unknown')} | {item.get('total_interactions', 0):,} |"
+                         for item in sorted(contacts, key=lambda item: item.get('total_interactions', 0), reverse=True)[:10])
+        answer = "\n".join(lines)
 
         response_data = {
             "answer": answer,
-            "sources": [self._source(number, analysis_type)] if grounded["has_information"] else [],
+            "sources": [self._source(number, analysis_type)],
         }
 
         if analysis_type == "communication_network":
@@ -1871,8 +1908,9 @@ class ChatService:
         )
 
         if is_cdr_query:
+            target_match = re.search(r"\btarget(?:\s+number)?\s*[:=]?\s*([0-9]{8})(?!\d)", query, re.I)
             resolved_number = (
-                number_matches[0]
+                target_match.group(1) if target_match else number_matches[0]
                 if number_matches
                 else context_phone
             )
