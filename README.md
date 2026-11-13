@@ -1,572 +1,152 @@
-Installation
+﻿# ACC Investigation Support Assistant
 
-1. Clone the Repository
-git clone <repository-url>
-cd chatbot/backend
+An investigation support chatbot for the Anti-Corruption Commission. It combines a React interface with a FastAPI backend, local document retrieval, and answer generation through Ollama.
 
-2. Create a Virtual Environment
+The assistant supports document questions with source references, CDR analysis, and relationship queries. It also provides conversation folders, automatic chat titles, activity history, and authenticated sessions.
+
+> This AI assistant is a support tool and may provide inaccurate information. Always apply professional judgment when using its responses.
+
+## Technology
+
+- **Frontend:** React, Vite, React Router, and Lucide icons.
+- **Backend:** Python and FastAPI.
+- **Persistence:** MongoDB for accounts, sessions, conversations, folders, and activity logs.
+- **Document search:** Local Qdrant storage and BAAI/bge-m3 embeddings for the statement pipeline.
+- **Answer generation:** A local Ollama model, selected with `OLLAMA_MODEL`.
+- **Testing:** Python unittest, FastAPI TestClient, Vitest, React Testing Library, and Playwright.
+
+## Local setup
+
+The commands below use PowerShell in VS Code. Start from the repository root unless a step changes the directory.
+
+Install Python, Node.js with npm, MongoDB, and Ollama first. MongoDB must be running before signing in or using chat persistence.
+
+### 1. Backend environment
+
+```powershell
+cd backend
 python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+Copy-Item .env.example .env
+```
 
-Activate it on Windows:
-.venv\Scripts\activate
-
-3. Install Dependencies
-pip install -r requirements.txt
-
-4. Configure Environment Variables
-Create a .env file based on .env.example.
-
-Example:
-
-CDR_API_BASE_URL=http://172.21.48.162:5000
-CDR_API_TIMEOUT=15
-
-Do not commit .env or confidential investigation documents to the repository.
-
-Ollama Setup
-- Install Ollama and make sure it is available from the terminal
-Verify: ollama --version
-Start the ollama server: ollama serve
-
-The project currently uses: mistral:7b-instruct-v0.3-q2_K
-
-Running the Backend
-uvicorn app.main:app --reload
-The API will be available at:
+Copy the environment template only when creating a new local configuration; keep an existing `.env`.
 
-http://127.0.0.1:8000
-
-FastAPI documentation:
+The current `requirements.txt` contains conflicting duplicate pins for FastAPI and python-dotenv. A clean installation may fail until those versions are reconciled; an existing working environment does not verify a fresh install.
 
-http://127.0.0.1:8000/docs
+Edit `backend/.env` for your machine. The main settings are:
 
+| Setting | Purpose |
+| --- | --- |
+| `MONGO_URI` | MongoDB connection; defaults to `mongodb://localhost:27017` |
+| `MONGO_DB_NAME` | Application database; defaults to `acc_database` |
+| `OLLAMA_MODEL` | Installed Ollama model used for answers |
+| `OLLAMA_NUM_GPU` | `-1` for automatic GPU use, or `0` for CPU mode |
+| `CDR_API_BASE_URL` | External CDR service address |
+| `RELATIONSHIP_API` | External relationship service address |
+| `FRONTEND_ORIGINS` | Allowed frontend origins for cookies and requests |
+| `SESSION_HOURS` / `SESSION_IDLE_MINUTES` | Session expiry limits |
+| `ENVIRONMENT` / `SESSION_COOKIE_SECURE` | Deployment environment and secure-cookie configuration |
 
-## Project Structure
+See [backend/.env.example](backend/.env.example) for the template. CDR and relationship features require their respective services and data.
 
-backend/
-│
-├── app/
-│   ├── __init__.py
-│   ├── main.py
-│   ├── config.py
-│   │
-│   ├── document_processing/
-│   │   ├── __init__.py
-│   │   ├── document_loader.py
-│   │   ├── text_cleaner.py
-│   │   └── text_chunker.py
-│   │
-│   ├── services/
-│   │   ├── __init__.py
-│   │   ├── embedding_service.py
-│   │   ├── qdrant_service.py
-│   │   ├── ingestion_service.py
-│   │   ├── retrieval_service.py
-│   │   ├── prompt_service.py
-│   │   ├── llm_service.py
-│   │   └── rag_service.py
-│   │
-│   ├── analytics/
-│   │   ├── __init__.py
-│   │   └── cdr_analytics.py
-│   │
-│   ├── models/
-│   │   ├── __init__.py
-│   │   └── cdr.py
-│   │
-│   └── utils/
-│       ├── __init__.py
-│       └── cdr_utils.py
-│
-├── test_documents/
-│   └── case_004.txt
-│
-├── qdrant_storage/
-│
-├── test_ingestion.py
-├── test_retrieval.py
-├── test_rag_service.py
-├── test_qdrant_count.py
-├── test_multi_ingestion.py
-├── test_multi_retrieval.py
-│
-├── .env
-├── .env.example
-├── .gitignore
-├── requirements.txt
-└── README.md
+### 2. Ollama
 
- `app/`
+Pull the model configured in `.env`. For the model in the supplied template:
 
-The main application package. All backend functionality is organized inside this folder.
+```powershell
+ollama pull mistral:7b-instruct-v0.3-q2_K
+ollama list
+```
 
----
+Ollama must be running at `http://localhost:11434`. If it is not already running through the desktop application, start it in another terminal:
 
- `app/main.py`
+```powershell
+ollama serve
+```
 
-The **main entry point of the FastAPI backend**.
+Model choice and available memory affect response time. The embedding model also uses memory, and its first use downloads model files.
 
-It:
+### 3. Local statement documents
 
-* Creates the FastAPI application
-* Registers API endpoints
-* Handles chatbot requests
-* Registers CDR endpoints
-* Connects the API layer with the services
+The current statement workflow uses manually supplied documents; automatic CIMS document ingestion is not connected.
 
-The main chatbot endpoint is:
+Place statement `.txt` files in `backend/acc_statements/data/statements/`, following the format documented in [StatementAnalysis.md](backend/acc_statements/StatementAnalysis.md). From `backend`, parse and index them:
 
-POST /api/chat
+```powershell
+.\.venv\Scripts\python.exe -m acc_statements.main ingest
+.\.venv\Scripts\python.exe -m acc_statements.main index
+```
 
- `app/config.py`
+Stop the backend before running indexing commands because both use the local Qdrant database. Parsed output and the index remain local and are excluded from Git.
 
-Contains application configuration and environment-related settings.
+### 4. Start the backend
 
-This is where configuration values can be centralized instead of hard-coding them throughout the application.
+From `backend`:
 
-`app/document_processing/`
+```powershell
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload
+```
 
-Contains everything related to preparing investigation documents before they are stored in the vector database.
+- API: http://127.0.0.1:8000
+- Interactive API documentation: http://127.0.0.1:8000/docs
 
-`document_loader.py`
+Startup loads and warms the document embedding model. Wait for startup to complete before submitting questions.
 
-Loads supported document formats:
+### 5. Start the frontend
 
-* PDF
-* DOCX
-* TXT
+In a separate terminal, from the repository root:
 
-It extracts the text and basic document metadata.
+```powershell
+cd frontend
+npm.cmd ci
+npm.cmd run dev
+```
 
-Flow:
+Open the local URL printed by Vite, normally http://localhost:5173. Register an account and sign in. During development, the frontend connects to port 8000 on the same hostname; `VITE_API_BASE_URL` can override this.
 
-Document
-   ↓
-document_loader.py
-   ↓
-Extracted text
+## Sources and sessions
 
- `text_cleaner.py`
+Answers expose a Sources button that opens a panel on the right. Source entries use backend metadata and can display the available original document with cited sentences highlighted. When the original file is unavailable, the retrieved passage provides the available evidence.
 
-Cleans extracted text before further processing.
+Document answers use evidence checks and should report insufficient information when supporting material is missing. These safeguards do not replace investigator review.
 
-It handles things such as:
+Authentication uses server-side sessions with HttpOnly cookies, CSRF protection, expiry, and account ownership checks. HTTPS deployments require secure cookies and matching allowed frontend origins.
 
-* Extra spaces
-* Unnecessary whitespace
-* Paragraph formatting
+## Project structure
 
-Flow:
+| Path | Purpose |
+| --- | --- |
+| `frontend/src/` | React pages, shared components, styles, and API client |
+| `frontend/e2e/` | Browser acceptance tests |
+| `backend/app/` | FastAPI routes, authentication, database access, and application services |
+| `backend/acc_statements/` | Statement parsing, indexing, retrieval, and analysis |
+| `backend/tests/` | Backend unit, API, security, and structural tests |
+| `backend/integration_tests/` | Workflows using a real, isolated MongoDB test database |
+| `tests/` | Synthetic fixtures, recorded test results, and the manual UAT checklist |
+| `TESTING.md` | Test setup, commands, coverage reports, and scope |
 
-Extracted text
-      ↓
-text_cleaner.py
-      ↓
-Clean text
+## Testing
 
-`text_chunker.py`
+Run backend unit/API tests from the repository root:
 
-Splits cleaned documents into smaller, meaningful pieces called **chunks**.
+```powershell
+.\backend\.venv\Scripts\python.exe -m unittest discover -s backend/tests -v
+```
 
-The chunker is sentence-aware and uses overlap so that important context is not lost between chunks.
+Run frontend unit/component tests:
 
-Current configuration:
+```powershell
+cd frontend
+npm.cmd test
+npm.cmd run build
+```
 
-Chunk size: 500
-Overlap: 50
+See [TESTING.md](TESTING.md) for MongoDB integration tests, Playwright browser tests, and coverage commands. Recorded results are in [tests/TEST_RESULTS.md](tests/TEST_RESULTS.md); manual acceptance checks are in [tests/UAT_CHECKLIST.md](tests/UAT_CHECKLIST.md).
 
-Flow:
+Automated tests use synthetic data and controlled model responses. Live model quality and human acceptance require separate review.
 
-Clean document
-      ↓
-text_chunker.py
-      ↓
-Chunk 1
-Chunk 2
-Chunk 3
+## Files to keep local
 
- `app/services/`
-
-Contains the main services used by the RAG chatbot.
-
- `embedding_service.py`
-
-Creates vector embeddings using:
-
-Sentence Transformers
-all-MiniLM-L6-v2
-
-It converts text into numerical vectors so that semantically similar text can be searched.
-
-Example:
-
-"What financial transaction was discussed?"
-                  ↓
-             Embedding
-                  ↓
-          [384-dimensional vector]
-
-
-`qdrant_service.py`
-
-Handles communication with the Qdrant vector database.
-
-It is responsible for:
-
-* Creating the collection
-* Storing document chunks
-* Storing embeddings
-* Searching for similar vectors
-
-Current collection:
-
-investigation_documents
-
-`ingestion_service.py`
-
-Connects the document-processing components together.
-
-This is the main **document ingestion pipeline**:
-
-Document
-   ↓
-Load
-   ↓
-Clean
-   ↓
-Chunk
-   ↓
-Embed
-   ↓
-Qdrant
-
-It uses:
-
-document_loader.py
-text_cleaner.py
-text_chunker.py
-embedding_service.py
-qdrant_service.py
-
-The service also creates deterministic IDs for chunks to prevent duplicate documents from being stored when the same document is ingested again.
-
- `retrieval_service.py`
-
-Handles retrieval of relevant evidence from Qdrant.
-
-The normal process is:
-
-User Query
-    ↓
-Query Embedding
-    ↓
-Qdrant Search
-    ↓
-Relevant Chunks
-
-It also contains **case-aware retrieval**.
-
-For example:
-
-Investigation Case 004
-        ↓
-Detect case number
-        ↓
-Retrieve relevant chunks
-        ↓
-Prioritize case_004.txt
-
-This prevents a semantically similar document from another investigation case from being prioritized over the case explicitly requested by the investigator.
-
- `prompt_service.py`
-
-Builds the prompt sent to the local LLM.
-
-The prompt instructs the model to:
-
-* Use only the provided investigation evidence
-* Avoid outside knowledge
-* Avoid inventing information
-* Avoid mixing unrelated cases
-* Indicate when evidence is insufficient
-* Consider the specified investigation case
-
-Flow:
-
-Retrieved Evidence
-        +
-User Question
-        ↓
-prompt_service.py
-        ↓
-LLM Prompt
-
-`llm_service.py`
-
-Handles communication with the local LLM through Ollama.
-
-Current model:
-
-mistral:7b-instruct-v0.3-q2_K
-
-The service sends the constructed prompt to Ollama and returns the generated response.
-
-Flow:
-
-Prompt
-  ↓
-Ollama
-  ↓
-Mistral
-  ↓
-Generated Answer
-
- `rag_service.py`
-
-Combines the individual RAG components into one complete workflow.
-
-It connects:
-
-Retrieval
-    ↓
-Prompt Construction
-    ↓
-Mistral
-    ↓
-Answer
-    ↓
-Sources
-
-It also performs **case-aware source filtering**.
-
-For example, if the user asks about Case 004:
-
-Retrieved:
-case_004.txt
-case_002.txt
-case_003.txt
-
-        ↓
-Case filtering
-
-        ↓
-
-Returned:
-case_004.txt
-
-This ensures unrelated investigation cases are not returned as supporting sources.
-
-
-`app/analytics/`
-
-Contains analytical functionality that is separate from the RAG document pipeline.
-
- `cdr_analytics.py`
-
-Contains the analytical logic for CDR data.
-
-Current capabilities include:
-
-* Communication frequency
-* Communication direction
-* Date-range analysis
-* Period statistics
-* Communication timeline
-* Contact interaction analysis
-* Irregular communication patterns
-* Communication network generation
-
-The CDR analytics identify communication patterns and indicators. They do not automatically determine that a communication is suspicious.
-
-
-`app/models/`
-
-Contains data models used by the backend.
-
-`cdr.py`
-
-Contains models used for representing and validating CDR-related data.
-
-Using models keeps the API data structure consistent.
-
- `app/utils/`
-
-Contains reusable helper functions.
-
- `cdr_utils.py`
-
-Contains utility functions used by the CDR functionality, such as processing and formatting CDR-related data.
-
- `test_documents/`
-
-Contains documents used for local development and testing.
-
-Example:
-
-test_documents/
-└── case_004.txt
-
-These are **test documents only**.
-
-Actual confidential investigation documents should not be committed to Git.
-
- `qdrant_storage/`
-
-Local storage used by Qdrant during development.
-
-This contains the locally stored vector database data.
-
-It is generated/maintained by Qdrant and should generally not be manually edited.
-
-Test Files
-
-The test scripts are currently kept in the backend root for development.
- `test_ingestion.py`
-
-Tests the complete document ingestion pipeline:
-
-
-Load → Clean → Chunk → Embed → Qdrant
-
-
- `test_retrieval.py`
-
-Tests semantic and case-aware retrieval.
-
-`test_rag_service.py`
-
-Tests the complete RAG service:
-
-Retrieval → Prompt → Mistral → Answer
-
-`test_qdrant_count.py`
-
-Checks the number of points stored in the Qdrant collection.
-
-Useful for verifying that duplicate ingestion is not creating duplicate vectors.
-
- `test_multi_ingestion.py`
-
-Tests ingestion of multiple documents.
-
- `test_multi_retrieval.py`
-
-Tests retrieval across multiple investigation documents.
-
-
-
- Configuration Files
-
-`.env`
-
-Contains local environment configuration such as the CDR API connection.
-
-Example:
-
-CDR_API_BASE_URL=http://172.21.48.162:5000
-CDR_API_TIMEOUT=15
-
-**Do not commit `.env` to Git.**
-
- `.env.example`
-
-Template showing which environment variables are required without exposing actual credentials or configuration values.
-
-
- `.gitignore`
-
-Specifies files and folders that should not be committed to the repository.
-
-This should include things such as:
-
-.venv/
-.env
-__pycache__/
-qdrant_storage/
-
-Confidential investigation documents should also be excluded.
-
- `requirements.txt`
-
-Contains the Python dependencies required to run the backend.
-
-
-Overall RAG Flow
-
-The main RAG components work together as follows:
-
-                 DOCUMENT INGESTION
-
-Document
-   ↓
-document_loader.py
-   ↓
-text_cleaner.py
-   ↓
-text_chunker.py
-   ↓
-embedding_service.py
-   ↓
-qdrant_service.py
-   ↓
-Qdrant
-
-When an investigator asks a question:
-
-                  QUESTION ANSWERING
-
-User Question
-      ↓
-retrieval_service.py
-      ↓
-Case-Aware Retrieval
-      ↓
-Relevant Evidence
-      ↓
-prompt_service.py
-      ↓
-llm_service.py
-      ↓
-Mistral
-      ↓
-rag_service.py
-      ↓
-Answer + Sources
-      ↓
-/api/chat
-
-
-Current Development Status
-
- Completed
-
-* Document loading
-* Text cleaning
-* Sentence-aware chunking
-* Metadata handling
-* Embeddings
-* Qdrant storage
-* Duplicate ingestion prevention
-* Semantic retrieval
-* Case-aware retrieval
-* Prompt construction
-* Local Mistral integration
-* RAG service
-* `/api/chat`
-* Case-aware source filtering
-* CDR analytics
-* Relationship mapping API
-
-Currently Being Developed
-
-* Statement summarization
-* Key entity extraction
-* Chronological timeline generation
-* Contradiction detection
-* OCR integration
-* Automatic document ingestion from the actual ACC/CIMS source
-* Authentication and RBAC
-
-## Automated tests
-
-See [TESTING.md](TESTING.md) for backend unit/API tests and frontend component/API-client tests, including setup, run commands, and test scope.
+Do not commit `.env`, confidential investigation documents, local databases, virtual environments, dependencies, or generated test reports. These are covered by `.gitignore`. Commit the environment template, source tests, synthetic fixtures, lockfiles, and testing documentation.
