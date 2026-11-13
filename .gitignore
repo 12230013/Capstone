@@ -1,43 +1,47 @@
-.env
-backend/.venv/
-__pycache__/
-*.py[cod]
-backend/qdrant_storage/
-backend/node_modules/
-
-# Backend virtual environment
-backend/venv/
-backend/.venv/
-
-# Backend environment/secrets
-backend/.env
-backend/.env.*
-
-# Python cache
-__pycache__/
-*.py[cod]
-
-# Frontend dependencies
-frontend/node_modules/
-
-# Frontend build
-frontend/dist/
-frontend/build/
-
-# IDE
-.vscode/
-.idea/
-
-# Local investigation data and generated vector database
-# Local statement-analysis data and environments
-backend/acc_statements/.venv/
-backend/acc_statements/__pycache__/
-backend/acc_statements/outputs/
-backend/acc_statements/qdrant_db/
-backend/app/statement_documents/
-backend/qdrant_storage/
-
-# Local environment files
+# Local environment and secrets (keep the shareable template)
 .env
 .env.*
-!backend/.env.examplebackend/test_documents/
+!.env.example
+
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Dependencies and frontend builds
+node_modules/
+/frontend/dist/
+/frontend/build/
+*.tsbuildinfo
+
+# Local investigation documents and generated vector databases
+/backend/acc_statements/data/
+/backend/acc_statements/outputs/
+/backend/acc_statements/qdrant_db/
+/backend/app/statement_documents/
+/backend/test_documents/
+/backend/qdrant_storage/
+
+# Generated test reports and coverage (keep tests, fixtures and documentation)
+/test-results/
+/frontend/test-results/
+/frontend/playwright-report/
+/frontend/blob-report/
+coverage/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+.nyc_output/
+
+# Local logs, IDE settings and OS files
+*.log
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini

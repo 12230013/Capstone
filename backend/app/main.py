@@ -1,5 +1,11 @@
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, Request
+from fastapi.responses import JSONResponse
+from pymongo.errors import ConnectionFailure
+from app.utils.sessions import require_session, allowed_origins
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+from starlette.concurrency import run_in_threadpool
+import time
 
 # ACC chatbot API routes
 from app.api.routes.chat import router as chat_router
@@ -11,9 +17,25 @@ from app.api.routes.folders import router as folders_router
 
 # Authentication route from the frontend/backend integration
 from app.routes.auth import router as auth_router
+from app.api.routes.activity import router as activity_router
+from app.api.routes.sources import router as sources_router
+
+
+@asynccontextmanager
+async def lifespan(app):
+    from acc_statements.index import embed, close_client
+    started = time.monotonic()
+    print("Preparing document search: loading and warming the embedding model...", flush=True)
+    await run_in_threadpool(embed, ["Investigation document search warm-up"])
+    print(f"Document search ready in {time.monotonic() - started:.1f}s. You can now submit questions.", flush=True)
+    try:
+        yield
+    finally:
+        close_client()
 
 
 app = FastAPI(
+    lifespan=lifespan,
     title="ACC Investigation Support System",
     description="Backend API for the ACC investigation support chatbot",
     version="1.0.0",
@@ -22,7 +44,7 @@ app = FastAPI(
 # Allow requests from the frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=allowed_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -35,10 +57,26 @@ async def root():
 
 
 # Register all routers
-app.include_router(chat_router)
-app.include_router(cdr_router)
-app.include_router(relationship_router)
+app.include_router(chat_router, dependencies=[Depends(require_session)])
+app.include_router(cdr_router, dependencies=[Depends(require_session)])
+app.include_router(relationship_router, dependencies=[Depends(require_session)])
 app.include_router(auth_router)
-app.include_router(statements_router)
-app.include_router(conversations_router)
-app.include_router(folders_router)
+app.include_router(statements_router, dependencies=[Depends(require_session)])
+app.include_router(conversations_router, dependencies=[Depends(require_session)])
+app.include_router(folders_router, dependencies=[Depends(require_session)])
+app.include_router(activity_router, dependencies=[Depends(require_session)])
+app.include_router(sources_router, dependencies=[Depends(require_session)])
+
+
+@app.exception_handler(ConnectionFailure)
+async def database_unavailable(request: Request, exc: ConnectionFailure):
+    return JSONResponse(status_code=503, content={"detail": "The database is unavailable. Please try again later."})
+
+
+@app.middleware("http")
+async def private_api_responses(request: Request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+    return response

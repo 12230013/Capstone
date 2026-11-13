@@ -1,6 +1,7 @@
+import { apiFetch } from "../api";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { Send, Upload } from "lucide-react";
+import { Send, Upload, FileText } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Sidebar } from "./Dashboard";
@@ -8,6 +9,7 @@ import "./dashboard.css";
 import "./chat.css";
 import CDRNetwork from "./CDRNetwork";
 import RelationshipNetwork from "./RelationshipNetwork";
+import SourcesPanel from "./SourcesPanel";
 
 const CDR_KEYWORDS =
   /\b(cdr|call records?|communication records?|call history|communication network|communication patterns?|unusual communication hours|incoming calls?|outgoing calls?|call frequency|call duration|call timeline|interactions)\b/i;
@@ -236,18 +238,19 @@ export default function Chat() {
     }
   });
 
+  const [sourceSelection, setSourceSelection] = useState(null);
+  const closeSources = useCallback(() => setSourceSelection(null), []);
+  useEffect(() => { setSourceSelection(null); }, [conversationId]);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [activeConversationId, setActiveConversationId] = useState(null);
-  const [conversations, setConversations] = useState([
-    initialConversations 
-  ]);
+  const [conversations, setConversations] = useState(initialConversations);
   const [loading, setLoading] = useState(false);
   const [chatError, setChatError] = useState("");
   const [canRetry, setCanRetry] = useState(false);
-  const [folders, setFolders] = useState([
-    initialFolders
-  ]);
+  const [failedAttempt, setFailedAttempt] = useState(null);
+  const requestInFlight = useRef(false);
+  const [folders, setFolders] = useState(initialFolders);
 
   const submittedInitialQuestion = useRef(false);
   const bottomRef = useRef(null);
@@ -256,8 +259,8 @@ export default function Chat() {
     if (!conversationId) return;
 
     try {
-      const response = await fetch(
-        `http://127.0.0.1:8000/api/conversations/${conversationId}`,
+      const response = await apiFetch(
+        `/api/conversations/${conversationId}`,
         {
           method: "DELETE",
         },
@@ -298,8 +301,8 @@ export default function Chat() {
       setChatError("");
       setCanRetry(false);
 
-      const response = await fetch(
-        `http://127.0.0.1:8000/api/conversations/${conversationId}/messages`,
+      const response = await apiFetch(
+        `/api/conversations/${conversationId}/messages`,
       );
 
       const data = await response.json();
@@ -345,8 +348,8 @@ export default function Chat() {
     if (!user?.id) return;
 
     try {
-      const response = await fetch(
-        `http://127.0.0.1:8000/api/folders?user_id=${encodeURIComponent(
+      const response = await apiFetch(
+        `/api/folders?user_id=${encodeURIComponent(
           user.id,
         )}`,
       );
@@ -367,8 +370,8 @@ export default function Chat() {
     if (!user?.id) return;
 
     try {
-      const response = await fetch(
-        `http://127.0.0.1:8000/api/conversations?user_id=${encodeURIComponent(
+      const response = await apiFetch(
+        `/api/conversations?user_id=${encodeURIComponent(
           user.id,
         )}`,
       );
@@ -391,14 +394,13 @@ export default function Chat() {
   }, [user?.id]);
 
   const sendQuestion = useCallback(
-    async (rawQuestion) => {
+    async (rawQuestion, retryRequestId = null) => {
       const question = rawQuestion.trim();
 
-      if (!question || loading) return;
+      if (!question || loading || requestInFlight.current) return;
 
       setChatError("");
       setCanRetry(false);
-      setMessage("");
 
       const validationError = getFrontendValidationError(question);
 
@@ -407,21 +409,27 @@ export default function Chat() {
         return;
       }
 
+      const requestId = retryRequestId || (
+        failedAttempt?.query === question ? failedAttempt.requestId : crypto.randomUUID()
+      );
+      requestInFlight.current = true;
+      setMessage("");
       setMessages((previous) => [
         ...previous,
-        { role: "user", content: question },
+        { role: "user", content: question, requestId },
       ]);
 
       setLoading(true);
 
       try {
-        const response = await fetch("http://127.0.0.1:8000/api/chat", {
+        const response = await apiFetch("/api/chat", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
             query: question,
+            request_id: requestId,
             conversation_id: activeConversationId,
             user_id: user?.id,
             folder_id: initialFolderId || null,
@@ -436,6 +444,10 @@ export default function Chat() {
           data = {};
         }
 
+        if (!response.ok) {
+          throw new Error(getFriendlyErrorMessage(data.detail || data.message || data, question));
+        }
+
         // Save the conversation ID returned by the backend
         if (data.conversation_id) {
           setActiveConversationId(data.conversation_id);
@@ -445,18 +457,10 @@ export default function Chat() {
             state: null,
           });
 
-          await loadConversations();
-          await loadFolders();
+          void loadConversations();
+          void loadFolders();
         }
 
-        if (!response.ok) {
-          throw new Error(
-            getFriendlyErrorMessage(
-              data.detail || data.message || data,
-              question,
-            ),
-          );
-        }
 
         const answer =
           data.response?.answer ??
@@ -473,8 +477,7 @@ export default function Chat() {
           /unsupported relationship degree/i.test(answerText) ||
           /invalid phone number/i.test(answerText)
         ) {
-          setChatError(getFriendlyErrorMessage(answerText, question));
-          return;
+          throw new Error(getFriendlyErrorMessage(answerText, question));
         }
 
         const visualization =
@@ -492,17 +495,21 @@ export default function Chat() {
             visualization,
           },
         ]);
+        setFailedAttempt(null);
       } catch (error) {
         console.error("Chat error:", error);
 
         setChatError(getFriendlyErrorMessage(error, question));
-
+        setMessages((previous) => previous.filter((item) => item.requestId !== requestId));
+        setMessage((draft) => draft || question);
+        setFailedAttempt({ query: question, requestId });
         setCanRetry(true);
       } finally {
+        requestInFlight.current = false;
         setLoading(false);
       }
     },
-    [loading, initialFolderId, activeConversationId],
+    [loading, initialFolderId, activeConversationId, failedAttempt],
   );
 
   // Automatically submit a question selected on the dashboard only once.
@@ -552,7 +559,7 @@ export default function Chat() {
     if (!user?.id) return;
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/folders", {
+      const response = await apiFetch("/api/folders", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -589,8 +596,8 @@ export default function Chat() {
     if (!folderId || !conversationId) return;
 
     try {
-      const response = await fetch(
-        `http://127.0.0.1:8000/api/folders/${folderId}/conversations`,
+      const response = await apiFetch(
+        `/api/folders/${folderId}/conversations`,
         {
           method: "POST",
           headers: {
@@ -620,6 +627,29 @@ export default function Chat() {
   const activeConversation = conversations.find(
     (conversation) => conversation.id === activeConversationId,
   );
+
+  useEffect(() => {
+    if (!activeConversationId || activeConversation?.title_status !== "pending") return;
+    let cancelled = false;
+    let timer;
+    const refreshTitle = async () => {
+      try {
+        const response = await apiFetch("/api/conversations?user_id=" + encodeURIComponent(user.id), { background: true });
+        if (!response.ok) throw new Error("Unable to refresh title");
+        const data = await response.json();
+        if (cancelled) return;
+        setConversations(data.conversations || []);
+        const current = data.conversations?.find(item => item.id === activeConversationId);
+        if (current?.title_status !== "pending") return;
+      } catch (error) {
+        if (cancelled) return;
+        console.error("Title refresh failed:", error);
+      }
+      timer = setTimeout(refreshTitle, 5000);
+    };
+    timer = setTimeout(refreshTitle, 5000);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [activeConversationId, activeConversation?.title_status, user?.id]);
 
   const formatChatHeaderTime = (dateValue) => {
     if (!dateValue) return "";
@@ -744,74 +774,13 @@ export default function Chat() {
                 )}
 
                 {item.role === "assistant" && item.sources?.length > 0 && (
-                  <div className="chat-sources">
-                    <strong className="chat-sources-title">
-                      Sources ({item.sources.length})
-                    </strong>
-
-                    {item.sources.map((source, sourceIndex) => (
-                      <div
-                        key={`${
-                          source.doc_id ||
-                          source.filename ||
-                          source.type ||
-                          "source"
-                        }-${sourceIndex}`}
-                        className="chat-source-item"
-                      >
-                        {source.type === "CDR analysis" ? (
-                          <>
-                            <strong>CDR Analytics</strong>
-
-                            {source.phone_number && (
-                              <span>Phone: {source.phone_number}</span>
-                            )}
-
-                            {source.analysis && (
-                              <span>Analysis: {source.analysis}</span>
-                            )}
-                          </>
-                        ) : (
-                          <>
-                            <strong>
-                              {source.person_name ||
-                                source.filename ||
-                                source.doc_id ||
-                                source.type ||
-                                `Source ${sourceIndex + 1}`}
-                            </strong>
-
-                            {source.case_no && (
-                              <span>Case: {source.case_no}</span>
-                            )}
-
-                            {source.statement_date && (
-                              <span>
-                                Statement date: {source.statement_date}
-                              </span>
-                            )}
-
-                            {source.filename && (
-                              <span>Document: {source.filename}</span>
-                            )}
-
-                            {source.sentence_ids?.length > 0 && (
-                              <span>
-                                Sentence IDs: {source.sentence_ids.join(", ")}
-                              </span>
-                            )}
-
-                            {source.excerpt && (
-                              <details className="chat-source-excerpt">
-                                <summary>View retrieved passage</summary>
-                                <p>{source.excerpt}</p>
-                              </details>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                  <button type="button" className="sources-trigger"
+                    aria-label={"View " + item.sources.length + " sources"}
+                    aria-expanded={sourceSelection?.messageIndex === index}
+                    aria-controls="chat-sources-panel"
+                    onClick={() => setSourceSelection(current => current?.messageIndex === index ? null : {messageIndex: index, sources: item.sources})}>
+                    Sources <FileText size={14} aria-hidden="true" />
+                  </button>
                 )}
               </div>
             );
@@ -835,19 +804,11 @@ export default function Chat() {
             <div className="chat-error" role="alert">
               <p>{chatError}</p>
 
-              {canRetry && (
+              {canRetry && failedAttempt && (
                 <button
                   type="button"
                   disabled={loading}
-                  onClick={() => {
-                    const lastUserMessage = [...messages]
-                      .reverse()
-                      .find((item) => item.role === "user");
-
-                    if (lastUserMessage) {
-                      sendQuestion(lastUserMessage.content);
-                    }
-                  }}
+                  onClick={() => sendQuestion(failedAttempt.query, failedAttempt.requestId)}
                 >
                   Retry
                 </button>
@@ -892,11 +853,11 @@ export default function Chat() {
           </form>
 
           <p className="disclaimer">
-            This AI assistant is a support tool. Verify critical findings
-            against official records and cited evidence.
+            This AI assistant is a support tool and may provide inaccurate information. Always apply professional judgment when using its responses.
           </p>
         </footer>
       </main>
+      {sourceSelection && <SourcesPanel key={sourceSelection.messageIndex} sources={sourceSelection.sources} onClose={closeSources} />}
     </div>
   );
 }

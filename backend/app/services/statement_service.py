@@ -176,11 +176,18 @@ class StatementService:
 
     def get_statement(self, statement_id: str) -> Dict[str, Any]:
         """Fetch full parsed statement including sentences and metadata."""
-        file_path = self.statements_dir / f"{statement_id}.txt"
+        if not re.fullmatch(r"[A-Za-z0-9_-]+", statement_id):
+            raise FileNotFoundError("Statement not found.")
+        root = self.statements_dir.resolve()
+        file_path = (root / f"{statement_id}.txt").resolve()
+        if file_path.parent != root:
+            raise FileNotFoundError("Statement not found.")
         if not file_path.exists():
             matches = list(self.statements_dir.glob(f"*{statement_id}*.txt"))
             if matches:
-                file_path = matches[0]
+                file_path = matches[0].resolve()
+                if file_path.parent != root:
+                    raise FileNotFoundError("Statement not found.")
             else:
                 raise FileNotFoundError(f"Statement '{statement_id}' not found.")
 
@@ -287,8 +294,9 @@ class StatementService:
                 "warnings": result.get("warnings", []),
                 "disclaimer": result.get("disclaimer", "")
             }
-        except Exception as e:
-            print(f"acc_statements ask fallback: {e}")
+        except Exception:
+            # Surface the failure instead of running another slow model pipeline.
+            raise
 
         # Fallback to Capstone RAG services
         if self.retrieval_service and self.prompt_service and self.llm_service:

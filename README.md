@@ -566,3 +566,7 @@ Currently Being Developed
 * OCR integration
 * Automatic document ingestion from the actual ACC/CIMS source
 * Authentication and RBAC
+
+## Automated tests
+
+See [TESTING.md](TESTING.md) for backend unit/API tests and frontend component/API-client tests, including setup, run commands, and test scope.

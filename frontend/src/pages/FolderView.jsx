@@ -1,3 +1,4 @@
+import { apiFetch } from "../api";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Folder, Send, Upload, Trash2, MessageSquare } from "lucide-react";
@@ -24,8 +25,8 @@ export default function FolderView() {
     if (!user?.id) return;
 
     try {
-      const response = await fetch(
-        `http://127.0.0.1:8000/api/folders?user_id=${user.id}`,
+      const response = await apiFetch(
+        `/api/folders?user_id=${user.id}`,
       );
 
       const data = await response.json();
@@ -44,8 +45,8 @@ export default function FolderView() {
     if (!user?.id) return;
 
     try {
-      const response = await fetch(
-        `http://127.0.0.1:8000/api/conversations?user_id=${user.id}`,
+      const response = await apiFetch(
+        `/api/conversations?user_id=${user.id}`,
       );
 
       const data = await response.json();
@@ -121,8 +122,8 @@ export default function FolderView() {
     if (!conversationId) return;
 
     try {
-      const response = await fetch(
-        `http://127.0.0.1:8000/api/conversations/${conversationId}`,
+      const response = await apiFetch(
+        `/api/conversations/${conversationId}`,
         {
           method: "DELETE",
         },
@@ -280,7 +281,10 @@ export default function FolderView() {
                           {conversation.updated_at
                             ? new Date(
                                 conversation.updated_at,
-                              ).toLocaleDateString()
+                              ).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                              })
                             : ""}
                         </span>
                       </div>

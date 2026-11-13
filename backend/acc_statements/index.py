@@ -1,30 +1,37 @@
 import uuid
+import time
+from threading import Lock
 
 from qdrant_client import QdrantClient, models
 from sentence_transformers import SentenceTransformer
 
 try:
-    import config
-    from ingest import load_docs
-except (ImportError, ModuleNotFoundError):
     from acc_statements import config
     from acc_statements.ingest import load_docs
+except (ImportError, ModuleNotFoundError):
+    import config
+    from ingest import load_docs
 
 _embedder = None
 _client = None
+_embedder_lock = Lock()
 
 
 def get_embedder():
     global _embedder
-    if _embedder is None:
-        print(f"  loading embedding model {config.EMBED_MODEL} (first run downloads it)...")
-        _embedder = SentenceTransformer(config.EMBED_MODEL, device="cpu")
+    with _embedder_lock:
+        if _embedder is None:
+            print(f"  loading embedding model {config.EMBED_MODEL} (first run downloads it)...", flush=True)
+            _embedder = SentenceTransformer(config.EMBED_MODEL, device="cpu")
     return _embedder
 
 
 def embed(texts: list[str]) -> list[list[float]]:
-    return get_embedder().encode(texts, normalize_embeddings=True,
+    started = time.monotonic()
+    vectors = get_embedder().encode(texts, normalize_embeddings=True,
                                  batch_size=config.EMBED_BATCH).tolist()
+    print(f"Document query embedding completed in {time.monotonic() - started:.1f}s", flush=True)
+    return vectors
 
 
 def get_client() -> QdrantClient:

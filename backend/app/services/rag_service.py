@@ -1,13 +1,13 @@
+from app.services.evidence_grounding import answer_from_evidence, numbered_sentences, NO_INFORMATION
 from app.services.retrieval_service import RetrievalService
-from app.services.prompt_service import PromptService
 from app.services.llm_service import LLMService
 import re
+import time
 
 class RAGService:
 
     def __init__(self):
         self.retrieval_service = RetrievalService()
-        self.prompt_service = PromptService()
         self.llm_service = LLMService()
 
     def query(
@@ -40,10 +40,16 @@ class RAGService:
         # It also handles investigation-case filtering.
         # ---------------------------------------------------------
 
+        started = time.monotonic()
+        print("Document search: retrieving evidence...", flush=True)
         retrieved_chunks = self.retrieval_service.retrieve(
             query=query,
             limit=limit
         )
+        print(f"Document search: retrieved {len(retrieved_chunks)} chunks in {time.monotonic() - started:.1f}s", flush=True)
+
+        if not retrieved_chunks:
+            return {"answer": NO_INFORMATION, "sources": []}
 
         # ---------------------------------------------------------
         # Detect whether the query specifies an investigation case
@@ -99,44 +105,40 @@ class RAGService:
         # Step 2: Build prompt using retrieved evidence
         # ---------------------------------------------------------
 
-        prompt = self.prompt_service.build_prompt(
-            query=user_query,
-            retrieved_chunks=retrieved_chunks
-        )
-
-        # ---------------------------------------------------------
-        # Step 3: Generate answer using local Mistral
-        # ---------------------------------------------------------
-
-        answer = self.llm_service.generate(prompt)
+        sentences = {}
+        for chunk in retrieved_chunks:
+            sentences.update(numbered_sentences(chunk.get("text", "")))
+        print("Document search: checking evidence and generating answer...", flush=True)
+        grounded = answer_from_evidence(user_query, sentences, self.llm_service.generate)
+        if not grounded["has_information"]:
+            return {"answer": grounded["answer"], "sources": []}
+        answer = grounded["answer"]
 
         # ---------------------------------------------------------
         # Step 4: Prepare sources
         # ---------------------------------------------------------
-        sources = []
-        seen_sources = set()
-
+        sources_by_document = {}
+        cited = set(grounded["sentence_ids"])
         for chunk in retrieved_chunks:
-            metadata = chunk.get("metadata", {})
-            file_metadata = metadata.get("metadata", {})
-
-            doc_id = file_metadata.get("doc_id", "")
-            filename = file_metadata.get("filename", "Unknown source")
-
-            # Identify each file uniquely
-            source_key = doc_id or filename
-            if source_key in seen_sources:
+            metadata = chunk.get("metadata", {}).get("metadata", {})
+            chunk_sentences = numbered_sentences(chunk.get("text", ""))
+            ids = [key for key in chunk_sentences if key in cited]
+            if not ids:
                 continue
-            seen_sources.add(source_key)
-            sources.append({
-                    "filename": filename,
-                    "doc_id": doc_id,
-                    "case_no": file_metadata.get("case_no", ""),
-                    "person_name": file_metadata.get("person_name", ""),
-                    "statement_date": file_metadata.get("statement_date", ""),
-                    "sentence_ids": file_metadata.get("sentence_ids", []),
-                    "excerpt": chunk.get("text", ""),
+            doc_id = metadata.get("doc_id", "")
+            filename = metadata.get("filename", "Unknown source")
+            source = sources_by_document.setdefault(doc_id or filename, {
+                "filename": filename, "doc_id": doc_id,
+                "case_no": metadata.get("case_no", ""),
+                "person_name": metadata.get("person_name", ""),
+                "statement_date": metadata.get("statement_date", ""),
+                "sentence_ids": [], "excerpt": "",
             })
+            for key in ids:
+                if key not in source["sentence_ids"]:
+                    source["sentence_ids"].append(key)
+                    source["excerpt"] += f"[{key}] {sentences[key]}\n"
+        sources = list(sources_by_document.values())
         return {
             "answer": answer,
             "sources": sources

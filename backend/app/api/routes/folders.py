@@ -1,7 +1,9 @@
+import re
+from app.utils.sessions import require_session, check_user_id
 from datetime import datetime, timezone
 
 from bson import ObjectId
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from app.database.connection import (
@@ -16,7 +18,7 @@ router = APIRouter(
 
 
 class FolderCreate(BaseModel):
-    user_id: str
+    user_id: str | None = None
     name: str
 
 
@@ -34,7 +36,8 @@ def serialize_folder(folder: dict) -> dict:
 
 
 @router.post("")
-def create_folder(request: FolderCreate):
+def create_folder(request: FolderCreate, session: dict = Depends(require_session)):
+    user_id = check_user_id(request.user_id, session)
     if folders_collection is None:
         raise HTTPException(
             status_code=503,
@@ -51,9 +54,9 @@ def create_folder(request: FolderCreate):
 
     existing_folder = folders_collection.find_one(
         {
-            "user_id": request.user_id,
+            "user_id": user_id,
             "name": {
-                "$regex": f"^{name}$",
+                "$regex": f"^{re.escape(name)}$",
                 "$options": "i",
             },
         }
@@ -66,7 +69,7 @@ def create_folder(request: FolderCreate):
         )
 
     folder = {
-        "user_id": request.user_id,
+        "user_id": user_id,
         "name": name,
         "created_at": datetime.now(timezone.utc),
     }
@@ -84,7 +87,8 @@ def create_folder(request: FolderCreate):
 
 
 @router.get("")
-def list_folders(user_id: str):
+def list_folders(user_id: str = None, session: dict = Depends(require_session)):
+    user_id = check_user_id(user_id, session)
     if folders_collection is None:
         raise HTTPException(
             status_code=503,
@@ -108,6 +112,7 @@ def list_folders(user_id: str):
 def add_conversation_to_folder(
     folder_id: str,
     request: AddConversationToFolder,
+    session: dict = Depends(require_session),
 ):
     if folders_collection is None or conversations_collection is None:
         raise HTTPException(
@@ -128,7 +133,7 @@ def add_conversation_to_folder(
         )
 
     folder = folders_collection.find_one(
-        {"_id": ObjectId(folder_id)}
+        {"_id": ObjectId(folder_id), "user_id": session["user_id"]}
     )
 
     if folder is None:
@@ -138,7 +143,7 @@ def add_conversation_to_folder(
         )
 
     conversation = conversations_collection.find_one(
-        {"_id": ObjectId(request.conversation_id)}
+        {"_id": ObjectId(request.conversation_id), "user_id": session["user_id"]}
     )
 
     if conversation is None:
@@ -155,7 +160,7 @@ def add_conversation_to_folder(
         )
 
     conversations_collection.update_one(
-        {"_id": ObjectId(request.conversation_id)},
+        {"_id": ObjectId(request.conversation_id), "user_id": session["user_id"]},
         {
             "$set": {
                 "folder_id": folder_id,
@@ -173,7 +178,7 @@ def add_conversation_to_folder(
 
 
 @router.delete("/{folder_id}")
-def delete_folder(folder_id: str):
+def delete_folder(folder_id: str, session: dict = Depends(require_session)):
     if folders_collection is None or conversations_collection is None:
         raise HTTPException(
             status_code=503,
@@ -187,7 +192,7 @@ def delete_folder(folder_id: str):
         )
 
     folder = folders_collection.find_one(
-        {"_id": ObjectId(folder_id)}
+        {"_id": ObjectId(folder_id), "user_id": session["user_id"]}
     )
 
     if folder is None:
@@ -198,7 +203,7 @@ def delete_folder(folder_id: str):
 
     # Keep conversations, but remove them from the deleted folder.
     conversations_collection.update_many(
-        {"folder_id": folder_id},
+        {"folder_id": folder_id, "user_id": session["user_id"]},
         {
             "$unset": {
                 "folder_id": "",
@@ -207,7 +212,7 @@ def delete_folder(folder_id: str):
     )
 
     folders_collection.delete_one(
-        {"_id": ObjectId(folder_id)}
+        {"_id": ObjectId(folder_id), "user_id": session["user_id"]}
     )
 
     return {

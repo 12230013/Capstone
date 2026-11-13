@@ -1,3 +1,4 @@
+import RequireSession from "./components/RequireSession";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -19,10 +20,12 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/verify-otp" element={<VerifyOTP />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route element={<RequireSession />}>
         <Route path="/Dashboard" element={<Dashboard />} />
         <Route path="/chat" element={<Chat />} />
         <Route path="/chat/:conversationId" element={<Chat />} />
         <Route path="/folders/:folderId" element={<FolderView />} />
+        </Route>
 
       </Routes>
     </BrowserRouter>

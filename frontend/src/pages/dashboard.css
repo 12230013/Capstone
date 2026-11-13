@@ -67,6 +67,9 @@ input:focus-visible {
 ========================= */
 
 .sidebar {
+  flex-basis: 280px;
+  width: 280px;
+  min-width: 0;
   position: sticky;
   top: 0;
   height: 100dvh;
@@ -1795,3 +1798,15 @@ input:focus-visible {
   font-size: 11px;
   line-height: 1.35;
 }
+/* Backend activity feed */
+.activity-list { display: flex; flex-direction: column; gap: 10px; padding: 6px 0; }
+.activity-card { background: #1e293e; border-radius: 8px; overflow: hidden; color: #f5f7fb; flex-shrink: 0; }
+.activity-card-main { display: flex; align-items: center; gap: 10px; padding: 10px 12px; }
+.activity-card-main > svg { flex-shrink: 0; width: 19px; height: 19px; }
+.activity-card-content { min-width: 0; }
+.activity-card-content p { margin: 0 0 3px; font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
+.activity-card-content time { color: #8b9bb1; font-size: 11px; }
+.activity-files { border-top: 1px solid #526077; padding: 7px 12px 8px 41px; display: flex; flex-direction: column; gap: 5px; color: #9aa9bc; font-size: 11px; }
+.activity-file { display: flex; align-items: flex-start; gap: 5px; color: #c2cbd7; overflow-wrap: anywhere; }
+.activity-file svg { flex-shrink: 0; margin-top: 2px; }
+.activity-status { color: #c2cbd7; font-size: 13px; line-height: 1.5; }

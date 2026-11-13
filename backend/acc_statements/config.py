@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 # ---------- paths ----------
@@ -25,7 +26,7 @@ COLLECTION = "statements"
 
 # ---------- LLM (Ollama) ----------
 OLLAMA_URL = "http://localhost:11434"
-LLM_MODEL = "mistral:7b-instruct-v0.3-q2_K"                # try "qwen2.5:7b" or "llama3.1:8b" if JSON is unreliable
+LLM_MODEL = os.getenv("OLLAMA_MODEL", "mistral:7b-instruct-v0.3-q2_K")                # try "qwen2.5:7b" or "llama3.1:8b" if JSON is unreliable
 LLM_TEMPERATURE = 0.0                # 0 = deterministic, what you want for evidence work
 LLM_NUM_CTX = 4096                   # context window; raise if statements are long
 LLM_TIMEOUT = 300                    # seconds

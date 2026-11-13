@@ -1,8 +1,11 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from datetime import datetime, timezone
+from app.database.connection import sessions_collection, activity_collection
 
 from app.schemas.user import UserCreate, UserLogin
 from app.database.connection import users_collection
 from app.utils.security import hash_password, verify_password
+from app.utils.sessions import create_session, require_session, public_user, check_origin, COOKIE_NAME
 
 
 router = APIRouter(
@@ -12,7 +15,8 @@ router = APIRouter(
 
 
 @router.post("/signup")
-def signup(user: UserCreate):
+def signup(user: UserCreate, request: Request):
+    check_origin(request)
     if users_collection is None:
         raise HTTPException(
             status_code=503,
@@ -59,7 +63,8 @@ def signup(user: UserCreate):
 
 
 @router.post("/login")
-def login(user: UserLogin):
+def login(user: UserLogin, request: Request, response: Response):
+    check_origin(request)
     if users_collection is None:
         raise HTTPException(
             status_code=503,
@@ -88,15 +93,28 @@ def login(user: UserLogin):
             detail="Invalid email or password"
         )
 
-    # Login successful
+    now = datetime.now(timezone.utc)
+    # Rotate an existing cookie on login to prevent session fixation.
+    previous_token = request.cookies.get(COOKIE_NAME)
+    if previous_token:
+        import hashlib
+        sessions_collection.update_one(
+            {"token_hash": hashlib.sha256(previous_token.encode()).hexdigest(), "ended_at": None},
+            {"$set": {"ended_at": now}},
+        )
+    csrf_token = create_session(str(existing_user["_id"]), response)
+    activity_collection.insert_one({
+        "user_id": str(existing_user["_id"]), "type": "login",
+        "ip_address": request.client.host if request.client else "Unknown",
+        "created_at": now,
+    })
     return {
-        "message": "Login successful",
-        "user": {
-            "id": str(existing_user["_id"]),
-            "name": existing_user["name"],
-            "employee_id": existing_user["employee_id"],
-            "email": existing_user["email"],
-            "role": existing_user["role"],
-            "department": existing_user["department"]
-        }
+        "message": "Login successful", "csrf_token": csrf_token,
+        "user": public_user(existing_user),
     }
+
+
+@router.get("/me")
+def me(response: Response, session: dict = Depends(require_session)):
+    response.headers["Cache-Control"] = "no-store"
+    return {"user": session["user"], "csrf_token": session["csrf_token"]}

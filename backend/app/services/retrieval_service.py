@@ -22,7 +22,7 @@ class RetrievalService:
 
         # Filter by the exact case identifier when one is supplied.
         case_match = re.search(
-            r"\bACC/\d{4}/\d{3}\b",
+            r"\b(?:ACC/\d{4}/\d{3}|\d{1,4}/\d{2}-\d{2})\b",
             query,
             re.IGNORECASE
         )

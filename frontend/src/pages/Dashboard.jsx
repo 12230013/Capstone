@@ -1,3 +1,4 @@
+import { apiFetch } from "../api";
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -15,6 +16,10 @@ import {
   LogOut,
   Clock,
   Activity,
+  FileText,
+  ArrowRight,
+  ArrowLeft,
+  CircleHelp,
   X,
 } from "lucide-react";
 
@@ -188,6 +193,52 @@ export function Sidebar({
   }, [openFolderMenu]);
 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [activities, setActivities] = useState([]);
+  const [activityError, setActivityError] = useState("");
+  const [activityLoading, setActivityLoading] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  useEffect(() => {
+    if (activeTab !== "activity" || !user?.id) return;
+    const controller = new AbortController();
+    let pending = false;
+    const load = async () => {
+      if (pending) return;
+      pending = true;
+      setActivityLoading(true);
+      try {
+        const response = await apiFetch("/api/activity", {
+          background: true,
+          signal: controller.signal,
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || "Unable to load activity.");
+        setActivities(data.activities || []);
+        setActivityError("");
+      } catch (error) {
+        if (!controller.signal.aborted) setActivityError(error.message);
+      } finally {
+        pending = false;
+        if (!controller.signal.aborted) setActivityLoading(false);
+      }
+    };
+    load();
+    const interval = setInterval(load, 15000);
+    window.addEventListener("focus", load);
+    return () => { controller.abort(); clearInterval(interval); window.removeEventListener("focus", load); };
+  }, [activeTab, user?.id]);
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    setActivityError("");
+    try {
+      const response = await apiFetch("/api/auth/logout", { method: "POST" });
+      if (!response.ok && response.status !== 401) throw new Error("Unable to end session. Please try again.");
+      localStorage.removeItem("accUser");
+      localStorage.removeItem("accSessionToken");
+      window.location.href = "/login";
+    } catch (error) { setActivityError(error.message); }
+    finally { setLoggingOut(false); }
+  };
+
 
   const handleCreateFolder = (e) => {
     e.preventDefault();
@@ -540,13 +591,22 @@ export function Sidebar({
             )}
           </>
         ) : (
-          <>
-            <div className="empty-history">
-              <Clock size={23} />
-              <p>No activity yet</p>
-              <span>Your recent activity will appear here.</span>
-            </div>
-          </>
+          <div className="activity-list" aria-live="polite" aria-busy={activityLoading}>
+            {activityError && <p className="activity-status" role="alert">{activityError}</p>}
+            {activityLoading && activities.length === 0 && <p className="activity-status">Loading activity...</p>}
+            {!activityLoading && !activityError && activities.length === 0 && <div className="empty-history"><Clock size={23}/><p>No activity yet</p><span>Your recent activity will appear here.</span></div>}
+            {activities.map(event => {
+              const Icon = event.type === "query" ? CircleHelp : event.type === "login" ? ArrowRight : ArrowLeft;
+              const files = [...new Set((event.sources || []).map(source => source.filename || source.doc_id).filter(Boolean))];
+              return <article className="activity-card" key={event.id}>
+                <div className="activity-card-main"><Icon size={23} aria-hidden="true"/><div className="activity-card-content">
+                  <p>{event.type === "query" ? 'Queried: ?' + event.query + '?' : event.type === "login" ? 'Logged in from ' + event.ip_address : "Last session ended"}</p>
+                  <time dateTime={event.created_at}>{formatConversationTime(event.created_at)}</time>
+                </div></div>
+                {event.type === "query" && <div className="activity-files"><span>Referenced Files</span>{files.length ? files.map(file => <div className="activity-file" key={file}><FileText size={13}/><span>{file}</span></div>) : <span>No documents referenced</span>}</div>}
+              </article>;
+            })}
+          </div>
         )}
       </div>
 
@@ -579,6 +639,7 @@ export function Sidebar({
       {showLogoutConfirm && (
         <div className="logout-confirmation">
           <p>Are you sure you want to log out?</p>
+          {activityError && <p role="alert">{activityError}</p>}
 
           <div className="logout-confirmation-actions">
             <button
@@ -592,10 +653,8 @@ export function Sidebar({
             <button
               type="button"
               className="logout-confirm-button"
-              onClick={() => {
-                localStorage.removeItem("accUser");
-                window.location.href = "/login";
-              }}
+              onClick={handleLogout}
+              disabled={loggingOut}
             >
               Log Out
             </button>
@@ -658,8 +717,8 @@ export default function Dashboard() {
     console.log("LOAD FOLDERS USER ID:", user?.id);
 
     try {
-      const response = await fetch(
-        `http://127.0.0.1:8000/api/folders?user_id=${encodeURIComponent(
+      const response = await apiFetch(
+        `/api/folders?user_id=${encodeURIComponent(
           user.id,
         )}`,
       );
@@ -680,8 +739,8 @@ export default function Dashboard() {
     if (!user?.id) return;
 
     try {
-      const response = await fetch(
-        `http://127.0.0.1:8000/api/conversations?user_id=${encodeURIComponent(
+      const response = await apiFetch(
+        `/api/conversations?user_id=${encodeURIComponent(
           user.id,
         )}`,
       );
@@ -713,7 +772,7 @@ export default function Dashboard() {
     if (!user?.id) return;
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/folders", {
+      const response = await apiFetch("/api/folders", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -741,8 +800,8 @@ export default function Dashboard() {
     if (!folderId) return;
 
     try {
-      const response = await fetch(
-        `http://127.0.0.1:8000/api/folders/${folderId}`,
+      const response = await apiFetch(
+        `/api/folders/${folderId}`,
         {
           method: "DELETE",
         },
@@ -766,8 +825,8 @@ export default function Dashboard() {
     if (!folderId || !conversationId) return;
 
     try {
-      const response = await fetch(
-        `http://127.0.0.1:8000/api/folders/${folderId}/conversations`,
+      const response = await apiFetch(
+        `/api/folders/${folderId}/conversations`,
         {
           method: "POST",
           headers: {
@@ -945,9 +1004,7 @@ export default function Dashboard() {
           </form>
 
           <p className="disclaimer">
-            This AI assistant is a support tool and may provide inaccurate
-            information. Always verify critical information with official
-            sources.
+            This AI assistant is a support tool and may provide inaccurate information. Always apply professional judgment when using its responses.
           </p>
         </footer>
       </main>

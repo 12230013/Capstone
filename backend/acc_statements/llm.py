@@ -1,3 +1,4 @@
+import os
 import json
 import sys
 
@@ -10,16 +11,18 @@ except (ImportError, ModuleNotFoundError):
     from acc_statements import config
 
 
-def _chat(messages, fmt=None) -> str:
+def _chat(messages, fmt=None, max_tokens=None) -> str:
     payload = {
         "model": config.LLM_MODEL,
         "messages": messages,
         "stream": True,
+        "think": False,
         "keep_alive": "30m",                      # keep model loaded between calls
         "options": {
             "temperature": config.LLM_TEMPERATURE,
+            "num_gpu": int(os.getenv("OLLAMA_NUM_GPU", "-1")),
             "num_ctx": config.LLM_NUM_CTX,
-            "num_predict": config.LLM_MAX_OUTPUT_TOKENS,
+            "num_predict": max_tokens or config.LLM_MAX_OUTPUT_TOKENS,
         },
     }
     if fmt is not None:
@@ -29,7 +32,7 @@ def _chat(messages, fmt=None) -> str:
         f"{config.OLLAMA_URL}/api/chat",
         json=payload,
         stream=True,
-        timeout=(10, config.LLM_IDLE_TIMEOUT),    # (connect, max silence between chunks)
+        timeout=(5, min(config.LLM_IDLE_TIMEOUT, 90)),    # (connect, max silence between chunks)
     )
     if r.status_code == 404:
         raise RuntimeError(f"Ollama 404: {r.text}\nRun: ollama pull {config.LLM_MODEL}")
@@ -54,7 +57,10 @@ def _chat(messages, fmt=None) -> str:
 
 
 def ask_text(system: str, user: str) -> str:
-    return _chat([{"role": "system", "content": system}, {"role": "user", "content": user}])
+    return _chat(
+        [{"role": "system", "content": system}, {"role": "user", "content": user}],
+        max_tokens=-1,
+    )
 
 
 def ask_json(system: str, user: str, model_cls: type[BaseModel]):

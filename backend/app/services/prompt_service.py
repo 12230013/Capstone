@@ -86,7 +86,7 @@ Rules:
    the user explicitly requests a comparison or a supported link
    between cases is established in the evidence.
 5. Do not treat similar events across different cases as the same event.
-6. If evidence is insufficient, state what cannot be established.
+6. If the requested information is absent, explicitly say "I don't have that information in the available records." Never fill gaps or guess.
 7. Distinguish documented facts from allegations, statements, and
    unverified claims.
 8. Cite the supporting source document for factual findings whenever
@@ -141,7 +141,7 @@ Rules:
 4. Do not modify, shorten, or remove digits from any phone number.
 5. Use only the counts, dates, times, durations, names, ratios, and
    other values explicitly supplied in the analysis.
-6. Do not calculate or invent additional statistics.
+6. Do not calculate or invent additional statistics. If a requested fact is absent, say "I don't have that information in the available records."
 7. Preserve the order of ranked lists such as top contacts.
 8. For timeline questions, report only timeline information present
    in the analysis. Do not invent timestamps or aggregate records.
