@@ -1776,6 +1776,10 @@ input:focus-visible {
   margin-top: 0;
 }
 
+.sidebar-actions + .sidebar-new-conversation {
+  margin-top: 12px;
+}
+
 .folder-menu-button {
   opacity: 0;
   color: #91a1b5;
