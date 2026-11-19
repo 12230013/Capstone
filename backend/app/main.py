@@ -19,6 +19,10 @@ from app.api.routes.folders import router as folders_router
 from app.routes.auth import router as auth_router
 from app.api.routes.activity import router as activity_router
 from app.api.routes.sources import router as sources_router
+from app.ocr import config as ocr_config
+
+ocr_config.initialize_config()
+from app.api.routes.ocr_documents import router as ocr_documents_router
 from app.api.routes.cims import router as cims_router
 
 
@@ -68,6 +72,7 @@ app.include_router(conversations_router, dependencies=[Depends(require_session)]
 app.include_router(folders_router, dependencies=[Depends(require_session)])
 app.include_router(activity_router, dependencies=[Depends(require_session)])
 app.include_router(sources_router, dependencies=[Depends(require_session)])
+app.include_router(ocr_documents_router, dependencies=[Depends(require_session)])
 
 
 @app.exception_handler(ConnectionFailure)

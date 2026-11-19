@@ -7,6 +7,14 @@ import { apiFetch } from "../api";
 
 vi.mock("../api", () => ({ apiFetch: vi.fn() }));
 const sources = [{ doc_id: "stmt_01", filename: "stmt_01.txt", case_no: "19/25-26", sentence_ids: ["stmt_01-s2"], excerpt: "Retrieved evidence passage" }];
+const ocrSource = {
+  source_type: "ocr_document",
+  document_id: "ocr-document-01",
+  doc_id: "ocr-document-01",
+  filename: "evidence.pdf",
+  page_number: 2,
+  excerpt: "OCR retrieved passage",
+};
 beforeEach(() => { vi.mocked(apiFetch).mockReset(); });
 
 describe("source document panel", () => {
@@ -29,6 +37,40 @@ describe("source document panel", () => {
     await userEvent.click(screen.getByRole("button", { name: /stmt_01.txt/ }));
     expect(await screen.findByRole("status")).toHaveTextContent("Original file unavailable");
     expect(screen.getByText("Retrieved evidence passage")).toBeVisible();
+  });
+  it("opens an OCR source through the authenticated OCR result endpoint", async () => {
+    apiFetch.mockResolvedValue({ ok: true, json: async () => ({ pages: [
+      { page_number: 1, text: "Other OCR page" },
+      { page_number: 2, text: "OCR page text" },
+    ] }) });
+    render(<SourcesPanel sources={[ocrSource]} onClose={vi.fn()} />);
+    await userEvent.click(screen.getByRole("button", { name: /evidence.pdf/ }));
+    expect(await screen.findByRole("heading", { name: "OCR page text" })).toBeVisible();
+    expect(screen.getByText("Page: 2")).toBeVisible();
+    expect(screen.getByText("OCR retrieved passage")).toBeVisible();
+    expect(apiFetch.mock.calls[0][0]).toBe("/api/ocr/documents/ocr-document-01");
+  });
+  it("keeps statement and OCR source endpoint selection separate", async () => {
+    apiFetch.mockResolvedValue({ ok: true, json: async () => ({ pages: [{ page_number: 2, text: "OCR text" }] }) });
+    render(<SourcesPanel sources={[...sources, ocrSource]} onClose={vi.fn()} />);
+    await userEvent.click(screen.getByRole("button", { name: /stmt_01.txt/ }));
+    expect(apiFetch.mock.calls[0][0]).toBe("/api/sources/stmt_01");
+    await userEvent.click(screen.getByRole("button", { name: "Back to sources" }));
+    await userEvent.click(screen.getByRole("button", { name: /evidence.pdf/ }));
+    expect(apiFetch.mock.calls[1][0]).toBe("/api/ocr/documents/ocr-document-01");
+  });
+  it("reports unavailable OCR results while preserving the retrieved passage", async () => {
+    apiFetch.mockResolvedValue({ ok: false, json: async () => ({ detail: "Document not found." }) });
+    render(<SourcesPanel sources={[ocrSource]} onClose={vi.fn()} />);
+    await userEvent.click(screen.getByRole("button", { name: /evidence.pdf/ }));
+    expect(await screen.findByRole("status")).toHaveTextContent("Document not found.");
+    expect(screen.getByText("OCR retrieved passage")).toBeVisible();
+  });
+  it("handles an OCR result with empty page text", async () => {
+    apiFetch.mockResolvedValue({ ok: true, json: async () => ({ pages: [{ page_number: 2, text: "" }] }) });
+    render(<SourcesPanel sources={[ocrSource]} onClose={vi.fn()} />);
+    await userEvent.click(screen.getByRole("button", { name: /evidence.pdf/ }));
+    expect(await screen.findByText("No text was returned for this OCR page.")).toBeVisible();
   });
   it("closes with the header control or Escape", async () => {
     const close = vi.fn();

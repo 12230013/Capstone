@@ -1,4 +1,5 @@
 from app.services.evidence_grounding import answer_from_evidence, numbered_sentences
+from app.services.unified_evidence import answer_from_unified_evidence
 from starlette.concurrency import run_in_threadpool
 from datetime import date, datetime
 from pyexpat.errors import messages
@@ -813,6 +814,84 @@ class ChatService:
             ] if grounded["has_information"] else [],
             evidence=evidence,
             warnings=warnings,
+        )
+
+    async def _handle_unified_statement_ocr_query(
+        self,
+        query: str,
+        filename: str,
+        owner_user_id: str,
+    ) -> dict:
+        """Combine existing statement behavior with owner-scoped OCR evidence."""
+        from app.ocr.chat_retrieval import ocr_chat_retrieval
+
+        evidence = []
+        warnings = []
+        # Deliberately reuse the existing statement path. Its current case-level
+        # authorization limitation remains documented for ACC client clarification.
+        statement_result = self.statement_service.retrieve_statement_evidence(query=query)
+        if statement_result.get("success"):
+            for item in statement_result.get("evidence", []):
+                for sentence_id, text in numbered_sentences(item.get("text", "")).items():
+                    evidence.append({
+                        "evidence_id": f"statement:{sentence_id}",
+                        "citation": sentence_id,
+                        "source_type": "statement",
+                        "statement_id": item.get("statement_id"),
+                        "sentence_id": sentence_id,
+                        "person_name": item.get("person_name"),
+                        "statement_date": item.get("statement_date"),
+                        "case_no": item.get("case_no"),
+                        "text": text,
+                    })
+            warnings.extend(statement_result.get("warnings", []))
+        else:
+            warnings.append("Statement evidence could not be retrieved.")
+
+        ocr_chunks = await run_in_threadpool(
+            ocr_chat_retrieval.retrieve_evidence,
+            query,
+            filename,
+            owner_user_id,
+        )
+        if ocr_chunks is None:
+            warnings.append("The requested OCR document is not available to this account.")
+        else:
+            for index, chunk in enumerate(ocr_chunks):
+                metadata = chunk.get("metadata", {}).get("metadata", {})
+                ocr_filename = metadata.get("filename", filename)
+                page_number = metadata.get("page_number")
+                if not isinstance(ocr_filename, str) or not ocr_filename.strip() or not isinstance(page_number, int) or isinstance(page_number, bool) or page_number < 1:
+                    continue
+                evidence.append({
+                    "evidence_id": f"ocr:{metadata.get('document_id', '')}:{metadata.get('chunk_id', index)}",
+                    "citation": f"{ocr_filename}, page {page_number}",
+                    "source_type": "ocr_document",
+                    "document_id": metadata.get("document_id"),
+                    "filename": ocr_filename,
+                    "page_number": page_number,
+                    "chunk_id": metadata.get("chunk_id"),
+                    "text": chunk.get("text", ""),
+                })
+
+        if not evidence:
+            return self._response(
+                "I don't have information for this question in the available records.",
+                [],
+                warnings=warnings,
+            )
+        grounded = await run_in_threadpool(
+            answer_from_unified_evidence,
+            query,
+            evidence,
+            self.llm_service.generate,
+        )
+        grounded["warnings"].extend(warnings)
+        return self._response(
+            grounded["answer"],
+            grounded["sources"],
+            evidence=grounded["evidence"],
+            warnings=grounded["warnings"],
         )
 
     async def _handle_relationship_query(self, query, query_lower, cid):
@@ -2007,6 +2086,35 @@ class ChatService:
         query = query.strip()
         query_lower = query.lower()
         context = context or {}
+
+        # OCR retrieval is explicit and owner-scoped. Keep it ahead of the
+        # existing statement/RAG routing without changing those paths.
+        from app.ocr.chat_retrieval import (
+            extract_document_filename,
+            ocr_chat_retrieval,
+        )
+
+        ocr_filename = extract_document_filename(query)
+        if ocr_filename is not None:
+            owner_user_id = context.get("owner_user_id")
+            if isinstance(owner_user_id, str) and owner_user_id.strip():
+                if "statements" in self._requested_evidence_systems(query_lower):
+                    return await self._handle_unified_statement_ocr_query(
+                        query,
+                        ocr_filename,
+                        owner_user_id.strip(),
+                    )
+                ocr_result = await run_in_threadpool(
+                    ocr_chat_retrieval.retrieve,
+                    query,
+                    ocr_filename,
+                    owner_user_id.strip(),
+                )
+                if ocr_result is not None:
+                    return {
+                        "success": True,
+                        "response": ocr_result,
+                    }
 
         context_identifiers = self._get_context_identifiers(context)
 

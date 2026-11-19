@@ -10,6 +10,7 @@ import "./chat.css";
 import CDRNetwork from "./CDRNetwork";
 import RelationshipNetwork from "./RelationshipNetwork";
 import SourcesPanel from "./SourcesPanel";
+import OCRDocumentWorkflow from "../components/OCRDocumentWorkflow";
 
 const CDR_KEYWORDS =
   /\b(cdr|call records?|communication records?|call history|communication network|communication patterns?|unusual communication hours|incoming calls?|outgoing calls?|call frequency|call duration|call timeline|interactions)\b/i;
@@ -266,6 +267,7 @@ export default function Chat() {
   const [failedAttempt, setFailedAttempt] = useState(null);
   const requestInFlight = useRef(false);
   const [folders, setFolders] = useState(initialFolders);
+  const [showOCRWorkflow, setShowOCRWorkflow] = useState(false);
 
   const submittedInitialQuestion = useRef(false);
   const bottomRef = useRef(null);
@@ -446,7 +448,6 @@ export default function Chat() {
             query: question,
             request_id: requestId,
             conversation_id: activeConversationId,
-            user_id: user?.id,
             folder_id: initialFolderId || null,
           }),
         });
@@ -843,12 +844,10 @@ export default function Chat() {
             <button
               type="button"
               className="upload-button"
-              title="File upload will be added later"
+              title="Upload OCR document"
               aria-label="Upload file"
               disabled={loading}
-              onClick={() =>
-                window.alert("File upload will be connected later.")
-              }
+              onClick={() => setShowOCRWorkflow(true)}
             >
               <Upload size={20} />
             </button>
@@ -877,6 +876,7 @@ export default function Chat() {
         </footer>
       </main>
       {sourceSelection && <SourcesPanel key={sourceSelection.messageIndex} sources={sourceSelection.sources} onClose={closeSources} />}
+      {showOCRWorkflow && <OCRDocumentWorkflow onClose={() => setShowOCRWorkflow(false)} />}
     </div>
   );
 }

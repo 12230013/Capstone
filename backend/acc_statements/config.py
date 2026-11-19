@@ -23,6 +23,7 @@ OUTPUT_DIR = _this_dir / "outputs"
 PARSED_DIR = OUTPUT_DIR / "parsed"
 QDRANT_PATH = str(_this_dir / "qdrant_db")            # local on-disk Qdrant (no Docker needed)
 COLLECTION = "statements"
+OCR_COLLECTION = "ocr_documents"
 
 # ---------- LLM (Ollama) ----------
 OLLAMA_URL = "http://localhost:11434"
@@ -36,6 +37,8 @@ LLM_RETRIES = 2                      # re-ask if the JSON fails validation
 EMBED_MODEL = "BAAI/bge-m3"
 EMBED_DIM = 1024
 EMBED_BATCH = 16
+_embed_model_path = os.getenv("EMBED_MODEL_PATH", "").strip()
+EMBED_MODEL_PATH = Path(_embed_model_path).expanduser().resolve() if _embed_model_path else None
 
 # ---------- chunking / retrieval ----------
 CHUNK_MAX_CHARS = 1200

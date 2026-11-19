@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 
 import "./dashboard.css";
+import OCRDocumentWorkflow from "../components/OCRDocumentWorkflow";
 
 const features = [
   {
@@ -711,6 +712,7 @@ export default function Dashboard() {
   };
 
   const [loading, setLoading] = useState(false);
+  const [showOCRWorkflow, setShowOCRWorkflow] = useState(false);
 
   const loadFolders = async () => {
     if (!user?.id) return;
@@ -975,11 +977,9 @@ export default function Dashboard() {
             <button
               type="button"
               className="upload-button"
-              title="File upload will be added later"
+              title="Upload OCR document"
               aria-label="Upload file"
-              onClick={() =>
-                window.alert("File upload will be connected later.")
-              }
+              onClick={() => setShowOCRWorkflow(true)}
             >
               <Upload size={20} />
             </button>
@@ -1008,6 +1008,7 @@ export default function Dashboard() {
           </p>
         </footer>
       </main>
+      {showOCRWorkflow && <OCRDocumentWorkflow onClose={() => setShowOCRWorkflow(false)} />}
     </div>
   );
 }
