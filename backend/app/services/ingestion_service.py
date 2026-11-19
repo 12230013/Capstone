@@ -39,8 +39,8 @@ class IngestionService:
         if "statement_metadata" in document and isinstance(document["statement_metadata"], dict):
             metadata["statement_metadata"] = document["statement_metadata"]
 
-        # Step 4: Create chunks
-        chunks = chunk_text(
+        # Step 4: Create 
+         = chunk_text(
             cleaned_text,
             chunk_size=500,
             overlap=50,
@@ -50,7 +50,7 @@ class IngestionService:
         # Step 5: Create embeddings
         texts = [
             chunk["text"]
-            for chunk in chunks
+            for chunk in 
         ]
 
         embeddings = (
@@ -59,9 +59,9 @@ class IngestionService:
             )
         )
 
-        # Step 6: Store chunks in Qdrant
+        # Step 6: Store  in Qdrant
         for chunk, embedding in zip(
-            chunks,
+            ,
             embeddings
         ):
 
@@ -83,7 +83,7 @@ class IngestionService:
             
         return {
             "filename": document["filename"],
-            "chunks_created": len(chunks)
+            "_created": len()
         }
 
         

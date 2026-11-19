@@ -48,8 +48,11 @@ Edit `backend/.env` for your machine. The main settings are:
 | `FRONTEND_ORIGINS` | Allowed frontend origins for cookies and requests |
 | `SESSION_HOURS` / `SESSION_IDLE_MINUTES` | Session expiry limits |
 | `ENVIRONMENT` / `SESSION_COOKIE_SECURE` | Deployment environment and secure-cookie configuration |
+| `CIMS_API_TOKEN` | Dedicated bearer token for `POST /api/cims/sync` |
 
 See [backend/.env.example](backend/.env.example) for the template. CDR and relationship features require their respective services and data.
+
+The vendor-facing CIMS intake contract, schema, and local Swagger/Postman steps are documented in [CIMS_API_INTEGRATION.md](CIMS_API_INTEGRATION.md). Configure a private `CIMS_API_TOKEN` in `backend/.env` before using the endpoint.
 
 ### 2. Ollama
 

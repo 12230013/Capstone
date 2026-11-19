@@ -9,17 +9,17 @@ class PromptService:
     def build_prompt(
         self,
         query: str,
-        retrieved_chunks: list[dict],
+        retrieved_: list[dict],
     ) -> str:
         if not isinstance(query, str) or not query.strip():
             raise ValueError("Query must be a non-empty string.")
 
-        if not isinstance(retrieved_chunks, list):
-            raise ValueError("retrieved_chunks must be a list.")
+        if not isinstance(retrieved_, list):
+            raise ValueError("retrieved_ must be a list.")
 
         evidence_sections = []
 
-        for index, chunk in enumerate(retrieved_chunks, start=1):
+        for index, chunk in enumerate(retrieved_, start=1):
             if not isinstance(chunk, dict):
                 continue
 
@@ -92,11 +92,11 @@ Rules:
 8. Cite the supporting source document for factual findings whenever
    the source is available. Do not invent page numbers or citations.
 9. Keep the response concise, structured, and relevant to the question.
-10. When multiple evidence chunks describe the same fact, event,
+10. When multiple evidence  describe the same fact, event,
     transaction, or statement, consolidate them into one finding rather
     than repeating the same information.
 11. Do not present duplicate or near-duplicate evidence as separate
-    findings merely because it appears in multiple retrieved chunks.
+    findings merely because it appears in multiple retrieved .
 
 Investigation Evidence:
 {evidence}

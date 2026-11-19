@@ -43,6 +43,7 @@ try:
     activity_collection = db["activity"]
     sessions_collection = db["sessions"]
     ocr_documents_collection = db["ocr_documents"]
+    cims_sync_collection = db["cims_sync_records"]
     
 
 except Exception:
@@ -55,3 +56,4 @@ except Exception:
     activity_collection = None
     sessions_collection = None
     ocr_documents_collection = None
+    cims_sync_collection = None

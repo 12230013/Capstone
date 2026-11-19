@@ -55,11 +55,11 @@ export default function CDRNetwork({ data, targetNumber }) {
   const edges = Array.isArray(data?.edges) ? data.edges : [];
 
   const graph = useMemo(() => {
-    const width = 720;
-    const height = 420;
+    const width = 900;
+    const height = Math.max(520, Math.min(760, 260 + nodes.length * 18));
     const centerX = width / 2;
     const centerY = height / 2;
-    const radius = Math.min(width * 0.38, height * 0.38);
+    const radius = Math.min(width * 0.34, height * 0.36);
 
     const positionedNodes = nodes.map((node, index) => {
       const angle =
@@ -133,6 +133,12 @@ export default function CDRNetwork({ data, targetNumber }) {
         </div>
       </div>
 
+      <div className="cdr-network-legend">
+        <span><i className="cdr-network-legend-dot target-dot" /> Target</span>
+        <span><i className="cdr-network-legend-dot" /> Contact</span>
+        <span><i className="cdr-network-legend-line" /> Label shows interaction count; larger nodes indicate more activity</span>
+      </div>
+
       <div className="cdr-network-canvas">
         <svg
           viewBox={`0 0 ${graph.width} ${graph.height}`}
@@ -141,6 +147,12 @@ export default function CDRNetwork({ data, targetNumber }) {
         >
           {graph.positionedEdges.map((edge) => {
             const { sourceNode, targetNode } = edge;
+
+            const dx = targetNode.x - sourceNode.x;
+            const dy = targetNode.y - sourceNode.y;
+            const length = Math.hypot(dx, dy) || 1;
+            const labelX = (sourceNode.x + targetNode.x) / 2 - (dy / length) * 10;
+            const labelY = (sourceNode.y + targetNode.y) / 2 + (dx / length) * 10;
 
             return (
               <g key={edge.id}>
@@ -161,8 +173,8 @@ export default function CDRNetwork({ data, targetNumber }) {
 
                 {edge.count != null && (
                   <text
-                    x={(sourceNode.x + targetNode.x) / 2}
-                    y={(sourceNode.y + targetNode.y) / 2 - 5}
+                  x={labelX}
+                  y={labelY}
                     className="cdr-network-edge-label"
                     textAnchor="middle"
                   >
@@ -190,12 +202,18 @@ export default function CDRNetwork({ data, targetNumber }) {
               raw?.role === "target" ||
               node.id === String(targetNumber);
 
+            const interactionCount = graph.positionedEdges
+              .filter((edge) => edge.sourceNode.id === node.id || edge.targetNode.id === node.id)
+              .reduce((sum, edge) => sum + (Number(edge.count) || 0), 0);
+            const radius = isTarget ? 19 : Math.min(17, 11 + Math.log2(interactionCount + 1));
+
             return (
               <g key={node.id}>
+                {isTarget && <circle cx={node.x} cy={node.y} r={radius + 6} className="cdr-network-node-halo" />}
                 <circle
                   cx={node.x}
                   cy={node.y}
-                  r={isTarget ? 13 : 9}
+                  r={radius}
                   className={
                     isTarget
                       ? "cdr-network-node target"
@@ -207,7 +225,7 @@ export default function CDRNetwork({ data, targetNumber }) {
 
                 <text
                   x={node.x}
-                  y={node.y + 25}
+                  y={node.y + radius + 20}
                   className="cdr-network-node-label"
                   textAnchor="middle"
                 >
@@ -219,17 +237,6 @@ export default function CDRNetwork({ data, targetNumber }) {
             );
           })}
         </svg>
-      </div>
-
-      <div className="cdr-network-legend">
-        <span>
-          <i className="cdr-network-legend-dot target-dot" />
-          Target, if identified in the data
-        </span>
-        <span>
-          <i className="cdr-network-legend-line" />
-          Communication link
-        </span>
       </div>
 
       {graph.positionedEdges.length === 0 && edges.length > 0 && (
