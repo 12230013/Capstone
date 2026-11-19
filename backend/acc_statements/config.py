@@ -23,6 +23,7 @@ OUTPUT_DIR = _this_dir / "outputs"
 PARSED_DIR = OUTPUT_DIR / "parsed"
 QDRANT_PATH = str(_this_dir / "qdrant_db")            # local on-disk Qdrant (no Docker needed)
 COLLECTION = "statements"
+OCR_COLLECTION = "ocr_documents"
 
 # ---------- LLM (Ollama) ----------
 OLLAMA_URL = "http://localhost:11434"
