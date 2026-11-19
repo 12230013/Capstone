@@ -129,7 +129,7 @@ class OCRChatRetrievalTests(unittest.TestCase):
 
     def test_owned_exact_filename_retrieval_preserves_page_citation(self):
         with patch(
-            "acc_statements.chat.ask_text",
+            "app.services.llm_service.LLMService.generate",
             return_value=(
                 "The note says [sic], [item 1], and [see appendix]. "
                 "The transfer appears on [owned.pdf, page 3] "
@@ -171,7 +171,7 @@ class OCRChatRetrievalTests(unittest.TestCase):
 
     def test_plain_filename_mention_is_not_treated_as_a_citation(self):
         answer = "The document owned.pdf contains a transfer."
-        with patch("acc_statements.chat.ask_text", return_value=answer):
+        with patch("app.services.llm_service.LLMService.generate", return_value=answer):
             response = self.service.retrieve(
                 query="Summarize owned.pdf",
                 filename="owned.pdf",
@@ -201,7 +201,7 @@ class OCRChatRetrievalTests(unittest.TestCase):
             },
         ]
         with patch(
-            "acc_statements.chat.ask_text",
+            "app.services.llm_service.LLMService.generate",
             return_value=(
                 "The transfer is shown [owned.pdf, page 3]. "
                 "The audit appears [year_end,[audit]-2026.v2-final.pdf, page 12]."
@@ -229,7 +229,7 @@ class OCRChatRetrievalTests(unittest.TestCase):
 
     def test_statement_style_citation_fails_closed_and_preserves_sources(self):
         with patch(
-            "acc_statements.chat.ask_text",
+            "app.services.llm_service.LLMService.generate",
             return_value="The transfer is confirmed [stmt_01-s4].",
         ):
             response = self.service.retrieve(
@@ -254,7 +254,7 @@ class OCRChatRetrievalTests(unittest.TestCase):
 
     def test_unretrieved_page_citation_fails_closed(self):
         with patch(
-            "acc_statements.chat.ask_text",
+            "app.services.llm_service.LLMService.generate",
             return_value="The transfer is confirmed [owned.pdf, page 2].",
         ):
             response = self.service.retrieve(
@@ -269,7 +269,7 @@ class OCRChatRetrievalTests(unittest.TestCase):
 
     def test_unbracketed_unretrieved_filename_page_reference_fails_closed(self):
         with patch(
-            "acc_statements.chat.ask_text",
+            "app.services.llm_service.LLMService.generate",
             return_value="The transfer appears in owned.pdf, page 2.",
         ):
             response = self.service.retrieve(
@@ -285,7 +285,7 @@ class OCRChatRetrievalTests(unittest.TestCase):
 
     def test_malformed_pdf_page_citation_fails_closed(self):
         with patch(
-            "acc_statements.chat.ask_text",
+            "app.services.llm_service.LLMService.generate",
             return_value="The transfer appears in [owned.pdf page two].",
         ):
             response = self.service.retrieve(
@@ -302,7 +302,7 @@ class OCRChatRetrievalTests(unittest.TestCase):
         for model_answer in ("", " \n\t"):
             with self.subTest(model_answer=repr(model_answer)):
                 with patch(
-                    "acc_statements.chat.ask_text",
+                    "app.services.llm_service.LLMService.generate",
                     return_value=model_answer,
                 ):
                     response = self.service.retrieve(
@@ -325,7 +325,7 @@ class OCRChatRetrievalTests(unittest.TestCase):
 
     def test_different_document_citation_fails_closed(self):
         with patch(
-            "acc_statements.chat.ask_text",
+            "app.services.llm_service.LLMService.generate",
             return_value=(
                 "The transfer is shown [owned.pdf, page 3]. "
                 "Unsupported evidence [other.pdf, page 3]."

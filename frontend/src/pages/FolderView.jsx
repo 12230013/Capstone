@@ -3,10 +3,12 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Folder, Send, Upload, Trash2, MessageSquare } from "lucide-react";
 import { Sidebar } from "./Dashboard";
+import OCRDocumentWorkflow from "../components/OCRDocumentWorkflow";
 import "./dashboard.css";
 import "./chat.css";
 
 export default function FolderView() {
+  const [showOCRWorkflow, setShowOCRWorkflow] = useState(false);
   const navigate = useNavigate();
   const { folderId } = useParams();
 
@@ -224,11 +226,9 @@ export default function FolderView() {
                 <button
                   type="button"
                   className="upload-button"
-                  title="File upload will be added later"
+                  title="Upload OCR document"
                   aria-label="Upload file"
-                  onClick={() =>
-                    window.alert("File upload will be connected later.")
-                  }
+                  onClick={() => setShowOCRWorkflow(true)}
                 >
                   <Upload size={20} />
                 </button>
@@ -386,6 +386,7 @@ export default function FolderView() {
           </div>
         )}
       </main>
+      {showOCRWorkflow && <OCRDocumentWorkflow onClose={() => setShowOCRWorkflow(false)} />}
     </div>
   );
 }

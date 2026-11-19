@@ -240,65 +240,9 @@ class OCRChatRetrievalService:
         filename: str,
         owner_user_id: str,
     ) -> dict[str, Any] | None:
-        if not isinstance(owner_user_id, str) or not owner_user_id.strip():
-            raise HTTPException(
-                status_code=401,
-                detail="Authentication is required.",
-            )
-        if not isinstance(filename, str) or not filename.strip():
-            raise HTTPException(
-                status_code=400,
-                detail="A PDF filename is required.",
-            )
-        documents = self._find_owned_documents(
-            ntpath.basename(filename.strip()),
-            owner_user_id.strip(),
-        )
-        documents = [
-            document
-            for document in documents
-            if document.get("filename") == ntpath.basename(filename.strip())
-            and document.get("owner_user_id") == owner_user_id.strip()
-        ]
-        if not documents:
+        chunks = self.retrieve_evidence(query, filename, owner_user_id)
+        if chunks is None:
             return None
-        if len(documents) > 1:
-            raise HTTPException(
-                status_code=409,
-                detail="Multiple owned OCR documents use this filename.",
-            )
-
-        document = documents[0]
-        if (
-            document.get("status") not in {"completed", "not_required"}
-            or document.get("ocr_status") not in {"completed", "not_required"}
-            or document.get("index_status") != "indexed"
-        ):
-            raise HTTPException(
-                status_code=409,
-                detail="The owned OCR document has not completed indexing.",
-            )
-
-        document_id = document.get("_id")
-        if not isinstance(document_id, str) or not document_id.strip():
-            logger.error("An OCR metadata record has no valid document ID.")
-            raise HTTPException(
-                status_code=503,
-                detail="OCR document metadata is unavailable.",
-            )
-
-        try:
-            chunks = self._adapter_factory().retrieve_document(
-                query=query,
-                document_id=document_id,
-                owner_user_id=owner_user_id.strip(),
-            )
-        except Exception as exc:
-            logger.exception("Owner-scoped OCR chat retrieval failed.")
-            raise HTTPException(
-                status_code=503,
-                detail="OCR retrieval is unavailable.",
-            ) from exc
 
         if not chunks:
             return {
@@ -310,6 +254,54 @@ class OCRChatRetrievalService:
                 "disclaimer": "",
             }
         return self._answer_builder(query, chunks)
+
+    def retrieve_evidence(
+        self,
+        query: str,
+        filename: str,
+        owner_user_id: str,
+    ) -> list[dict[str, Any]] | None:
+        """Return owner-scoped OCR chunks without generating an answer."""
+        if not isinstance(owner_user_id, str) or not owner_user_id.strip():
+            raise HTTPException(status_code=401, detail="Authentication is required.")
+        if not isinstance(filename, str) or not filename.strip():
+            raise HTTPException(status_code=400, detail="A PDF filename is required.")
+
+        owner_user_id = owner_user_id.strip()
+        filename = ntpath.basename(filename.strip())
+        documents = self._find_owned_documents(filename, owner_user_id)
+        documents = [
+            document for document in documents
+            if document.get("filename") == filename
+            and document.get("owner_user_id") == owner_user_id
+        ]
+        if not documents:
+            return None
+        if len(documents) > 1:
+            raise HTTPException(status_code=409, detail="Multiple owned OCR documents use this filename.")
+
+        document = documents[0]
+        if (
+            document.get("status") not in {"completed", "not_required"}
+            or document.get("ocr_status") not in {"completed", "not_required"}
+            or document.get("index_status") != "indexed"
+        ):
+            raise HTTPException(status_code=409, detail="The owned OCR document has not completed indexing.")
+
+        document_id = document.get("_id")
+        if not isinstance(document_id, str) or not document_id.strip():
+            logger.error("An OCR metadata record has no valid document ID.")
+            raise HTTPException(status_code=503, detail="OCR document metadata is unavailable.")
+
+        try:
+            return self._adapter_factory().retrieve_document(
+                query=query,
+                document_id=document_id,
+                owner_user_id=owner_user_id,
+            )
+        except Exception as exc:
+            logger.exception("Owner-scoped OCR chat retrieval failed.")
+            raise HTTPException(status_code=503, detail="OCR retrieval is unavailable.") from exc
 
     def _find_owned_documents(
         self,
@@ -349,7 +341,8 @@ class OCRChatRetrievalService:
 
     @staticmethod
     def _build_answer(query: str, chunks: list[dict]) -> dict:
-        from acc_statements.chat import ask_text, config
+        from acc_statements import config
+        from app.services.llm_service import LLMService
 
         context_sections = []
         allowed_citations = set()
@@ -373,9 +366,9 @@ class OCRChatRetrievalService:
             )
 
         context = "\n\n".join(context_sections)
-        answer = ask_text(
-            _OCR_ONLY_CHAT_SYSTEM,
-            f"RETRIEVED OCR CONTEXT:\n{context}\n\nQUESTION: {query}",
+        answer = LLMService().generate(
+            f"{_OCR_ONLY_CHAT_SYSTEM}\n\n"
+            f"RETRIEVED OCR CONTEXT:\n{context}\n\nQUESTION: {query}"
         )
         sources = _build_ocr_source_cards(chunks)
         warnings = []

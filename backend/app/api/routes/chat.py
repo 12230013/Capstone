@@ -101,7 +101,14 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks, session:
 
         context_messages = [{"role": message["role"], "content": message.get("content", "")} for message in recent_messages]
         context_messages.append({"role": "user", "content": query})
-        result = await chat_service.query(query, context={"current_query": query, "messages": context_messages})
+        result = await chat_service.query(
+            query,
+            context={
+                "current_query": query,
+                "messages": context_messages,
+                "owner_user_id": session["user_id"],
+            },
+        )
         if result.get("success") is False:
             raise HTTPException(502, result.get("message") or "The query could not be completed. Please try again.")
 

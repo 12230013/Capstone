@@ -1,0 +1,53 @@
+.ocr-workflow-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(18, 25, 33, 0.48);
+}
+
+.ocr-workflow {
+  width: min(720px, 100%);
+  max-height: min(840px, 92vh);
+  overflow: auto;
+  border: 1px solid #dfd6c5;
+  border-radius: 14px;
+  background: #fffdf8;
+  box-shadow: 0 18px 60px rgba(28, 35, 42, 0.22);
+}
+
+.ocr-workflow-header,
+.ocr-workflow-header > div,
+.ocr-upload-form,
+.ocr-review-form,
+.ocr-page-review {
+  display: flex;
+  gap: 12px;
+}
+
+.ocr-workflow-header {
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  border-bottom: 1px solid #eee5d7;
+}
+
+.ocr-workflow-header > div { align-items: center; }
+.ocr-workflow-header h2 { margin: 0; font-size: 20px; }
+.ocr-close { border: 0; background: transparent; cursor: pointer; padding: 6px; }
+.ocr-workflow-body { padding: 22px; }
+.ocr-upload-form, .ocr-review-form { flex-direction: column; }
+.ocr-upload-form label, .ocr-review-form > label, .ocr-page-review { font-weight: 600; }
+.ocr-upload-form input, .ocr-review-form select, .ocr-page-review textarea { width: 100%; box-sizing: border-box; }
+.ocr-upload-form button, .ocr-review-form button { align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; border: 0; border-radius: 7px; background: #1f5d55; color: white; cursor: pointer; }
+.ocr-upload-form button:disabled, .ocr-review-form button:disabled { opacity: .55; cursor: not-allowed; }
+.ocr-status, .ocr-notice, .ocr-error, .ocr-help { margin: 14px 0; }
+.ocr-error { color: #a52222; }
+.ocr-notice { color: #1f5d55; }
+.ocr-help { color: #5e625f; font-size: 14px; }
+.ocr-review-form { margin-top: 24px; padding-top: 20px; border-top: 1px solid #eee5d7; }
+.ocr-review-form h3 { margin: 0; }
+.ocr-page-review { flex-direction: column; gap: 6px; }
+.ocr-page-review textarea { min-height: 100px; resize: vertical; padding: 10px; border: 1px solid #cfc6b7; border-radius: 6px; font: inherit; }

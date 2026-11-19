@@ -21,15 +21,34 @@ export default function SourcesPanel({ sources, onClose }) {
   useEffect(() => {
     setDocument(null);
     setError("");
-    if (!selected?.doc_id) { setLoading(false); return; }
+    const isOCRSource = selected?.source_type === "ocr_document";
+    const sourceId = isOCRSource
+      ? selected?.document_id || selected?.doc_id
+      : selected?.doc_id;
+    if (!sourceId) { setLoading(false); return; }
     const controller = new AbortController();
     setLoading(true);
-    apiFetch("/api/sources/" + encodeURIComponent(selected.doc_id), {
+    const endpoint = isOCRSource
+      ? "/api/ocr/documents/" + encodeURIComponent(sourceId)
+      : "/api/sources/" + encodeURIComponent(sourceId);
+    apiFetch(endpoint, {
       signal: controller.signal,
     }).then(async response => {
       const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || "Unable to open this document.");
-      setDocument(data);
+      if (!response.ok) {
+        const detail = typeof data.detail === "string" ? data.detail : "Unable to open this document.";
+        throw new Error(detail);
+      }
+      if (isOCRSource) {
+        if (data.status === "failed") {
+          throw new Error(data.error_code || "OCR processing failed.");
+        }
+        const pages = Array.isArray(data.pages) ? data.pages : [];
+        const page = pages.find(item => item?.page_number === selected.page_number);
+        setDocument({ text: typeof page?.text === "string" ? page.text : "", sentences: [] });
+      } else {
+        setDocument(data);
+      }
     }).catch(error => { if (!controller.signal.aborted) setError(error.message); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
@@ -38,6 +57,7 @@ export default function SourcesPanel({ sources, onClose }) {
   useEffect(() => { firstMatch.current?.scrollIntoView({ block: "center", behavior: "smooth" }); }, [document]);
   const ids = new Set(selected?.sentence_ids || []);
   const firstId = document?.sentences?.find(sentence => ids.has(sentence.id))?.id;
+  const isOCRSource = selected?.source_type === "ocr_document";
   return <aside className="sources-panel" id="chat-sources-panel" aria-label="Sources">
     <header className="sources-panel-header">
       <button type="button" ref={closeButton} aria-label={selected ? "Back to sources" : "Close sources"} onClick={selected ? () => setSelected(null) : onClose}><ChevronLeft size={16}/></button>
@@ -49,6 +69,7 @@ export default function SourcesPanel({ sources, onClose }) {
         </span>
       </button>) : <>
         <h3>{selected.filename || selected.person_name || selected.type || "Source"}</h3>
+        {selected.source_type === "ocr_document" && selected.page_number && <p className="source-meta">Page: {selected.page_number}</p>}
         {selected.case_no && <p className="source-meta">Case: {selected.case_no}</p>}
         {selected.statement_date && <p className="source-meta">Statement date: {selected.statement_date}</p>}
         {selected.phone_number && <p className="source-meta">Phone: {selected.phone_number}</p>}
@@ -56,8 +77,8 @@ export default function SourcesPanel({ sources, onClose }) {
         {loading && <p role="status">Opening document...</p>}
         {error && <p className="source-notice" role="status">{error}</p>}
         {selected.excerpt && <section className="source-passage"><h4>Referenced passage</h4><p>{selected.excerpt}</p></section>}
-        {document && <section className="source-document"><h4>Original document</h4><pre>{document.text}</pre>
-          {document.sentences?.length > 0 && <><h4>Sentence references</h4><p className="source-meta">Cited sentences are highlighted below.</p>
+        {document && <section className="source-document"><h4>{isOCRSource ? "OCR page text" : "Original document"}</h4><pre>{document.text || (isOCRSource ? "No text was returned for this OCR page." : "")}</pre>
+          {!isOCRSource && document.sentences?.length > 0 && <><h4>Sentence references</h4><p className="source-meta">Cited sentences are highlighted below.</p>
             {document.sentences.map(sentence => <p className="source-sentence" key={sentence.id} ref={sentence.id === firstId ? firstMatch : null}>
               <small>{sentence.id}</small>{ids.has(sentence.id) ? <mark>{sentence.text}</mark> : sentence.text}
             </p>)}
