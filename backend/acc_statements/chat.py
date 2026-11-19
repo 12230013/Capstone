@@ -53,3 +53,4 @@ def retrieve_evidence(question: str, case_nos=None) -> dict:
             "text": hit.get("text_numbered", ""),
         })
     return {"success": True, "evidence": evidence, "warnings": []}
+

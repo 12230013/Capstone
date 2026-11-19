@@ -1191,16 +1191,43 @@ class ChatService:
             )
         )
 
+        has_incoming_term = any(term in query_lower for term in ("incoming", "inbound"))
+        has_outgoing_term = any(term in query_lower for term in ("outgoing", "outbound"))
+        has_direction_term = has_incoming_term or has_outgoing_term
+        asks_to_list_calls = any(
+            term in query_lower for term in ("show", "list", "display", "retrieve", "get")
+        )
+        has_call_records_term = any(
+            term in query_lower for term in ("call", "calls", "communication records", "communications")
+        )
+        is_call_list_query = (
+            asks_to_list_calls
+            and has_call_records_term
+            and has_direction_term
+            and not any(term in query_lower for term in ("compare", "comparison", "timeline", "network"))
+        )
         is_direction_query = any(
             phrase in query_lower
             for phrase in (
-                "incoming",
-                "outgoing",
                 "communication direction",
                 "call direction",
                 "direction",
             )
+        ) or (has_incoming_term and has_outgoing_term)
+
+        comparison_intent = any(
+            term in query_lower
+            for term in ("compare", "comparison", "which direction", "more interactions", "more calls")
         )
+
+        # A request comparing incoming and outgoing counts is focused, even if
+        # the wording contains broad CDR terms such as "communication activity".
+        explicit_full_summary = any(
+            term in query_lower
+            for term in ("summary", "summarize", "overview", "comprehensive", "most frequent", "top contacts")
+        )
+        if is_direction_query and not explicit_full_summary:
+            is_general_summary_query = False
 
         dates = [
             date.fromisoformat(value)
@@ -1208,7 +1235,8 @@ class ChatService:
         ]
 
         is_period_statistics_query = (
-            len(dates) >= 2
+            not is_call_list_query
+            and len(dates) >= 2
             and any(
                 word in query_lower
                 for word in (
@@ -1226,6 +1254,11 @@ class ChatService:
                 )
             )
         )
+
+        # The request for a comparison should produce a short conclusion and
+        # direction breakdown, not a generic summary with a long contact table.
+        if is_period_statistics_query and (comparison_intent or is_direction_query):
+            is_general_summary_query = False
 
         # ---------------------------------------------------------
         # Route 1: Date-range statistics
@@ -1260,6 +1293,60 @@ class ChatService:
                 number,
                 start_date,
                 end_date,
+            )
+
+        elif is_call_list_query:
+            selected_directions = set()
+            if has_incoming_term:
+                selected_directions.add("incoming")
+            if has_outgoing_term:
+                selected_directions.add("outgoing")
+
+            call_records = records
+            if len(dates) >= 2:
+                start_date, end_date = dates[0], dates[1]
+                if end_date < start_date:
+                    raise ValueError("The end date must not precede the start date.")
+                call_records = [
+                    record for record in call_records
+                    if (dt := _as_datetime(_get(record, "datetime"))) is not None
+                    and start_date <= dt.date() <= end_date
+                ]
+
+            communications = [
+                item for item in generate_communication_timeline(call_records, number)
+                if item.get("direction") in selected_directions
+            ]
+            limit = 100
+            shown = communications[:limit]
+            direction_title = " and ".join(
+                label for enabled, label in (
+                    (has_incoming_term, "Incoming"),
+                    (has_outgoing_term, "Outgoing"),
+                ) if enabled
+            )
+            lines = [f"## {direction_title} calls for {number}"]
+            if len(dates) >= 2:
+                lines.append(f"**Date range:** {dates[0]} to {dates[1]}")
+            if not shown:
+                lines.append("No matching call records were found.")
+            else:
+                lines.extend([
+                    "",
+                    "| Date and time | Direction | Contact number | Service | Duration (seconds) |",
+                    "|---|---|---|---|---:|",
+                ])
+                lines.extend(
+                    f"| {_as_datetime(item['datetime']).strftime('%Y-%m-%d %H:%M:%S')} | "
+                    f"{item['direction'].title()} | {item.get('contact_number') or 'Unknown'} | "
+                    f"{item.get('service') or 'Unknown'} | {item.get('duration_seconds', 0):,} |"
+                    for item in shown
+                )
+                if len(communications) > limit:
+                    lines.extend(["", f"Showing the first {limit} of {len(communications):,} matching records. Add a date range to narrow the list."])
+            return self._response(
+                "\n".join(lines),
+                [self._source(number, "communication_records")],
             )
 
         # ---------------------------------------------------------
@@ -1688,11 +1775,118 @@ class ChatService:
         # validator must not decide whether numeric API statistics are answerable.
         stats = analysis_data.get("statistics", analysis_data)
         lines = [f"## Communication activity for {number}"]
+        # General activity questions read better as a narrative with ranked
+        # contacts. Focused questions below keep their compact data formats.
+        if analysis_type == "general_summary":
+            incoming_count = stats.get("incoming", {}).get("count", 0)
+            outgoing_count = stats.get("outgoing", {}).get("count", 0)
+            total = stats.get("total_interactions", incoming_count + outgoing_count)
+            total_duration = stats.get("total_duration_seconds", 0)
+            lines = [
+                f"The communication activity for the target number {number} involves a total of "
+                f"{outgoing_count:,} outgoing interactions and {incoming_count:,} incoming interactions "
+                f"({total:,} interactions overall)."
+            ]
+            contacts = analysis_data.get("most_frequent_contacts", [])
+            if contacts:
+                lines.extend(["", "The 10 most frequent contacts are:"])
+                for index, item in enumerate(contacts[:10], 1):
+                    contact_number = item.get("contact_number", "Unknown")
+                    name = item.get("contact_name")
+                    label = f"{name} ({contact_number})" if name and name.lower() != "unknown" else contact_number
+                    average = item.get("average_duration_seconds")
+                    average_text = f"{float(average):.2f}" if average is not None else "unavailable"
+                    lines.append(
+                        f"{index}. Contact Number: {label} - Total Interactions: "
+                        f"{item.get('total_interactions', 0):,} - Average Duration: {average_text} seconds"
+                    )
+            else:
+                lines.extend(["", "No contact records were found."])
+            lines.extend([
+                "",
+                f"The total duration of all interactions is {total_duration:,} seconds ({_format_duration(total_duration)}).",
+                f"There are {analysis_data.get('total_unique_contacts', 0):,} unique contacts.",
+                "These figures describe recorded activity and do not by themselves establish irregularity or misconduct.",
+            ])
+            return self._response("\n".join(lines), [self._source(number, analysis_type)])
+
         if analysis_type == "period_statistics":
-            lines.append(f"**Date range:** {analysis_data['start_date']} to {analysis_data['end_date']}")
+            lines = [
+                f"## Incoming vs. outgoing communication for {number}",
+                f"**Date range:** {analysis_data['start_date']} to {analysis_data['end_date']}",
+            ]
+        if analysis_type == "communication_timeline":
+            lines = [f"## Communication timeline for {number}"]
+            total = analysis_data.get("total_interactions", 0)
+            lines.extend([
+                f"**Total interactions:** {total:,}",
+                f"**Active days:** {analysis_data.get('total_active_days', 0):,}",
+            ])
+            start = analysis_data.get("timeline_start")
+            end = analysis_data.get("timeline_end")
+            if start and end:
+                start_dt = _as_datetime(start)
+                end_dt = _as_datetime(end)
+                start_display = start_dt.strftime("%b %d, %Y at %H:%M") if start_dt else start
+                end_display = end_dt.strftime("%b %d, %Y at %H:%M") if end_dt else end
+                lines.append(f"**Date range:** {start_display} to {end_display}")
+            else:
+                lines.append("No communication records matched this number.")
+
+            first = analysis_data.get("first_5_communications", [])
+            last = analysis_data.get("last_5_communications", [])
+            if first:
+                lines.extend(["", "**First communications**", "", "| Date and time | Direction | Contact | Service | Duration (seconds) |", "|---|---|---|---|---:|"])
+                lines.extend(
+                    f"| {item['datetime'].isoformat()} | {item.get('direction', 'unknown').title()} | "
+                    f"{item.get('contact_name') or 'Unknown'} ({item.get('contact_number') or 'Unknown'}) | "
+                    f"{item.get('service') or 'Unknown'} | {item.get('duration_seconds', 0):,} |"
+                    for item in first
+                )
+            if last and total > len(first):
+                lines.extend(["", "**Most recent communications**", "", "| Date and time | Direction | Contact | Service | Duration (seconds) |", "|---|---|---|---|---:|"])
+                lines.extend(
+                    f"| {item['datetime'].isoformat()} | {item.get('direction', 'unknown').title()} | "
+                    f"{item.get('contact_name') or 'Unknown'} ({item.get('contact_number') or 'Unknown'}) | "
+                    f"{item.get('service') or 'Unknown'} | {item.get('duration_seconds', 0):,} |"
+                    for item in last
+                )
+        if analysis_type == "communication_frequency":
+            contacts = analysis_data.get("most_frequent_contacts", [])
+            count = analysis_data.get("total_unique_contacts", 0)
+            lines = [f"The most frequent contacts for target number {number} ({count:,} unique contacts) are:"]
+            if contacts:
+                for index, item in enumerate(contacts, 1):
+                    average = item.get("average_duration_seconds")
+                    average_text = f"{float(average):.2f}" if average is not None else "unavailable"
+                    lines.append(
+                        f"{index}. Contact Number: {item.get('contact_number', 'Unknown')} - "
+                        f"Total Interactions: {item.get('total_interactions', 0):,} - "
+                        f"Average Duration: {average_text} seconds"
+                    )
+            else:
+                lines.append("No contact records were found.")
+            return self._response("\n".join(lines), [self._source(number, analysis_type)])
+
         if "incoming" in stats and "outgoing" in stats:
             incoming_count = stats["incoming"].get("count", 0)
             outgoing_count = stats["outgoing"].get("count", 0)
+            if analysis_type == "period_statistics":
+                difference = abs(incoming_count - outgoing_count)
+                if incoming_count == outgoing_count:
+                    conclusion = "Incoming and outgoing communication had the same number of interactions."
+                else:
+                    higher = "Incoming" if incoming_count > outgoing_count else "Outgoing"
+                    conclusion = f"{higher} communication had {difference:,} more interactions in this period."
+                lines.extend([
+                    "",
+                    f"There were {incoming_count:,} incoming and {outgoing_count:,} outgoing interactions "
+                    f"({stats.get('total_interactions', incoming_count + outgoing_count):,} total).",
+                    conclusion,
+                    f"Total recorded duration was {stats.get('total_duration_seconds', 0):,} seconds "
+                    f"({_format_duration(stats.get('total_duration_seconds', 0))}).",
+                ])
+                return self._response("\n".join(lines), [self._source(number, analysis_type)])
             lines.extend([
                 f"**Total interactions:** {stats.get('total_interactions', incoming_count + outgoing_count):,}",
                 "", "| Direction | Interactions | Duration (seconds) |", "|---|---:|---:|",
@@ -1819,6 +2013,16 @@ class ChatService:
         context_phone = context_identifiers.get("phone_number")
         context_cid = context_identifiers.get("cid")
 
+        # A case timeline is a document request even when the question does not
+        # repeat "statement" or "case" (for example, "timeline for Haa case").
+        case_match = (
+            re.search(r"\b(?:case\s*(?:no\.?|number)?\s*)([A-Za-z0-9][A-Za-z0-9/-]{1,30})\b", query, re.I)
+            or re.search(r"\b([A-Za-z0-9][A-Za-z0-9/-]{1,30})\s+case\b", query, re.I)
+        )
+        explicit_case_ref = bool(re.search(r"\bcase\b", query, re.I))
+        has_timeline_term = any(term in query_lower for term in ("timeline", "chronology", "sequence of events"))
+        is_document_timeline_query = has_timeline_term and explicit_case_ref and not re.search(r"(?<!\d)[0-9]{8}(?!\d)", query)
+
         previous_document_context = self._get_document_context(context)
 
         # ---------------------------------------------------------
@@ -1830,12 +2034,29 @@ class ChatService:
         print("QUERY RECEIVED:", repr(query))
         print("REQUESTED SYSTEMS:", requested_systems)
 
-        if len(requested_systems) >= 2:
+        if len(requested_systems) >= 2 and not is_document_timeline_query:
             print("ROUTE: COMBINED EVIDENCE")
             return await self._handle_combined_query(query)
 
-        if len(requested_systems) >= 2:
-            return await self._handle_combined_query(query)
+        if is_document_timeline_query:
+            try:
+                case_no = case_match.group(1) if case_match else None
+                timeline = self.statement_service.build_timeline(case_no=case_no)
+                if timeline:
+                    lines = ["## Chronological Case Timeline", ""]
+                    for event in timeline:
+                        event_date = event.get("date") or "(no date)"
+                        event_time = f" ({event.get('time')})" if event.get("time") else ""
+                        source = event.get("source") or {}
+                        citation = f" [{source['sentence_id']}]" if source.get("sentence_id") else ""
+                        lines.append(f"- **{event_date}{event_time}:** {event.get('event', 'Unspecified event')}{citation}")
+                    return self._response("\n".join(lines), [{"type": "Statement Timeline", "events_count": len(timeline), "case_no": case_no}])
+                return self._response(
+                    f"No document timeline events were found{f' for case {case_no}' if case_no else ''}.",
+                    [{"type": "Statement Timeline", "events_count": 0, "case_no": case_no}],
+                )
+            except Exception as exc:
+                print(f"Statement timeline error: {exc}")
 
         # Relationship API routing: CID is exactly 11 digits.
         cid_match = re.search(r"(?<!\d)[0-9]{11}(?!\d)", query)
@@ -2217,7 +2438,9 @@ class ChatService:
 
         if is_statement_timeline_query:
             try:
-                timeline = self.statement_service.build_timeline()
+                timeline = self.statement_service.build_timeline(
+                    case_no=case_match.group(1) if case_match else None
+                )
 
                 if timeline:
                     lines = ["## Chronological Case Timeline", ""]

@@ -42,6 +42,7 @@ try:
     folders_collection = db["folders"]
     activity_collection = db["activity"]
     sessions_collection = db["sessions"]
+    cims_sync_collection = db["cims_sync_records"]
     
 
 except Exception:
@@ -53,3 +54,4 @@ except Exception:
     folders_collection = None
     activity_collection = None
     sessions_collection = None
+    cims_sync_collection = None

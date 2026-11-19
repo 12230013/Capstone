@@ -127,3 +127,4 @@ def detect_contradictions(docs: list[dict]) -> dict:
             "different_detail": details, "claims_extracted": len(claims),
             "pairs_judged": judged, "pairs_selected": len(pairs), "warnings": warnings,
             "disclaimer": config.DISCLAIMER}
+

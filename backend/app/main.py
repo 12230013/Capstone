@@ -19,6 +19,7 @@ from app.api.routes.folders import router as folders_router
 from app.routes.auth import router as auth_router
 from app.api.routes.activity import router as activity_router
 from app.api.routes.sources import router as sources_router
+from app.api.routes.cims import router as cims_router
 
 
 @asynccontextmanager
@@ -61,6 +62,7 @@ app.include_router(chat_router, dependencies=[Depends(require_session)])
 app.include_router(cdr_router, dependencies=[Depends(require_session)])
 app.include_router(relationship_router, dependencies=[Depends(require_session)])
 app.include_router(auth_router)
+app.include_router(cims_router)
 app.include_router(statements_router, dependencies=[Depends(require_session)])
 app.include_router(conversations_router, dependencies=[Depends(require_session)])
 app.include_router(folders_router, dependencies=[Depends(require_session)])
@@ -75,6 +77,13 @@ async def database_unavailable(request: Request, exc: ConnectionFailure):
 
 @app.middleware("http")
 async def private_api_responses(request: Request, call_next):
+    if request.url.path == "/api/cims/sync":
+        content_length = request.headers.get("content-length")
+        if content_length and content_length.isdigit() and int(content_length) > 1_048_576:
+            response = JSONResponse(status_code=413, content={"detail": "Request body exceeds the 1 MiB limit."})
+            response.headers["Cache-Control"] = "no-store"
+            response.headers["X-Content-Type-Options"] = "nosniff"
+            return response
     response = await call_next(request)
     if request.url.path.startswith("/api/"):
         response.headers["Cache-Control"] = "no-store"
