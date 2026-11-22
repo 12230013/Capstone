@@ -1,22 +1,47 @@
-# Backend virtual environment
-backend/venv/
-backend/.venv/
+# Local environment and secrets (keep the shareable template)
+.env
+.env.*
+!.env.example
 
-# Backend environment/secrets
-backend/.env
-backend/.env.*
-
-# Python cache
+# Python environments and caches
+.venv/
+venv/
 __pycache__/
 *.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
-# Frontend dependencies
-frontend/node_modules/
+# Dependencies and frontend builds
+node_modules/
+/frontend/dist/
+/frontend/build/
+*.tsbuildinfo
 
-# Frontend build
-frontend/dist/
-frontend/build/
+# Local investigation documents and generated vector databases
+/backend/acc_statements/data/
+/backend/acc_statements/outputs/
+/backend/acc_statements/qdrant_db/
+/backend/app/statement_documents/
+/backend/test_documents/
+/backend/qdrant_storage/
 
-# IDE
+# Generated test reports and coverage (keep tests, fixtures and documentation)
+/test-results/
+/frontend/test-results/
+/frontend/playwright-report/
+/frontend/blob-report/
+coverage/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+.nyc_output/
+
+# Local logs, IDE settings and OS files
+*.log
 .vscode/
 .idea/
+.DS_Store
+Thumbs.db
+Desktop.ini

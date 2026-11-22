@@ -1,16 +1,6 @@
-
-import os
-import re
-import hashlib
-import secrets
-import smtplib
-
-from datetime import datetime, timedelta, timezone
-from email.message import EmailMessage
-
-from dotenv import load_dotenv
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, EmailStr
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from datetime import datetime, timezone
+from app.database.connection import sessions_collection, activity_collection
 
 from app.schemas.user import UserCreate, UserLogin
 from app.database.connection import (
@@ -18,6 +8,7 @@ from app.database.connection import (
     password_reset_collection,
 )
 from app.utils.security import hash_password, verify_password
+from app.utils.sessions import create_session, require_session, public_user, check_origin, COOKIE_NAME
 
 
 load_dotenv()
@@ -101,7 +92,13 @@ def get_utc_datetime(value):
 # --------------------------------------------------
 
 @router.post("/signup")
-def signup(user: UserCreate):
+def signup(user: UserCreate, request: Request):
+    check_origin(request)
+    if users_collection is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Database connection is not available."
+        )
 
     existing_employee = users_collection.find_one({
         "employee_id": user.employee_id
@@ -149,7 +146,13 @@ def signup(user: UserCreate):
 # --------------------------------------------------
 
 @router.post("/login")
-def login(user: UserLogin):
+def login(user: UserLogin, request: Request, response: Response):
+    check_origin(request)
+    if users_collection is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Database connection is not available."
+        )
 
     email = str(user.email).lower().strip()
 
@@ -172,228 +175,28 @@ def login(user: UserLogin):
             detail="Invalid email or password",
         )
 
-    return {
-        "message": "Login successful",
-        "user": {
-            "id": str(existing_user["_id"]),
-            "name": existing_user["name"],
-            "employee_id": existing_user["employee_id"],
-            "email": existing_user["email"],
-            "role": existing_user["role"],
-            "department": existing_user["department"],
-        },
-    }
-
-
-# --------------------------------------------------
-# FORGOT PASSWORD: GENERATE AND SEND OTP
-# --------------------------------------------------
-
-@router.post("/forgot-password")
-def forgot_password(request: ForgotPasswordRequest):
-
-    email = str(request.email).lower().strip()
-
-    # Return a generic response to avoid revealing
-    # whether an email is registered.
-    user = users_collection.find_one({"email": email})
-
-    if user:
-        otp = f"{secrets.randbelow(1_000_000):06d}"
-        now = datetime.now(timezone.utc)
-
-        # Remove any previous OTP for this email.
-        password_reset_collection.delete_many({
-            "email": email
-        })
-
-        password_reset_collection.insert_one({
-            "email": email,
-            "otp_hash": hash_value(otp),
-            "created_at": now,
-            "expires_at": now + timedelta(minutes=10),
-            "attempts": 0,
-            "verified": False,
-        })
-
-        try:
-            send_otp_email(email, otp)
-
-        except Exception:
-            password_reset_collection.delete_many({
-                "email": email
-            })
-
-            raise HTTPException(
-                status_code=500,
-                detail=(
-                    "Unable to send the OTP email. "
-                    "Please check the backend email configuration."
-                ),
-            )
-
-    return {
-        "message": (
-            "If an account exists for that email, "
-            "a password-reset OTP has been sent."
-        )
-    }
-
-
-# --------------------------------------------------
-# VERIFY OTP
-# --------------------------------------------------
-
-@router.post("/verify-otp")
-def verify_otp(request: VerifyOTPRequest):
-
-    email = str(request.email).lower().strip()
-
-    # OTP must contain exactly six digits.
-    if not re.fullmatch(r"\d{6}", request.otp):
-        raise HTTPException(
-            status_code=400,
-            detail="Please enter a valid six-digit OTP.",
-        )
-
-    record = password_reset_collection.find_one({
-        "email": email
-    })
-
-    if not record or record.get("verified", False):
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid or expired OTP. Please request a new one.",
-        )
-
     now = datetime.now(timezone.utc)
-    expiry = get_utc_datetime(record["expires_at"])
-
-    if now >= expiry:
-        password_reset_collection.delete_many({
-            "email": email
-        })
-
-        raise HTTPException(
-            status_code=400,
-            detail="OTP has expired. Please request a new one.",
+    # Rotate an existing cookie on login to prevent session fixation.
+    previous_token = request.cookies.get(COOKIE_NAME)
+    if previous_token:
+        import hashlib
+        sessions_collection.update_one(
+            {"token_hash": hashlib.sha256(previous_token.encode()).hexdigest(), "ended_at": None},
+            {"$set": {"ended_at": now}},
         )
-
-    if record.get("attempts", 0) >= 5:
-        password_reset_collection.delete_many({
-            "email": email
-        })
-
-        raise HTTPException(
-            status_code=400,
-            detail="Too many incorrect attempts. Please request a new OTP.",
-        )
-
-    entered_hash = hash_value(request.otp)
-
-    if not secrets.compare_digest(
-        entered_hash,
-        record["otp_hash"],
-    ):
-        password_reset_collection.update_one(
-            {"_id": record["_id"]},
-            {"$inc": {"attempts": 1}},
-        )
-
-        raise HTTPException(
-            status_code=400,
-            detail="Incorrect OTP. Please try again.",
-        )
-
-    # Generate a separate token for the password-reset step.
-    reset_token = secrets.token_urlsafe(32)
-
-    password_reset_collection.update_one(
-        {"_id": record["_id"]},
-        {
-            "$set": {
-                "verified": True,
-                "reset_token_hash": hash_value(reset_token),
-                "reset_expires_at": now + timedelta(minutes=10),
-            },
-            "$unset": {
-                "otp_hash": "",
-            },
-        },
-    )
-
+    csrf_token = create_session(str(existing_user["_id"]), response)
+    activity_collection.insert_one({
+        "user_id": str(existing_user["_id"]), "type": "login",
+        "ip_address": request.client.host if request.client else "Unknown",
+        "created_at": now,
+    })
     return {
-        "message": "OTP verified successfully.",
-        "reset_token": reset_token,
+        "message": "Login successful", "csrf_token": csrf_token,
+        "user": public_user(existing_user),
     }
 
 
-# --------------------------------------------------
-# RESET PASSWORD
-# --------------------------------------------------
-
-@router.post("/reset-password")
-def reset_password(request: ResetPasswordRequest):
-
-    email = str(request.email).lower().strip()
-
-    if len(request.new_password) < 8:
-        raise HTTPException(
-            status_code=400,
-            detail="Password must be at least 8 characters long.",
-        )
-
-    record = password_reset_collection.find_one({
-        "email": email,
-        "verified": True,
-        "reset_token_hash": hash_value(request.reset_token),
-    })
-
-    if not record:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "Password reset session is invalid. "
-                "Please verify your OTP again."
-            ),
-        )
-
-    expiry = get_utc_datetime(record["reset_expires_at"])
-
-    if datetime.now(timezone.utc) >= expiry:
-        password_reset_collection.delete_many({
-            "email": email
-        })
-
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "Password reset session has expired. "
-                "Please verify your OTP again."
-            ),
-        )
-
-    # Store the new password using your existing hash function.
-    result = users_collection.update_one(
-        {"email": email},
-        {
-            "$set": {
-                "password": hash_password(request.new_password)
-            }
-        },
-    )
-
-    if result.matched_count == 0:
-        raise HTTPException(
-            status_code=400,
-            detail="Unable to reset the password.",
-        )
-
-    # Delete the reset record so the token cannot be reused.
-    password_reset_collection.delete_many({
-        "email": email
-    })
-
-    return {
-        "message": "Password reset successfully. Please log in."
-    }
+@router.get("/me")
+def me(response: Response, session: dict = Depends(require_session)):
+    response.headers["Cache-Control"] = "no-store"
+    return {"user": session["user"], "csrf_token": session["csrf_token"]}

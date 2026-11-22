@@ -1,14 +1,17 @@
+import { apiFetch, setCsrfToken } from "../api";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import AuthError, { formatAuthError } from "../components/AuthError";
 
 function Login() {
+  const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const [error, setError] = useState("");
+  const [error, setError] = useState(location.state?.sessionExpired ? "Please sign in to continue." : "");
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
@@ -20,8 +23,8 @@ function Login() {
     setLoading(true);
 
     try {
-      const response = await fetch(
-        "http://127.0.0.1:8000/api/auth/login",
+      const response = await apiFetch(
+        "/api/auth/login",
         {
           method: "POST",
           headers: {
@@ -37,13 +40,15 @@ function Login() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.detail || "Login failed");
+        throw new Error(formatAuthError(data.detail, "Login failed. Please try again."));
       }
 
-      console.log("Login successful:", data);
+
 
       // Save the logged-in user's details for the dashboard
       localStorage.setItem("accUser", JSON.stringify(data.user));
+      setCsrfToken(data.csrf_token);
+      localStorage.removeItem("accSessionToken");
 
       // Go to dashboard after successful login
       navigate("/dashboard");
@@ -146,11 +151,7 @@ function Login() {
 
 
           {/* Error Message */}
-          {error && (
-            <div className="login-error">
-              {error}
-            </div>
-          )}
+          <AuthError message={error} />
 
 
           {/* Sign In */}

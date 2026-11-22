@@ -1,6 +1,8 @@
+import { apiFetch } from "../api";
 import { useState } from "react";
 import { Eye, EyeOff, ChevronDown } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import AuthError, { formatAuthError } from "../components/AuthError";
 
 function Signup() {
 
@@ -49,8 +51,8 @@ function Signup() {
 
     try {
 
-      const response = await fetch(
-        "http://127.0.0.1:8000/api/auth/signup",
+      const response = await apiFetch(
+        "/api/auth/signup",
         {
           method: "POST",
 
@@ -67,32 +69,9 @@ function Signup() {
 
 
       if (!response.ok) {
-
-  console.log("Backend validation error:", data);
-
-  if (Array.isArray(data.detail)) {
-
-    const messages = data.detail.map(
-      (error) => {
-        console.log("Validation error:", error);
-
-        return `${error.loc?.join(".")}: ${error.msg}`;
+        setError(formatAuthError(data.detail, "Signup failed. Please try again."));
+        return;
       }
-    );
-
-    setError(messages.join(" | "));
-
-  } else {
-
-    setError(
-      data.detail || "Signup failed. Please try again."
-    );
-
-  }
-
-  return;
-}
-
 
       // Signup successful
       setSuccess(
@@ -161,11 +140,7 @@ function Signup() {
 
 
         {/* Error Message */}
-        {error && (
-          <div className="error-message">
-            {error}
-          </div>
-        )}
+        <AuthError message={error} />
 
 
         {/* Success Message */}

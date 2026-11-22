@@ -4,11 +4,35 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-MONGO_URI = os.getenv("MONGO_URI")
+MONGO_URI = os.getenv("MONGO_URI") or "mongodb://localhost:27017"
 
-client = MongoClient(MONGO_URI, authSource="admin")
+try:
+    client = MongoClient(
+        MONGO_URI,
+        serverSelectionTimeoutMS=5000,
+        connectTimeoutMS=5000,
+        socketTimeoutMS=20000,
+    )
+    db = client[os.getenv("MONGO_DB_NAME", "acc_database")]
 
-db = client["acc_database"]
+    # Collections
+    users_collection = db["users"]
+    conversations_collection = db["conversations"]
+    messages_collection = db["messages"]
+    folders_collection = db["folders"]
+    activity_collection = db["activity"]
+    sessions_collection = db["sessions"]
+    ocr_documents_collection = db["ocr_documents"]
+    cims_sync_collection = db["cims_sync_records"]
 
-users_collection = db["users"]
-password_reset_collection = db["password_reset_otps"]
+except Exception:
+    client = None
+    db = None
+    users_collection = None
+    conversations_collection = None
+    messages_collection = None
+    folders_collection = None
+    activity_collection = None
+    sessions_collection = None
+    ocr_documents_collection = None
+    cims_sync_collection = None

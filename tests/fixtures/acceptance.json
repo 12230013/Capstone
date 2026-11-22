@@ -1,0 +1,21 @@
+{
+  "account": {
+    "name": "Acceptance User",
+    "password": "TestPassword1!",
+    "role": "Investigator",
+    "department": "Synthetic Investigation Team"
+  },
+  "document": {
+    "doc_id": "test_statement",
+    "filename": "test_statement.txt",
+    "sentence_id": "test_statement-s1",
+    "text": "Pema Dorji owns the demonstration sawmill in the synthetic test case.",
+    "case_no": "TEST/2026/001"
+  },
+  "questions": {
+    "supported": "Who owns the demonstration sawmill?",
+    "missing": "What is the owner's bank account number?",
+    "retry": "Retry the demonstration sawmill question"
+  },
+  "title": "Demonstration Sawmill Ownership"
+}

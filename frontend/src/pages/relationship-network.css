@@ -1,0 +1,191 @@
+
+.relationship-network {
+  width: 100%;
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid #d9dee7;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #202938;
+  box-sizing: border-box;
+}
+
+.relationship-network-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.relationship-network-heading h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+}
+
+.relationship-network-heading p {
+  margin: 0;
+  color: #667085;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.relationship-network-stats {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.relationship-network-stats span {
+  padding: 5px 9px;
+  border-radius: 16px;
+  background: #f0f3f8;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.relationship-network-canvas {
+  width: 100%;
+  overflow: auto;
+  border-radius: 8px;
+  background: #fafbfd;
+}
+
+.relationship-network-canvas svg {
+  display: block;
+  width: 100%;
+  min-width: 650px;
+  height: auto;
+}
+
+.relationship-network-ring {
+  fill: none;
+  stroke-width: 1.2;
+  stroke-dasharray: 5 6;
+  opacity: 0.8;
+}
+
+.relationship-network-ring.degree-1 {
+  stroke: #5b8def;
+}
+
+.relationship-network-ring.degree-2 {
+  stroke: #26966b;
+}
+
+.relationship-network-ring.degree-3 {
+  stroke: #8b5cf6;
+}
+
+.relationship-network-edge {
+  stroke: #a8b3c5;
+  stroke-width: 1.5;
+  opacity: 0.85;
+}
+
+.relationship-network-edge.degree-1 {
+  stroke: #5b8def;
+}
+
+.relationship-network-edge.degree-2 {
+  stroke: #26966b;
+}
+
+.relationship-network-edge.degree-3 {
+  stroke: #8b5cf6;
+}
+
+.relationship-network-node {
+  stroke: #ffffff;
+  stroke-width: 2.5;
+}
+
+.relationship-network-node.target {
+  fill: #d97706;
+  stroke: #ffedd5;
+  stroke-width: 3;
+}
+
+.relationship-network-node.degree-1 {
+  fill: #5b8def;
+}
+
+.relationship-network-node.degree-2 {
+  fill: #26966b;
+}
+
+.relationship-network-node.degree-3 {
+  fill: #8b5cf6;
+}
+
+.relationship-network-node-label {
+  fill: #344054;
+  font-size: 11px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.relationship-network-cid-label {
+  fill: #667085;
+  font-size: 9px;
+  pointer-events: none;
+}
+
+.relationship-network-legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  color: #667085;
+  font-size: 12px;
+}
+
+.relationship-network-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.relationship-network-legend-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.relationship-network-legend-dot.target-dot {
+  background: #d97706;
+}
+
+.relationship-network-legend-dot.degree-1 {
+  background: #5b8def;
+}
+
+.relationship-network-legend-dot.degree-2 {
+  background: #26966b;
+}
+
+.relationship-network-legend-dot.degree-3 {
+  background: #8b5cf6;
+}
+
+.relationship-network-empty,
+.relationship-network-note {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #667085;
+  font-size: 13px;
+}
+
+@media (max-width: 600px) {
+  .relationship-network {
+    padding: 12px;
+  }
+
+  .relationship-network-canvas svg {
+    min-width: 650px;
+  }
+}

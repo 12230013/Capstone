@@ -1,0 +1,2 @@
+# Install after the application's dependencies.
+coverage>=7,<8

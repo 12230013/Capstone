@@ -1,0 +1,14 @@
+[run]
+branch = True
+source = backend/app
+data_file = test-results/backend/.coverage
+
+[report]
+show_missing = True
+skip_empty = True
+
+[html]
+directory = test-results/backend/html
+
+[json]
+output = test-results/backend/coverage.json
