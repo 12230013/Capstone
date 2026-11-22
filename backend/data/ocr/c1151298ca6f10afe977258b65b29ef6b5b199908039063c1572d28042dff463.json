@@ -1,0 +1,63 @@
+{
+  "document_id": "c1151298ca6f10afe977258b65b29ef6b5b199908039063c1572d28042dff463",
+  "filename": "statement_1.jpeg",
+  "document_type": "image",
+  "document_classification": "image",
+  "ocr_engine": "paddleocr",
+  "ocr_model": "PP-OCRv5-mobile",
+  "ocr_required": true,
+  "ocr_status": "completed",
+  "page_count": 1,
+  "pages": [
+    {
+      "page_number": 1,
+      "text": "ID ACC/DoV/SoP-01/F-07\nSTATEMENT\nDepartment of Investigation\nACC\nAnti-Corruption Commission\n541^95\nWarnin\ncannot afford a Jab, te Goverment will provide y e.\nPERSONAL DETAILS\n85 Name\nNorbu Wanguo\n53 Gender\nMale/Female/Others\nE CID NO.\n1110600045\nDate of Birth:\n22/10/2002\neyar Village\ntsheltuinc20r\n$5Gewog:\nNorbugans\nE5R Dzongkhag\nPemagatohel\nPhone no.\n7773C73\nrq Occupation\nProcuvewetEmail D\nnwaugmoguail.com\ng5' Address\nChangzawto, thinphy\nEMPLOYMENT DETAILS\nEID N:\nDesignation\nProcuvewent Asst.\nα Agency:\nNatunel Housue Developuent Cerporstion leneted\nWritten/read y\nrelf.\n/AFFIRMATION\n5\n55\nor stated may be used against me in a legal proceeding.\nJabmi Right\npuit\nJabmi right exercised\nJabmi right waived off\nSignature\nFor Official Use Only\nfomk.e\nCase No.\n1724.25\n30/4/a5\nAdministered By\nDate\nIeniin\n12:27pm\nPlace\nEnd Time\nRoom-3, ACC, HQ.\nStart Time\n11:28AM\nContinued on next page / End of Statement\nPage / of 2\nEnclosures if any & No. of pages",
+      "confidence": 84.7,
+      "preprocessing": {
+        "enabled": false,
+        "grayscale": false,
+        "denoise": false,
+        "contrast": false,
+        "threshold": false,
+        "threshold_method": "adaptive",
+        "deskew": false,
+        "selection": "original_rgb"
+      },
+      "extraction_method": "paddleocr",
+      "quality_decision": "manual_review_recommended",
+      "quality_warning": "recognition_accuracy_unverified",
+      "raw_text": "ID ACC/DoV/SoP-01/F-07\nSTATEMENT\nDepartment of Investigation\nACC\nAnti-Corruption Commission\n541^95\nWarnin\ncannot afford a Jab, te Goverment will provide y e.\nPERSONAL DETAILS\n85 Name\nNorbu Wanguo\n53 Gender\nMale/Female/Others\nE CID NO.\n1110600045\nDate of Birth:\n22/10/2002\neyar Village\ntsheltuinc20r\n$5Gewog:\nNorbugans\nE5R Dzongkhag\nPemagatohel\nPhone no.\n7773C73\nrq Occupation\nProcuvewetEmail D\nnwaugmoguail.com\ng5' Address\nChangzawto, thinphy\nEMPLOYMENT DETAILS\nEID N:\nDesignation\nProcuvewent Asst.\nα Agency:\nNatunel Housue Developuent Cerporstion leneted\nWritten/read y\nrelf.\n/AFFIRMATION\n5\n55\nor stated may be used against me in a legal proceeding.\nJabmi Right\npuit\nJabmi right exercised\nJabmi right waived off\nSignature\nFor Official Use Only\nfomk.e\nCase No.\n1724.25\n30/4/a5\nAdministered By\nDate\nIeniin\n12:27pm\nPlace\nEnd Time\nRoom-3, ACC, HQ.\nStart Time\n11:28AM\nContinued on next page / End of Statement\nPage / of 2\nEnclosures if any & No. of pages",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "ID ACC/DoV/SoP-01/F-07\nSTATEMENT\nDepartment of Investigation\nACC\nAnti-Corruption Commission\n541^95\nWarnin\ncannot afford a Jab, te Goverment will provide y e.\nPERSONAL DETAILS\n85 Name\nNorbu Wanguo\n53 Gender\nMale/Female/Others\nE CID NO.\n1110600045\nDate of Birth:\n22/10/2002\neyar Village\ntsheltuinc20r\n$5Gewog:\nNorbugans\nE5R Dzongkhag\nPemagatohel\nPhone no.\n7773C73\nrq Occupation\nProcuvewetEmail D\nnwaugmoguail.com\ng5' Address\nChangzawto, thinphy\nEMPLOYMENT DETAILS\nEID N:\nDesignation\nProcuvewent Asst.\nα Agency:\nNatunel Housue Developuent Cerporstion leneted\nWritten/read y\nrelf.\n/AFFIRMATION\n5\n55\nor stated may be used against me in a legal proceeding.\nJabmi Right\npuit\nJabmi right exercised\nJabmi right waived off\nSignature\nFor Official Use Only\nfomk.e\nCase No.\n1724.25\n30/4/a5\nAdministered By\nDate\nIeniin\n12:27pm\nPlace\nEnd Time\nRoom-3, ACC, HQ.\nStart Time\n11:28AM\nContinued on next page / End of Statement\nPage / of 2\nEnclosures if any & No. of pages",
+          "rows": [],
+          "fields": []
+        }
+      ]
+    }
+  ],
+  "average_confidence": 84.7,
+  "created_at": "2026-11-22T19:37:00.218513+00:00",
+  "processing_metadata": {
+    "render_dpi": null,
+    "preprocessing": {
+      "enabled": false,
+      "grayscale": false,
+      "denoise": false,
+      "contrast": false,
+      "threshold": false,
+      "threshold_method": "adaptive",
+      "deskew": false
+    },
+    "confidence_calculation": "Arithmetic mean of valid per-line recognition scores for non-empty lines, converted from [0, 1] to [0, 100]; null when none are valid.",
+    "confidence_available": true,
+    "minimum_page_confidence": 50.0,
+    "paddle_pipeline_version": null,
+    "paddle_device": "cpu",
+    "paddleocr_variant": "mobile",
+    "selection_rule": "PP-OCRv5 Mobile recognition scores are not an accuracy measure; all PaddleOCR output requires manual review and is not automatically indexed."
+  },
+  "extraction_method": "paddleocr",
+  "quality_decision": "manual_review_recommended"
+}

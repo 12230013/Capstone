@@ -1,0 +1,67 @@
+{
+  "document_id": "a9abe795b62c7fd2d46a27d7197919da94728650503100863a3b61ce492c6c36",
+  "filename": "google.pdf",
+  "document_type": "pdf",
+  "document_classification": "scanned_pdf",
+  "ocr_engine": "paddleocr",
+  "ocr_model": "PP-OCRv5-mobile",
+  "ocr_required": true,
+  "ocr_status": "completed",
+  "page_count": 1,
+  "pages": [
+    {
+      "page_number": 1,
+      "text": "A\nB\nC\nD\nE\nF\nG\nH\n1\nPurchase ID\nLast name\nFirst name\nBirthday\nCountry\nDate\nof\npurchase\nAmount of\npurchase\n2\n1 Davidson\nMichael\n04/03/1986\nUnited States\n10/12/2016\n37\n3\n2 Vito\nJim\n09/01/1994\nUnited Kingdom\n02/02/2016\n85\n4\n3 Johnson\nTom\n23/08/1972\n2 France\n02/11/2016\n83\n5\n4 Lewis\nPeter\n18/10/1979\nGermany\n22/11/2016\n27\n6\n5 Koenig\nEdward\n13/05/1983\nArgentina\n26/03/2015\n43\n7\n6 Preston\nJack\n16/06/1991\nUnited States\n06/11/2016\n77\n8\n7 Smith\nDavid\n11/03/1965\nCanada\n15/11/2016\n23\n9\n8 Brown\nLuis\n03/09/1997\nAustralia\n03/07/2015\n74\n10\n9 Miller\nThomas\n07/01/1980\nGermany\n07/11/2016\n13\n11\n10 Williams\nBill\n26/07/1960 United States\n20/11/2015\n80\n12\n11 Gemini\nAlexia\n12/09/1995\nCanada\n11/03/2017\n35\n13\n12 Bond\nJames\n25/02/1975\nUnited Kingdom\n12/08/2017\n40\n14\n13 Burgle\nPatricia\n01/12/1990 United States\n18/01/2015\n55\n15\n14 Reding\nMichelle\n07/04/1985\nCanada\n23/02/2017\n28\n16\n15 Harvey\nBilly\n14/07/1971 United Kingdom\n12/01/2016\n41\n17\n18",
+      "confidence": 99.5,
+      "preprocessing": {
+        "enabled": false,
+        "grayscale": false,
+        "denoise": false,
+        "contrast": false,
+        "threshold": false,
+        "threshold_method": "adaptive",
+        "deskew": false,
+        "selection": "original_rgb"
+      },
+      "extraction_method": "paddleocr",
+      "quality_decision": "manual_review_recommended",
+      "direct_ocr_similarity": null,
+      "quality_warning": "recognition_accuracy_unverified"
+    }
+  ],
+  "average_confidence": 99.5,
+  "created_at": "2026-11-20T11:10:25.545952+00:00",
+  "processing_metadata": {
+    "render_dpi": 250,
+    "preprocessing": {
+      "enabled": false,
+      "grayscale": false,
+      "denoise": false,
+      "contrast": false,
+      "threshold": false,
+      "threshold_method": "adaptive",
+      "deskew": false
+    },
+    "confidence_calculation": "Arithmetic mean of valid per-line recognition scores for non-empty lines, converted from [0, 1] to [0, 100]; null when none are valid.",
+    "confidence_available": true,
+    "minimum_page_confidence": 50.0,
+    "paddle_pipeline_version": null,
+    "paddle_device": "cpu",
+    "paddleocr_variant": "mobile",
+    "selection_rule": "PP-OCRv5 Mobile recognition scores are not an accuracy measure; all PaddleOCR output requires manual review and is not automatically indexed."
+  },
+  "page_decisions": [
+    {
+      "page_number": 1,
+      "meaningful_characters": 0,
+      "printable_text_ratio": 1.0,
+      "alphanumeric_text_ratio": 1.0,
+      "image_coverage": 1.0,
+      "text_area_coverage": 0.0,
+      "decision": "ocr_fallback_recommended",
+      "reason": "image_dominated_page"
+    }
+  ],
+  "extraction_method": "paddleocr",
+  "quality_decision": "manual_review_recommended"
+}

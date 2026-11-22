@@ -1,0 +1,41 @@
+{
+  "document_id": "DOC-00009",
+  "filename": "two.pdf",
+  "document_type": "pdf",
+  "document_classification": "scanned_pdf",
+  "ocr_engine": "paddleocr-vl-1.6",
+  "ocr_required": true,
+  "ocr_status": "completed",
+  "page_count": 1,
+  "pages": [
+    {
+      "page_number": 1,
+      "text": "## STATEMENT\n\nI Kinga Norbo of Hua Tocou as Proprietor of Miss Koenge Sommin, established in Haa. I am self-led in Haa Dong Khaes & started my business for more Haa 1547s in industry. I graduate from Dehi University in the year of 2005.\n\nI owned my Sainsmin, Hotel, Construction as family business as of Hotel Levered at the Dwayne Wood Industry, Sandsville Construction.\n\nbusiness\n\nKuelga Sawmin started on 2015, as previous\n\nit was in the name of Today Sawmin.\n\nKuenphen Dương Sawmin started in the\n\nyears of 2023, in the name of My Wife.\n\nThe main source of Timber We\n\npurchased from NRDEE, Private Registration\n\nLand Timber, Community Forest Timber\n\nNRDCL for processing of AUCHON\n\nAs first all May conduct through\n\nSOCMI media & with the lock's dip\n\nHim has lots with divided to each individual\n\nOwners\n\nSignature: ___",
+      "confidence": 0.9,
+      "preprocessing": {
+        "engine": "paddleocr-vl-1.6",
+        "device": "cpu",
+        "orientation_classification": true,
+        "document_unwarping": true,
+        "layout_detection": true,
+        "chart_recognition": true,
+        "seal_recognition": true,
+        "output_format": "markdown",
+        "estimated_confidence": 0.9
+      }
+    }
+  ],
+  "average_confidence": 0.9,
+  "created_at": "2026-10-15T07:37:06.795898+00:00",
+  "processing_metadata": {
+    "render_dpi": 250,
+    "device": "cpu",
+    "preprocessing": {
+      "engine": "paddleocr-vl-1.6",
+      "orientation_classification": true,
+      "document_unwarping": true,
+      "layout_detection": true
+    },
+    "confidence_calculation": "Heuristic VLM confidence estimation evaluating text yield, character variety, and spatial density."
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "document_id": "a9abe795b62c7fd2d46a27d7197919da94728650503100863a3b61ce492c6c36",
+  "content_sha256": "a9abe795b62c7fd2d46a27d7197919da94728650503100863a3b61ce492c6c36",
+  "owner_user_id": "6b000ed069b96718764c1bb7",
+  "filename": "google.pdf",
+  "mime_type": "application/pdf",
+  "status": "completed",
+  "ocr_status": "completed",
+  "index_status": "not_indexed",
+  "created_at": "2026-11-20T11:04:42.827553+00:00",
+  "updated_at": "2026-11-20T11:10:37.616441+00:00",
+  "error_code": null,
+  "extraction_method": "paddleocr",
+  "page_count": 1
+}

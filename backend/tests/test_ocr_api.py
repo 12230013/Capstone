@@ -108,6 +108,7 @@ def make_png() -> bytes:
 def completed_result(document_id: str, filename: str) -> dict:
     return {
         "document_id": document_id,
+        "layout_version": ocr_documents.LAYOUT_VERSION,
         "filename": filename,
         "document_type": "pdf",
         "ocr_status": "completed",
@@ -375,6 +376,29 @@ class OCRDocumentAPITests(unittest.IsolatedAsyncioTestCase):
         self.assertIn(response.status_code, {200, 202})
         return response.json()["document_id"]
 
+    async def test_evaluation_uses_original_text_and_enforces_ownership(self):
+        document_id = await self.completed_document()
+        result_path = self.results_dir / f"{document_id}.json"
+        result = json.loads(result_path.read_text())
+        result["pages"][0]["extracted_text"] = "Original text."
+        result["pages"][0]["text"] = "Review edits."
+        result["reviewed_at"] = "2026-11-23T00:00:00Z"
+        result_path.write_text(json.dumps(result))
+        payload = {"page_number": 1, "reference_text": "Original text."}
+        evaluated = await self.client.post(f"/api/ocr/documents/{document_id}/evaluate", json=payload)
+        self.assertEqual(evaluated.status_code, 200)
+        self.assertEqual(evaluated.json()["cer_percent"], 0)
+        self.assertEqual(json.loads(result_path.read_text())["pages"][0]["text"], "Review edits.")
+        self.session["user_id"] = self.other_owner_id
+        denied = await self.client.post(f"/api/ocr/documents/{document_id}/evaluate", json=payload)
+        self.assertIn(denied.status_code, (403, 404))
+
+    async def test_evaluation_requires_reference_and_valid_page(self):
+        document_id = await self.completed_document()
+        for payload, expected in [({"page_number": 99, "reference_text": "text"}, 404), ({"page_number": 1, "reference_text": " "}, 400), ({"page_number": 1, "reference_text": "x" * 20001}, 422)]:
+            response = await self.client.post(f"/api/ocr/documents/{document_id}/evaluate", json=payload)
+            self.assertEqual(response.status_code, expected)
+
     async def test_valid_pdf_runs_pipeline_and_preserves_page_metadata(self):
         pdf = make_pdf()
         with self.mock_pipeline() as process:
@@ -537,6 +561,27 @@ class OCRDocumentAPITests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNotNone(self.mongo_documents[document_id]["ocr_result"])
         process.assert_called_once()
 
+    async def test_outdated_unreviewed_duplicate_is_reextracted(self):
+        document_id=await self.completed_document()
+        result_path=self.results_dir / f"{document_id}.json"
+        previous=json.loads(result_path.read_text());previous.pop("layout_version",None)
+        result_path.write_text(json.dumps(previous))
+        with self.mock_pipeline() as process:
+            response=await self.upload("indexed.pdf",(self.documents_dir / f"{document_id}.pdf").read_bytes(),"application/pdf")
+        self.assertEqual(response.status_code,202)
+        process.assert_called_once()
+        self.assertEqual(self.mongo_documents[document_id]["ocr_result"]["layout_version"],ocr_documents.LAYOUT_VERSION)
+
+    async def test_outdated_reviewed_duplicate_is_not_overwritten(self):
+        document_id=await self.completed_document()
+        result_path=self.results_dir / f"{document_id}.json"
+        previous=json.loads(result_path.read_text());previous.pop("layout_version",None);previous["reviewed_at"]="2026-11-23T00:00:00Z"
+        result_path.write_text(json.dumps(previous))
+        with self.mock_pipeline() as process:
+            response=await self.upload("indexed.pdf",(self.documents_dir / f"{document_id}.pdf").read_bytes(),"application/pdf")
+        self.assertEqual(response.status_code,200)
+        process.assert_not_called()
+
     async def test_identical_upload_by_another_user_gets_an_isolated_document(self):
         pdf = make_pdf()
         with self.mock_pipeline() as process:
@@ -672,6 +717,60 @@ class OCRDocumentAPITests(unittest.IsolatedAsyncioTestCase):
             json.loads(saved_result.read_text(encoding="utf-8"))["pages"][0]["text"],
             corrected_text,
         )
+
+    async def test_structured_review_is_saved_and_indexed_as_canonical_text(self):
+        document_id = await self.completed_document()
+        adapter = SimpleNamespace(upsert_document=Mock(return_value={"collection":"ocr_documents","chunks_upserted":1}))
+        blocks = [{"type":"table","rows":[["Item","Amount"],["Travel","750"]]}, {"type":"form","fields":[{"label":"Approved by","value":"Reviewer"}]}]
+        with patch.object(ocr_documents,"_create_qdrant_adapter",return_value=adapter):
+            response = await self.client.post(f"/api/ocr/documents/{document_id}/index", json={"review_confirmed":True,"reviewed_pages":[{"page_number":1,"text":"stale plain text","blocks":blocks}]})
+        self.assertEqual(response.status_code,200)
+        page = adapter.upsert_document.call_args.args[0]["pages"][0]
+        self.assertIn("Amount: 750",page["text"])
+        self.assertIn("Approved by: Reviewer",page["text"])
+        self.assertNotIn("stale plain text",page["text"])
+        self.assertEqual(self.mongo_documents[document_id]["ocr_result"]["pages"][0]["blocks"],page["blocks"])
+
+    async def test_ragged_review_table_is_rejected_before_indexing(self):
+        document_id = await self.completed_document()
+        with patch.object(ocr_documents,"_create_qdrant_adapter") as factory:
+            response = await self.client.post(f"/api/ocr/documents/{document_id}/index", json={"review_confirmed":True,"reviewed_pages":[{"page_number":1,"text":"","blocks":[{"type":"table","rows":[["A","B"],["incomplete"]]}]}]})
+        self.assertEqual(response.status_code,400)
+        factory.assert_not_called()
+
+    async def test_rich_review_is_authoritative_and_preserved_in_storage(self):
+        document_id = await self.completed_document()
+        rich = {"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Reviewed rich document.","marks":[{"type":"bold"}]}]}]}
+        adapter = SimpleNamespace(upsert_document=Mock(return_value={"collection":"ocr_documents","chunks_upserted":1}))
+        with patch.object(ocr_documents,"_create_qdrant_adapter",return_value=adapter):
+            response = await self.client.post(f"/api/ocr/documents/{document_id}/index",json={"review_confirmed":True,"reviewed_pages":[{"page_number":1,"text":"stale text","editor_json":rich}]})
+        self.assertEqual(response.status_code,200)
+        page=adapter.upsert_document.call_args.args[0]["pages"][0]
+        self.assertEqual(page["text"],"Reviewed rich document.")
+        self.assertEqual(self.mongo_documents[document_id]["ocr_result"]["pages"][0]["editor_json"],rich)
+
+    async def test_reextract_uses_retained_original_and_requires_review_again(self):
+        document_id = await self.completed_document()
+        with self.mock_pipeline() as process:
+            response=await self.client.post(f"/api/ocr/documents/{document_id}/reprocess")
+        self.assertEqual(response.status_code,202)
+        process.assert_called_once()
+        self.assertEqual(self.mongo_documents[document_id]["index_status"],"not_indexed")
+        with patch.object(ocr_documents,"_session_owner_id",return_value="other-owner"):
+            denied=await self.client.post(f"/api/ocr/documents/{document_id}/reprocess")
+        self.assertEqual(denied.status_code,404)
+
+    async def test_case_number_metadata_is_saved_without_case_authorization_link(self):
+        document_id = await self.completed_document()
+        adapter = SimpleNamespace(upsert_document=Mock(return_value={"collection":"ocr_documents","chunks_upserted":1}))
+        with patch.object(ocr_documents,"_create_qdrant_adapter",return_value=adapter):
+            response = await self.client.post(f"/api/ocr/documents/{document_id}/index",json={"review_confirmed":True,"case_number":"  TEST-001  ","reviewed_pages":[{"page_number":1,"text":"Reviewed evidence."}]})
+        self.assertEqual(response.status_code,200)
+        self.assertEqual(response.json()["case_number"],"TEST-001")
+        self.assertIsNone(adapter.upsert_document.call_args.kwargs["case_no"])
+        self.assertEqual(adapter.upsert_document.call_args.args[0]["case_number"],"TEST-001")
+        self.assertEqual(self.mongo_documents[document_id]["ocr_result"]["case_number"],"TEST-001")
+        self.assertEqual(self.mongo_documents[document_id]["case_number"],"TEST-001")
 
     async def test_reviewed_page_numbers_must_match_ocr_result(self):
         document_id = await self.completed_document()

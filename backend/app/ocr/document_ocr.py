@@ -1,5 +1,7 @@
 """Configured page-level OCR adapters for Tesseract and PaddleOCR engines."""
 
+from app.ocr.layout import pdf_blocks, ocr_blocks, blocks_text, LAYOUT_VERSION
+
 import importlib
 import json
 import logging
@@ -315,6 +317,10 @@ def _preprocess_and_classic_paddle_page(
     source_page_number: int,
     correlation_id: str,
 ) -> tuple[str, float | None, list[float], dict[str, Any]]:
+    # Preserve faint physical rules before filtering. All cell coordinates and
+    # recognition pixels must use the same aligned image frame.
+    from app.ocr.table_geometry import ruled_cells
+    source_image, regions = ruled_cells(image)
     preprocessing = _classic_paddle_preprocessing_settings()
     if PADDLEOCR_PREPROCESSING_ENABLED:
         try:
@@ -326,9 +332,9 @@ def _preprocess_and_classic_paddle_page(
                 image_width=image.width,
                 image_height=image.height,
             ):
-                ocr_image, preprocessing = preprocess_image(image)
+                ocr_image, preprocessing = preprocess_image(source_image, allow_deskew=not bool(regions))
             preprocessing["selection"] = (
-                "preprocessed" if ocr_image is not image else "original_rgb"
+                "preprocessed" if ocr_image is not source_image else "original_rgb"
             )
         except ImagePreprocessingError:
             logger.warning(
@@ -339,13 +345,15 @@ def _preprocess_and_classic_paddle_page(
                     "event": "classic_paddle_preprocessing_fallback",
                 },
             )
-            ocr_image = image
+            ocr_image = source_image
             preprocessing["selection"] = "original_rgb_fallback"
             preprocessing["fallback_reason"] = "preprocessing_failed"
     else:
-        ocr_image = image
+        ocr_image = source_image
         preprocessing["selection"] = "original_rgb"
 
+    preprocessing["layout_deskew_applied"] = source_image is not image
+    preprocessing["table_geometry_source"] = "original_image"
     image_path = None
     try:
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as image_file:
@@ -362,6 +370,20 @@ def _preprocess_and_classic_paddle_page(
         ):
             outputs = engine.predict(image_path)
         text, confidence, confidence_values = _classic_paddle_page_output(outputs)
+        try:
+            def read_cells(crops):
+                import numpy as np
+                readings = []
+                for start in range(0, len(crops), 24):
+                    batch = [np.asarray(crop)[:, :, ::-1].copy() for crop in crops[start:start+24]]
+                    predictions = list(engine.predict(batch))
+                    for prediction in predictions:
+                        cell_text, cell_confidence, _ = _classic_paddle_page_output([prediction])
+                        readings.append({"text":cell_text.replace("\n", " "),"confidence":cell_confidence})
+                return readings
+            preprocessing["blocks"] = ocr_blocks(outputs[0], ocr_image, regions=regions, cell_reader=read_cells)
+        except (ValueError, TypeError, KeyError, IndexError, RuntimeError):
+            logger.warning("Layout detection unavailable; retaining recognized text", exc_info=True)
         return text, confidence, confidence_values, preprocessing
     except (OSError, ValueError) as exc:
         raise OCRProcessingError(
@@ -372,6 +394,8 @@ def _preprocess_and_classic_paddle_page(
             os.remove(image_path)
         if ocr_image is not image:
             ocr_image.close()
+        if source_image is not image and source_image is not ocr_image:
+            source_image.close()
 
 
 def _confidence_values(data: dict[str, Any]) -> list[float]:
@@ -571,6 +595,7 @@ def _base_result(
     has_confidence = OCR_ENGINE != "paddleocr_vl"
     return {
         "document_id": document_id,
+        "layout_version": LAYOUT_VERSION,
         "filename": filename,
         "document_type": "pdf" if file_type == "application/pdf" else "image",
         "document_classification": document_classification,
@@ -787,6 +812,11 @@ def run_document_ocr(
                     ],
                 }
             )
+            for item, source_page in zip(result["pages"], document):
+                item["raw_text"] = item["text"]
+                item["blocks"] = pdf_blocks(source_page)
+                if item["blocks"]:
+                    item["text"] = blocks_text(item["blocks"])
             document.close()
             return {
                 **result,
@@ -1049,6 +1079,13 @@ def run_document_ocr(
             if confidence_values
             else None
         )
+        for item in result["pages"]:
+            item["raw_text"] = item["text"]
+            blocks = item.get("preprocessing", {}).pop("blocks", None)
+            if blocks is None and item["extraction_method"] == "direct" and document is not None:
+                blocks = pdf_blocks(document[item["page_number"]-1])
+            item["blocks"] = blocks or [{"type": "text", "text": item["text"]}]
+            item["text"] = blocks_text(item["blocks"])
         return result
     except (
         OCREngineUnavailableError,

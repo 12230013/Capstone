@@ -37,6 +37,7 @@ from app.database.ocr_storage import (
     persist_ocr_document,
     update_ocr_document,
 )
+from app.ocr.layout import LAYOUT_VERSION
 from app.ocr import config
 from app.ocr.document_ocr import run_document_ocr, save_ocr_result
 from app.utils.sessions import require_session
@@ -63,14 +64,32 @@ _OCR_PROCESS_LOCK = threading.Lock()
 _INDEX_LOCK = threading.Lock()
 
 
+class FormField(BaseModel):
+    label: str = Field(strict=True, max_length=10000)
+    value: str = Field(strict=True, max_length=100000)
+
+
+class ReviewBlock(BaseModel):
+    type: str = Field(pattern="^(text|table|form)$")
+    text: str = Field(default="", max_length=1000000)
+    rows: list[list[str]] = Field(default_factory=list, max_length=1000)
+    fields: list[FormField] = Field(default_factory=list, max_length=1000)
+    cell_spans: list[list[dict[str, int]]] | None = None
+    column_widths: list[float] | None = None
+    has_header: bool | None = None
+
+
 class ReviewedOCRPage(BaseModel):
     page_number: int = Field(strict=True, ge=1)
     text: str = Field(strict=True)
+    blocks: list[ReviewBlock] | None = Field(default=None, max_length=1000)
+    editor_json: dict[str, Any] | None = None
 
 
 class IndexConfirmation(BaseModel):
     review_confirmed: bool = Field(strict=True)
     case_no: str | None = Field(default=None, min_length=1, max_length=64)
+    case_number: str | None = Field(default=None, max_length=64)
     reviewed_pages: list[ReviewedOCRPage] | None = None
 
 
@@ -106,12 +125,38 @@ def _apply_reviewed_page_text(
             detail="Reviewed pages must match the OCR result page numbers exactly.",
         )
 
+    from app.ocr.layout import blocks_text
+    from app.ocr.editor_document import editor_blocks
+    for reviewed in reviewed_pages:
+        if reviewed.editor_json is not None:
+            try:
+                reviewed.blocks = [ReviewBlock(**b) for b in editor_blocks(reviewed.editor_json)]
+            except (ValueError, TypeError, KeyError) as exc:
+                raise HTTPException(400, str(exc)) from exc
+        if reviewed.blocks is not None:
+            for block in reviewed.blocks:
+                if block.type == "table" and (not block.rows or not block.rows[0] or len(block.rows[0]) > 100 or any(len(r) != len(block.rows[0]) for r in block.rows)):
+                    raise HTTPException(400, "Tables must have equally sized, non-empty rows (up to 100 columns).")
+
     reviewed_text_by_page = {
         page.page_number: page.text for page in reviewed_pages
     }
     for page in pages:
-        page["text"] = reviewed_text_by_page[page["page_number"]]
+        page.setdefault("extracted_text", page["text"])
+        reviewed = next(p for p in reviewed_pages if p.page_number == page["page_number"])
+        if reviewed.editor_json is not None:
+            page["editor_json"] = reviewed.editor_json
+        else:
+            page.pop("editor_json", None)
+        if reviewed.blocks is not None:
+            page.setdefault("raw_text", page["text"])
+            page["blocks"] = [b.model_dump() for b in reviewed.blocks]
+            page["text"] = blocks_text(page["blocks"])
+        else:
+            page["text"] = reviewed_text_by_page[page["page_number"]]
+            page["blocks"] = [{"type": "text", "text": page["text"]}]
 
+    result["reviewed_at"] = datetime.now(timezone.utc).isoformat()
 
 def require_local_development(request: Request) -> None:
     client = request.client
@@ -411,6 +456,8 @@ def _process_document(document_id: str, owner_user_id: str) -> None:
         ocr_status = result.get("ocr_status")
         if ocr_status not in {"completed", "not_required", "manual_review"}:
             raise RuntimeError("OCR did not produce a usable result.")
+        if "case_number" in status:
+            result["case_number"] = status["case_number"]
         save_ocr_result(result)
         update_ocr_document(
             document_id,
@@ -425,6 +472,7 @@ def _process_document(document_id: str, owner_user_id: str) -> None:
             ocr_status=ocr_status,
             extraction_method=result.get("extraction_method"),
             page_count=result.get("page_count", 0),
+            layout_version=result.get("layout_version"),
             index_status="not_indexed",
             error_code=None,
         )
@@ -496,7 +544,13 @@ async def upload_document(
             )
             existing_status = _read_status(document_id)
 
-        if existing_status and existing_status.get("status") != "failed":
+        refresh_existing = False
+        if existing_status and existing_status.get("status") in {"completed", "not_required"} and existing_status.get("index_status") not in {"indexed", "indexing"}:
+            previous = _read_ocr_result(document_id)
+            reviewed = previous and (previous.get("reviewed_at") or any(p.get("editor_json") for p in previous.get("pages", [])))
+            refresh_existing = not reviewed and (previous is None or previous.get("layout_version") != LAYOUT_VERSION)
+
+        if existing_status and existing_status.get("status") != "failed" and not refresh_existing:
             _authorize_document(existing_status, owner_user_id)
             try:
                 persist_ocr_document(existing_status, data, allow_retry=True)
@@ -542,6 +596,7 @@ async def upload_document(
                 else now
             ),
             "updated_at": now,
+            "case_number": existing_status.get("case_number") if existing_status else None,
             "error_code": None,
         }
         try:
@@ -562,6 +617,26 @@ async def upload_document(
 
     background_tasks.add_task(_process_document, document_id, owner_user_id)
     return status
+
+
+@router.post("/{document_id}/reprocess", dependencies=[Depends(require_local_development)])
+def reprocess_document(document_id: str, background_tasks: BackgroundTasks, session: dict[str, Any] = Depends(require_session)):
+    """Explicitly re-extract a retained original with the current layout detector."""
+    owner = _session_owner_id(session)
+    document_id = _document_id(document_id)
+    with _INDEX_LOCK, _STATUS_LOCK:
+        status = _read_status(document_id)
+        if status is None:
+            raise HTTPException(404, "Document not found.")
+        _authorize_document(status, owner)
+        if status.get("status") in {"queued", "processing"} or status.get("index_status") == "indexing":
+            raise HTTPException(409, "This document is already being processed.")
+        source = config.DOCUMENTS_DIR / f"{document_id}{_MIME_TO_EXTENSION[status['mime_type']]}"
+        if not source.is_file():
+            raise HTTPException(409, "The local original is unavailable. Upload the original again before re-extracting.")
+        status = _update_status(document_id, owner, status="queued", ocr_status=None, index_status="not_indexed", error_code=None)
+    background_tasks.add_task(_process_document, document_id, owner)
+    return JSONResponse(status_code=202, content=status)
 
 
 @router.get(
@@ -605,6 +680,36 @@ def get_document_result(
     if result is None:
         raise HTTPException(status_code=202, detail=status)
     return result
+
+
+
+class OCRTextEvaluation(BaseModel):
+    page_number: int = Field(strict=True, ge=1)
+    reference_text: str = Field(strict=True, min_length=1, max_length=20_000)
+
+
+@router.post("/{document_id}/evaluate", dependencies=[Depends(require_local_development)])
+def evaluate_document_text(
+    document_id: str,
+    evaluation: OCRTextEvaluation,
+    session: dict[str, Any] = Depends(require_session),
+) -> dict[str, Any]:
+    # Reuse the same session ownership checks as result downloads.
+    result = get_document_result(document_id, session)
+    page = next((p for p in result.get("pages", []) if p.get("page_number") == evaluation.page_number), None)
+    if page is None:
+        raise HTTPException(404, "Extracted page not found.")
+    prediction = page.get("extracted_text")
+    if prediction is None:
+        if result.get("reviewed_at") or page.get("editor_json"):
+            raise HTTPException(409, "The original evaluation text is unavailable for this older review. Re-extract the original first.")
+        prediction = page.get("text", "")
+    from app.ocr.evaluation import evaluate_text
+    try:
+        metrics = evaluate_text(prediction, evaluation.reference_text)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    return {"page_number": evaluation.page_number, **metrics}
 
 
 def _create_qdrant_adapter() -> Any:
@@ -653,7 +758,7 @@ def index_document(
                 status_code=409,
                 detail="A completed OCR result is required before indexing.",
             )
-        if status.get("index_status") == "indexed":
+        if status.get("index_status") == "indexed" and confirmation.reviewed_pages is None and "case_number" not in confirmation.model_fields_set:
             return status
 
         result = _read_ocr_result(document_id)
@@ -678,7 +783,10 @@ def index_document(
                 detail="The OCR result contains no indexable text.",
             )
 
-        if confirmation.reviewed_pages is not None:
+        if "case_number" in confirmation.model_fields_set:
+            result["case_number"] = (confirmation.case_number or "").strip() or None
+
+        if confirmation.reviewed_pages is not None or "case_number" in confirmation.model_fields_set:
             save_ocr_result(result)
             update_ocr_document(
                 document_id,
@@ -697,6 +805,7 @@ def index_document(
             index_status="indexing",
             index_error_code=None,
             case_no=case_no,
+            case_number=result.get("case_number"),
         )
         try:
             indexing_result = _create_qdrant_adapter().upsert_document(

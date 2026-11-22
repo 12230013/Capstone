@@ -1,0 +1,41 @@
+{
+  "document_id": "DOC-00008",
+  "filename": "table1.pdf",
+  "document_type": "pdf",
+  "document_classification": "scanned_pdf",
+  "ocr_engine": "paddleocr-vl-1.6",
+  "ocr_required": true,
+  "ocr_status": "completed",
+  "page_count": 1,
+  "pages": [
+    {
+      "page_number": 1,
+      "text": "SL NO: 1255 | TRAN DATE: 31-DEC-2021 | TIME_STAMP: 12:30 PM | DEBIT: 1,000.00 | BALANCE: 6,871.39 | TRAN_DESC: WITHDRAWAL | NARRATION: ITMO Sawmill | JRNL NO: 346769688 | ACCOUNT NO: 100523845 | ACCOUNT NAME 1: SONAM CHHODEN | ACCOUNT NAME 2: SONAM CHHODEN | CID NO: 10502000773 | CONTACT NO: 17475428\nSL NO: 1336 | TRAN DATE: 18-FEB-2022 | TIME_STAMP: 10:56 AM | DEBIT: 3,000.00 | BALANCE: 41,179.60 | TRAN_DESC: WITHDRAWAL | NARRATION: Sawmill Incharge | JRNL NO: 194802 | ACCOUNT NO: 100523845 | ACCOUNT NAME 1: SONAM CHHODEN | ACCOUNT NAME 2: SONAM CHHODEN | CID NO: 10502000773 | CONTACT NO: 17475428",
+      "confidence": 0.9,
+      "preprocessing": {
+        "engine": "paddleocr-vl-1.6",
+        "device": "cpu",
+        "orientation_classification": true,
+        "document_unwarping": true,
+        "layout_detection": true,
+        "chart_recognition": true,
+        "seal_recognition": true,
+        "output_format": "markdown",
+        "estimated_confidence": 0.9
+      }
+    }
+  ],
+  "average_confidence": 0.9,
+  "created_at": "2026-10-15T07:16:21.910071+00:00",
+  "processing_metadata": {
+    "render_dpi": 250,
+    "device": "cpu",
+    "preprocessing": {
+      "engine": "paddleocr-vl-1.6",
+      "orientation_classification": true,
+      "document_unwarping": true,
+      "layout_detection": true
+    },
+    "confidence_calculation": "Heuristic VLM confidence estimation evaluating text yield, character variety, and spatial density."
+  }
+}

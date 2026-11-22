@@ -1,0 +1,64 @@
+{
+  "document_id": "2c24e4e2d48c7c607adae26bbc0adeee7a70415a152860e16b158ed63c7634e1",
+  "filename": "Screenshot 2026-11-23 at 2.54.58 AM.png",
+  "document_type": "image",
+  "document_classification": "image",
+  "ocr_engine": "paddleocr",
+  "ocr_model": "PP-OCRv5-mobile",
+  "ocr_required": true,
+  "ocr_status": "completed",
+  "page_count": 1,
+  "pages": [
+    {
+      "page_number": 1,
+      "text": "Hope is the light that guides you through life's darkest moments. It's easy to lose hope when things don't go as planned, but remember, even in the hardest times, hope is still there. It is not the absence of hardship but the belief that something better lies ahead. Hold on to hope, − because it's what fuels resilience and keeps you moving forward. The future is a always full of possibilities, and hope gives you the strength to pursue them.",
+      "confidence": 97.9,
+      "preprocessing": {
+        "enabled": false,
+        "grayscale": false,
+        "denoise": false,
+        "contrast": false,
+        "threshold": false,
+        "threshold_method": "adaptive",
+        "deskew": false,
+        "selection": "original_rgb"
+      },
+      "extraction_method": "paddleocr",
+      "quality_decision": "manual_review_recommended",
+      "quality_warning": "recognition_accuracy_unverified",
+      "raw_text": "Hope is\nthe\nlight\nthat\nguides\nyou\nthrough\nlife's\ndarkest\nmoments.\nIt's\neasy to lose hope when things don't go\nas planned, but remember, even in the\nhardest times, hope is still there. It is\nnot the\nabsence of\nhardship\nbut the\nbelief that something better lies ahead.\nHold\non to\nhope,\nbecause\nit's what\n−\nfuels\nresilience and\nkeeps you\nmoving\nforward. The future is a\nalways\nfull of\npossibilities, and hope\ngives you the\nstrength to pursue them.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "Hope is the light that guides you through life's darkest moments. It's easy to lose hope when things don't go as planned, but remember, even in the hardest times, hope is still there. It is not the absence of hardship but the belief that something better lies ahead. Hold on to hope, − because it's what fuels resilience and keeps you moving forward. The future is a always full of possibilities, and hope gives you the strength to pursue them.",
+          "rows": [],
+          "fields": []
+        }
+      ]
+    }
+  ],
+  "average_confidence": 97.9,
+  "created_at": "2026-11-22T21:20:44.724969+00:00",
+  "processing_metadata": {
+    "render_dpi": null,
+    "preprocessing": {
+      "enabled": false,
+      "grayscale": false,
+      "denoise": false,
+      "contrast": false,
+      "threshold": false,
+      "threshold_method": "adaptive",
+      "deskew": false
+    },
+    "confidence_calculation": "Arithmetic mean of valid per-line recognition scores for non-empty lines, converted from [0, 1] to [0, 100]; null when none are valid.",
+    "confidence_available": true,
+    "minimum_page_confidence": 50.0,
+    "paddle_pipeline_version": null,
+    "paddle_device": "cpu",
+    "paddleocr_variant": "mobile",
+    "selection_rule": "PP-OCRv5 Mobile recognition scores are not an accuracy measure; all PaddleOCR output requires manual review and is not automatically indexed."
+  },
+  "extraction_method": "paddleocr",
+  "quality_decision": "manual_review_recommended",
+  "case_number": null
+}
