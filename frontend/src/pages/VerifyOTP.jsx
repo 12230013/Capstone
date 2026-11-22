@@ -1,3 +1,6 @@
+import AuthError, { formatAuthError } from "../components/AuthError";
+import { apiFetch } from "../api";
+import AuthPanel from "../components/AuthPanel";
 import { useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -48,8 +51,8 @@ function VerifyOTP() {
     setLoading(true);
 
     try {
-      const response = await fetch(
-        "http://127.0.0.1:8000/api/auth/verify-otp",
+      const response = await apiFetch(
+        "/api/auth/verify-otp",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -63,7 +66,7 @@ function VerifyOTP() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.detail || "OTP verification failed.");
+        throw new Error(formatAuthError(data.detail, "OTP verification failed."));
       }
 
       if (!data.reset_token) {
@@ -84,42 +87,40 @@ function VerifyOTP() {
   };
 
   return (
-    <div className="auth-page forgot-page">
-      <div className="otp-card">
-        <form onSubmit={handleSubmit}>
-          <div className="otp-title">OTP</div>
+    <AuthPanel>
+      <form onSubmit={handleSubmit}>
+        <h2>OTP</h2>
 
-          <div className="otp-container">
-            {otp.map((digit, index) => (
-              <input
-                key={index}
-                ref={(element) => {
-                  inputRefs.current[index] = element;
-                }}
-                type="text"
-                inputMode="numeric"
-                maxLength="1"
-                value={digit}
-                onChange={(e) => handleChange(e.target.value, index)}
-                onKeyDown={(e) => handleKeyDown(e, index)}
-                className="otp-input"
-                aria-label={`OTP digit ${index + 1}`}
-              />
-            ))}
-          </div>
+        <div className="otp-container">
+          {otp.map((digit, index) => (
+            <input
+              key={index}
+              ref={(element) => {
+                inputRefs.current[index] = element;
+              }}
+              type="text"
+              inputMode="numeric"
+              maxLength="1"
+              value={digit}
+              onChange={(e) => handleChange(e.target.value, index)}
+              onKeyDown={(e) => handleKeyDown(e, index)}
+              className="otp-input"
+              aria-label={`OTP digit ${index + 1}`}
+            />
+          ))}
+        </div>
 
-          {error && <p style={{ color: "red" }}>{error}</p>}
+        <AuthError message={error} />
 
-          <button
-            type="submit"
-            className="auth-button otp-button"
-            disabled={loading}
-          >
-            {loading ? "Verifying..." : "Enter"}
-          </button>
-        </form>
-      </div>
-    </div>
+        <button
+          type="submit"
+          className="auth-button"
+          disabled={loading}
+        >
+          {loading ? "Verifying..." : "Enter"}
+        </button>
+      </form>
+    </AuthPanel>
   );
 }
 

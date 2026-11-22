@@ -89,11 +89,11 @@ Stop the backend before running indexing commands because both use the local Qdr
 From `backend`:
 
 ```powershell
-python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
+python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-- API: http://127.0.0.1:8001
-- Interactive API documentation: http://127.0.0.1:8001/docs
+- API: http://127.0.0.1:8000
+- Interactive API documentation: http://127.0.0.1:8000/docs
 
 Startup loads and warms the document embedding model. Wait for startup to complete before submitting questions.
 

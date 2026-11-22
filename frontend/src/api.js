@@ -5,6 +5,14 @@ const apiBase = import.meta.env.VITE_API_BASE_URL || (
 let csrfToken = null;
 let sessionRequest = null;
 
+const publicAuthEndpoints = new Set([
+  "/api/auth/login",
+  "/api/auth/signup",
+  "/api/auth/forgot-password",
+  "/api/auth/verify-otp",
+  "/api/auth/reset-password",
+]);
+
 export function setCsrfToken(value) {
   csrfToken = value;
 }
@@ -40,7 +48,7 @@ export async function loadSession() {
 export async function apiFetch(path, options = {}) {
   const { background = false, ...requestOptions } = options;
   const url = new URL(path, apiBase);
-  const publicEndpoint = ["/api/auth/login", "/api/auth/signup"].includes(url.pathname);
+  const publicEndpoint = publicAuthEndpoints.has(url.pathname);
   const headers = new Headers(options.headers);
   if (background) headers.set("X-Session-Activity", "background");
   const method = (options.method || "GET").toUpperCase();
@@ -75,6 +83,9 @@ export async function apiFetch(path, options = {}) {
   } catch (error) {
     if (timedOut) {
       throw new Error("The sign-in service took too long to respond. Check that the backend is running and try again.");
+    }
+    if (publicEndpoint && error instanceof TypeError) {
+      throw new Error("Could not reach the backend. Check that the API is running and try again.");
     }
     throw error;
   } finally {

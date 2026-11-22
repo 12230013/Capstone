@@ -1,5 +1,13 @@
+import hashlib
+import os
+import secrets
+import smtplib
+from datetime import datetime, timedelta, timezone
+from email.message import EmailMessage
+
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from datetime import datetime, timezone
+from pydantic import BaseModel, EmailStr, Field, field_validator
+from pymongo.errors import DuplicateKeyError
 from app.database.connection import sessions_collection, activity_collection
 
 from app.schemas.user import UserCreate, UserLogin
@@ -10,8 +18,6 @@ from app.database.connection import (
 from app.utils.security import hash_password, verify_password
 from app.utils.sessions import create_session, require_session, public_user, check_origin, COOKIE_NAME
 
-
-load_dotenv()
 
 router = APIRouter(
     prefix="/api/auth",
@@ -29,13 +35,18 @@ class ForgotPasswordRequest(BaseModel):
 
 class VerifyOTPRequest(BaseModel):
     email: EmailStr
-    otp: str
+    otp: str = Field(pattern=r"^[0-9]{6}$")
 
 
 class ResetPasswordRequest(BaseModel):
     email: EmailStr
-    reset_token: str
-    new_password: str
+    reset_token: str = Field(min_length=32, max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_password(cls, value):
+        return UserCreate.validate_password(value)
 
 
 # --------------------------------------------------
@@ -75,16 +86,111 @@ you can ignore this email.
 Anti-Corruption Commission"""
     )
 
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=10) as smtp:
         smtp.login(sender, app_password)
         smtp.send_message(message)
 
 
-def get_utc_datetime(value):
-    """Ensure MongoDB datetimes are timezone-aware."""
-    if value.tzinfo is None:
-        return value.replace(tzinfo=timezone.utc)
-    return value
+@router.post("/forgot-password")
+def forgot_password(data: ForgotPasswordRequest, request: Request):
+    check_origin(request)
+    if users_collection is None or password_reset_collection is None:
+        raise HTTPException(status_code=503, detail="Database connection is not available.")
+    if not os.getenv("SMTP_EMAIL") or not os.getenv("SMTP_APP_PASSWORD"):
+        raise HTTPException(status_code=503, detail="Password reset email is not configured.")
+
+    email = str(data.email).strip().lower()
+    result = {"message": "If the email is registered, a verification code will be sent."}
+    user = users_collection.find_one({"email": email}, {"_id": 1})
+    if user is None:
+        return result
+
+    now = datetime.now(timezone.utc)
+    otp = f"{secrets.randbelow(1_000_000):06d}"
+    challenge = secrets.token_hex(16)
+    try:
+        password_reset_collection.replace_one(
+            {"_id": email, "next_request_at": {"$lte": now}},
+            {
+                "_id": email,
+                "user_id": user["_id"],
+                "challenge": challenge,
+                "otp_hash": hash_value(challenge + otp),
+                "attempts_remaining": 5,
+                "expires_at": now + timedelta(minutes=10),
+                "next_request_at": now + timedelta(minutes=1),
+            },
+            upsert=True,
+        )
+    except DuplicateKeyError:
+        return result
+
+    try:
+        send_otp_email(email, otp)
+    except (OSError, smtplib.SMTPException):
+        password_reset_collection.delete_one({"_id": email, "challenge": challenge})
+        raise HTTPException(status_code=503, detail="Unable to send a verification email. Please try again later.")
+    return result
+
+
+@router.post("/verify-otp")
+def verify_otp(data: VerifyOTPRequest, request: Request):
+    check_origin(request)
+    if password_reset_collection is None:
+        raise HTTPException(status_code=503, detail="Database connection is not available.")
+
+    email = str(data.email).strip().lower()
+    now = datetime.now(timezone.utc)
+    active = {
+        "_id": email,
+        "expires_at": {"$gt": now},
+        "attempts_remaining": {"$gt": 0},
+    }
+    record = password_reset_collection.find_one_and_update(
+        active, {"$inc": {"attempts_remaining": -1}}
+    )
+    if record and secrets.compare_digest(record["otp_hash"], hash_value(record["challenge"] + data.otp)):
+        token = secrets.token_urlsafe(32)
+        updated = password_reset_collection.update_one(
+            {"_id": email, "challenge": record["challenge"], "otp_hash": record["otp_hash"]},
+            {
+                "$set": {"reset_token_hash": hash_value(token), "reset_expires_at": now + timedelta(minutes=10)},
+                "$unset": {"otp_hash": "", "attempts_remaining": ""},
+            },
+        )
+        if updated.modified_count:
+            return {"reset_token": token}
+    raise HTTPException(status_code=400, detail="The verification code is invalid or expired.")
+
+
+@router.post("/reset-password")
+def reset_password(data: ResetPasswordRequest, request: Request):
+    check_origin(request)
+    if any(collection is None for collection in (users_collection, password_reset_collection, sessions_collection)):
+        raise HTTPException(status_code=503, detail="Database connection is not available.")
+
+    email = str(data.email).strip().lower()
+    now = datetime.now(timezone.utc)
+    token_filter = {
+        "_id": email,
+        "reset_token_hash": hash_value(data.reset_token),
+        "reset_expires_at": {"$gt": now},
+    }
+    if password_reset_collection.find_one(token_filter, {"_id": 1}) is None:
+        raise HTTPException(status_code=400, detail="The reset link is invalid or expired. Request a new code.")
+    new_password = hash_password(data.new_password)
+    record = password_reset_collection.find_one_and_delete(token_filter)
+    if record is None:
+        raise HTTPException(status_code=400, detail="The reset link is invalid or expired. Request a new code.")
+    updated = users_collection.update_one(
+        {"_id": record["user_id"], "email": email}, {"$set": {"password": new_password}}
+    )
+    if not updated.matched_count:
+        raise HTTPException(status_code=400, detail="The reset link is invalid or expired. Request a new code.")
+    sessions_collection.update_many(
+        {"user_id": str(record["user_id"]), "ended_at": None}, {"$set": {"ended_at": now}}
+    )
+    return {"message": "Password reset successfully."}
 
 
 # --------------------------------------------------

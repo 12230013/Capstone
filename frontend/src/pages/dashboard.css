@@ -81,7 +81,7 @@ input:focus-visible {
   padding: 20px 14px 14px;
   overflow: hidden;
   color: white;
-  background: var(--navy);
+  background: #374958;
 }
 
 .logo-section {
@@ -121,9 +121,9 @@ input:focus-visible {
   width: 100%;
   min-height: 43px;
   padding: 0 12px;
-  color: #f2b72a;
+  color: #edf4fb;
   background: transparent;
-  border: 1px solid #dba116;
+  border: 1px solid #8197ab;
   border-radius: 7px;
   text-align: left;
   font-size: 12px;
@@ -133,8 +133,8 @@ input:focus-visible {
 }
 
 .sidebar-action:hover {
-  background: rgba(231, 169, 27, 0.1);
-  border-color: #f2bd43;
+  background: rgba(218, 234, 250, 0.12);
+  border-color: #b9cede;
 }
 
 .sidebar-action svg {

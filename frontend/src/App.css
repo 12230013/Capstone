@@ -100,12 +100,123 @@ body {
   scroll-margin-block: 20px;
 }
 
-.login-card {
-  max-width: 435px;
+.auth-page.branded-auth-page {
+  justify-content: center;
+  padding-block: clamp(24px, 8vh, 72px);
+  background: linear-gradient(180deg, #60789c 0%, #294e82 43%, #0b1322 100%);
 }
 
-.signup-card {
-  max-width: 435px;
+.branded-auth-page footer {
+  margin-top: 24px;
+  padding-top: 0;
+  line-height: 1.5;
+}
+
+.branded-auth-page .acc-header {
+  display: flex;
+  align-items: center;
+  text-align: left;
+  margin-bottom: 24px;
+}
+
+.branded-auth-page .acc-logo {
+  flex: none;
+  width: clamp(64px, 22vw, 104px);
+  margin: 0;
+}
+
+.branded-auth-page .auth-brand-text {
+  border-left: 1px solid #aab8ca;
+  margin-left: clamp(8px, 3vw, 18px);
+  padding: 8px 0 8px clamp(10px, 4vw, 20px);
+}
+
+.branded-auth-page .acc-header h1 {
+  color: #172b46;
+  margin-bottom: 4px;
+  font: 400 15px/1.4 Arial, Helvetica, sans-serif;
+}
+
+.branded-auth-page .acc-header p {
+  color: #4d6079;
+  font-size: 12px;
+  line-height: 1.4;
+  letter-spacing: 0.3px;
+}
+
+.branded-auth-page .branded-auth-card {
+  max-width: 452px;
+  background: #ffffff;
+  border-color: #dbe3ee;
+  box-shadow: 0 8px 28px rgba(8, 22, 45, 0.32);
+}
+
+.branded-auth-page .branded-auth-card h2 {
+  color: #172b46;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.branded-auth-page .form-group input,
+.branded-auth-page .form-group select {
+  color: #172b46;
+  font-size: 14px;
+  background: #ffffff;
+  border-color: #aab8ca;
+  border-radius: 5px;
+}
+
+.branded-auth-page .form-group label,
+.branded-auth-page .form-group input::placeholder,
+.branded-auth-page .select-icon,
+.branded-auth-page .password-toggle,
+.branded-auth-page .or-section p,
+.branded-auth-page .switch-auth {
+  color: #4d6079;
+}
+
+.branded-auth-page .select-wrapper select option {
+  background: #ffffff;
+  color: #172b46;
+}
+
+.branded-auth-page .form-group input:focus,
+.branded-auth-page .form-group select:focus {
+  border-color: #2563b8;
+  box-shadow: 0 0 0 1px #2563b8;
+}
+
+.branded-auth-page .forgot-password a,
+.branded-auth-page .switch-auth a {
+  color: #195bb5;
+}
+
+.branded-auth-page .forgot-password a:hover {
+  text-decoration: underline;
+}
+
+.branded-auth-page .auth-button {
+  width: 100%;
+  background: #2e6dc7;
+  border-radius: 5px;
+  color: #ffffff;
+}
+
+.branded-auth-page .auth-button:hover:not(:disabled) {
+  background: #2059ab;
+}
+
+.branded-auth-page .auth-button:disabled {
+  cursor: wait;
+}
+
+.auth-page.branded-auth-page .auth-error {
+  color: #ad2435;
+}
+
+.branded-auth-page .success-message {
+  margin-bottom: 16px;
+  color: #216548;
 }
 
 
@@ -390,146 +501,31 @@ footer {
     font-size: 18px;
   }
 
-  .login-card,
-  .signup-card {
-    max-width: 100%;
-  }
-
-}
-
-/* =========================================
-   FORGOT PASSWORD PAGES
-   ========================================= */
-
-.forgot-page {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-
-/* =========================================
-   FORGOT PASSWORD - EMAIL
-   ========================================= */
-
-.forgot-card {
-  width: 300px;
-  min-height: 200px;
-
-  background: #203452;
-
-  border-radius: 9px;
-
-  padding: 36px 35px;
-
-  box-sizing: border-box;
-}
-
-
-/* =========================================
-   OTP PAGE
-   ========================================= */
-
-.otp-card {
-  width: 380px;
-  min-height: 255px;
-
-  background: #203452;
-
-  border-radius: 9px;
-
-  padding: 45px 46px;
-
-  box-sizing: border-box;
-}
-
-.otp-title {
-  color: white;
-
-  font-size: 13px;
-
-  margin-bottom: 30px;
 }
 
 .otp-container {
-  display: flex;
-
-  justify-content: space-between;
-
-  gap: 10px;
-
-  margin-bottom: 50px;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: clamp(4px, 2vw, 10px);
+  margin-bottom: 17px;
 }
 
 .otp-input {
-  width: 35px;
-  height: 36px;
-
-  background: #111d33;
-
-  border: none;
-
-  color: white;
-
+  width: 100%;
+  min-width: 0;
+  height: 43px;
+  background: #ffffff;
+  border: 1px solid #aab8ca;
+  border-radius: 5px;
+  color: #172b46;
   text-align: center;
-
-  font-size: 18px;
-
-  outline: none;
+  font: 400 18px Arial, Helvetica, sans-serif;
 }
 
 .otp-input:focus {
-  outline: 1px solid #d29111;
+  border-color: #2563b8;
+  outline: 1px solid #2563b8;
 }
-
-.otp-button {
-  width: 160px;
-
-  display: block;
-
-  margin: 0 auto;
-}
-
-
-/* =========================================
-   RESET PASSWORD
-   ========================================= */
-
-.reset-card {
-  width: 380px;
-
-  background: #203452;
-
-  border-radius: 9px;
-
-  padding: 48px 45px;
-
-  box-sizing: border-box;
-}
-
-.reset-card .form-group {
-  margin-bottom: 30px;
-}
-
-.reset-card label {
-  color: white;
-
-  font-size: 13px;
-
-  margin-bottom: 11px;
-
-  display: block;
-}
-
-.reset-button {
-  width: 160px;
-
-  display: block;
-
-  margin: 5px auto 0;
-}
-
 
 /* =========================================
    PASSWORD INPUT

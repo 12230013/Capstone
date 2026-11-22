@@ -1,3 +1,6 @@
+import AuthError, { formatAuthError } from "../components/AuthError";
+import { apiFetch } from "../api";
+import AuthPanel from "../components/AuthPanel";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -13,8 +16,8 @@ function ForgotPassword() {
     setLoading(true);
 
     try {
-      const response = await fetch(
-        "http://127.0.0.1:8000/api/auth/forgot-password",
+      const response = await apiFetch(
+        "/api/auth/forgot-password",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -25,7 +28,7 @@ function ForgotPassword() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.detail || "Unable to request OTP.");
+        throw new Error(formatAuthError(data.detail, "Unable to request OTP."));
       }
 
       navigate("/verify-otp", {
@@ -39,29 +42,28 @@ function ForgotPassword() {
   };
 
   return (
-    <div className="auth-page forgot-page">
-      <div className="forgot-card">
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="forgot-email">EMAIL</label>
-            <input
-              type="email"
-              id="forgot-email"
-              placeholder="eg:acc.staff@acc.org.bt"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
+    <AuthPanel>
+      <h2>Forgot Password?</h2>
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label htmlFor="forgot-email">EMAIL</label>
+          <input
+            type="email"
+            id="forgot-email"
+            placeholder="eg:acc.staff@acc.org.bt"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </div>
 
-          {error && <p style={{ color: "red" }}>{error}</p>}
+        <AuthError message={error} />
 
-          <button type="submit" className="auth-button" disabled={loading}>
-            {loading ? "Sending..." : "Next"}
-          </button>
-        </form>
-      </div>
-    </div>
+        <button type="submit" className="auth-button" disabled={loading}>
+          {loading ? "Sending..." : "Next"}
+        </button>
+      </form>
+    </AuthPanel>
   );
 }
 

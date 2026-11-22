@@ -17,6 +17,7 @@ try:
 
     # Collections
     users_collection = db["users"]
+    password_reset_collection = db["password_resets"]
     conversations_collection = db["conversations"]
     messages_collection = db["messages"]
     folders_collection = db["folders"]
@@ -29,6 +30,7 @@ except Exception:
     client = None
     db = None
     users_collection = None
+    password_reset_collection = None
     conversations_collection = None
     messages_collection = None
     folders_collection = None

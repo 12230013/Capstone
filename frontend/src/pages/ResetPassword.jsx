@@ -1,3 +1,6 @@
+import AuthError, { formatAuthError } from "../components/AuthError";
+import { apiFetch } from "../api";
+import AuthPanel from "../components/AuthPanel";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -33,8 +36,8 @@ function ResetPassword() {
     setLoading(true);
 
     try {
-      const response = await fetch(
-        "http://127.0.0.1:8000/api/auth/reset-password",
+      const response = await apiFetch(
+        "/api/auth/reset-password",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -49,7 +52,7 @@ function ResetPassword() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.detail || "Password reset failed.");
+        throw new Error(formatAuthError(data.detail, "Password reset failed."));
       }
 
       alert(data.message || "Password reset successfully.");
@@ -62,69 +65,68 @@ function ResetPassword() {
   };
 
   return (
-    <div className="auth-page forgot-page">
-      <div className="reset-card">
-        <form onSubmit={handleSubmit}>
-          <div className="form-group password-group">
-            <label htmlFor="new-password">New Password</label>
+    <AuthPanel>
+      <h2>Reset Password</h2>
+      <form onSubmit={handleSubmit}>
+        <div className="form-group password-group">
+          <label htmlFor="new-password">New Password</label>
 
-            <div className="password-input">
-              <input
-                type={showPassword ? "text" : "password"}
-                id="new-password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+          <div className="password-input">
+            <input
+              type={showPassword ? "text" : "password"}
+              id="new-password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
 
-              <button
-                type="button"
-                className="password-toggle"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? <Eye size={21} /> : <EyeOff size={21} />}
-              </button>
-            </div>
+            <button
+              type="button"
+              className="password-toggle"
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? <Eye size={21} /> : <EyeOff size={21} />}
+            </button>
           </div>
+        </div>
 
-          <div className="form-group password-group">
-            <label htmlFor="confirm-password">Confirm Password</label>
+        <div className="form-group password-group">
+          <label htmlFor="confirm-password">Confirm Password</label>
 
-            <div className="password-input">
-              <input
-                type={showConfirmPassword ? "text" : "password"}
-                id="confirm-password"
-                placeholder="Enter your password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
+          <div className="password-input">
+            <input
+              type={showConfirmPassword ? "text" : "password"}
+              id="confirm-password"
+              placeholder="Enter your password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+            />
 
-              <button
-                type="button"
-                className="password-toggle"
-                onClick={() =>
-                  setShowConfirmPassword(!showConfirmPassword)
-                }
-              >
-                {showConfirmPassword ? <Eye size={21} /> : <EyeOff size={21} />}
-              </button>
-            </div>
+            <button
+              type="button"
+              className="password-toggle"
+              onClick={() =>
+                setShowConfirmPassword(!showConfirmPassword)
+              }
+            >
+              {showConfirmPassword ? <Eye size={21} /> : <EyeOff size={21} />}
+            </button>
           </div>
+        </div>
 
-          {error && <p style={{ color: "red" }}>{error}</p>}
+        <AuthError message={error} />
 
-          <button
-            type="submit"
-            className="auth-button reset-button"
-            disabled={loading}
-          >
-            {loading ? "Resetting..." : "Confirm"}
-          </button>
-        </form>
-      </div>
-    </div>
+        <button
+          type="submit"
+          className="auth-button"
+          disabled={loading}
+        >
+          {loading ? "Resetting..." : "Confirm"}
+        </button>
+      </form>
+    </AuthPanel>
   );
 }
 

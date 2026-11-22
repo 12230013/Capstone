@@ -1,3 +1,4 @@
+import AuthPanel from "../components/AuthPanel";
 import { apiFetch, setCsrfToken } from "../api";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
@@ -62,142 +63,113 @@ function Login() {
   };
 
   return (
-    <div className="auth-page">
+    <AuthPanel>
+      <h2>Sign in to access the chatbot</h2>
 
-      {/* ACC Header */}
-      <div className="acc-header">
+      <form onSubmit={handleSubmit}>
 
-        <img
-          src="/acc-logo.png"
-          alt="Anti-Corruption Commission Logo"
-          className="acc-logo"
-        />
+        {/* Email */}
+        <div className="form-group">
 
-        <h1>Anti-Corruption Commission</h1>
+          <label htmlFor="email">EMAIL</label>
 
-        <p>KINGDOM OF BHUTAN</p>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            placeholder="eg:acc.staff@acc.org.bt"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
 
-        <div className="gold-line"></div>
-      </div>
+        </div>
 
 
-      {/* Login Card */}
-      <div className="auth-card login-card">
+        {/* Password */}
+        <div className="form-group password-group">
 
-        <h2>Sign in to access the chatbot</h2>
+          <label htmlFor="password">PASSWORD</label>
 
-        <form onSubmit={handleSubmit}>
-
-          {/* Email */}
-          <div className="form-group">
-
-            <label htmlFor="email">EMAIL</label>
+          <div className="password-input">
 
             <input
-              type="email"
-              id="email"
-              name="email"
-              placeholder="eg:acc.staff@acc.org.bt"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type={showPassword ? "text" : "password"}
+              id="password"
+              name="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               required
             />
 
-          </div>
-
-
-          {/* Password */}
-          <div className="form-group password-group">
-
-            <label htmlFor="password">PASSWORD</label>
-
-            <div className="password-input">
-
-              <input
-                type={showPassword ? "text" : "password"}
-                id="password"
-                name="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-
-              <button
-                type="button"
-                className="password-toggle"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? (
-                  <Eye size={21} />
-                ) : (
-                  <EyeOff size={21} />
-                )}
-              </button>
-
-            </div>
-
-
-            {/* Forgot Password */}
-            <div className="forgot-password">
-
-              <Link to="/forgot-password">
-                Forgot Password?
-              </Link>
-
-            </div>
+            <button
+              type="button"
+              className="password-toggle"
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? (
+                <Eye size={21} />
+              ) : (
+                <EyeOff size={21} />
+              )}
+            </button>
 
           </div>
 
 
-          {/* Error Message */}
-          <AuthError message={error} />
+          {/* Forgot Password */}
+          <div className="forgot-password">
 
+            <Link to="/forgot-password">
+              Forgot Password?
+            </Link>
 
-          {/* Sign In */}
-          <button
-            type="submit"
-            className="auth-button"
-            disabled={loading}
-          >
-            {loading ? "Signing In..." : "Sign In"}
-          </button>
-
-        </form>
-
-
-        {/* OR */}
-        <div className="or-section">
-
-          <span></span>
-
-          <p>OR</p>
-
-          <span></span>
+          </div>
 
         </div>
 
 
-        {/* Signup Link */}
-        <div className="switch-auth">
+        {/* Error Message */}
+        <AuthError message={error} />
 
-          <span>Already have an account?</span>
 
-          <Link to="/signup">
-            Sign up
-          </Link>
+        {/* Sign In */}
+        <button
+          type="submit"
+          className="auth-button"
+          disabled={loading}
+        >
+          {loading ? "Signing In..." : "Sign In"}
+        </button>
 
-        </div>
+      </form>
+
+
+      {/* OR */}
+      <div className="or-section">
+
+        <span></span>
+
+        <p>OR</p>
+
+        <span></span>
 
       </div>
 
 
-      {/* Footer */}
-      <footer>
-        Copyright @2026 Anti Corruption Commission
-      </footer>
+      {/* Signup Link */}
+      <div className="switch-auth">
 
-    </div>
+        <span>Already have an account?</span>
+
+        <Link to="/signup">
+          Sign up
+        </Link>
+
+      </div>
+
+    </AuthPanel>
   );
 }
 
