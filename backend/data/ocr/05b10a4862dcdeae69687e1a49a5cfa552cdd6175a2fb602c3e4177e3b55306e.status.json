@@ -1,0 +1,21 @@
+{
+  "document_id": "05b10a4862dcdeae69687e1a49a5cfa552cdd6175a2fb602c3e4177e3b55306e",
+  "content_sha256": "05b10a4862dcdeae69687e1a49a5cfa552cdd6175a2fb602c3e4177e3b55306e",
+  "owner_user_id": "6aca5f863506fd3042b6e4c8",
+  "filename": "12230013_Resume.pdf",
+  "mime_type": "application/pdf",
+  "status": "not_required",
+  "ocr_status": "not_required",
+  "index_status": "indexed",
+  "created_at": "2026-11-23T18:17:58.471985+00:00",
+  "updated_at": "2026-11-23T18:25:50.412051+00:00",
+  "case_number": "101",
+  "error_code": null,
+  "extraction_method": "direct",
+  "page_count": 1,
+  "layout_version": 6,
+  "index_error_code": null,
+  "case_no": null,
+  "chunks_indexed": 3,
+  "collection": "ocr_documents"
+}

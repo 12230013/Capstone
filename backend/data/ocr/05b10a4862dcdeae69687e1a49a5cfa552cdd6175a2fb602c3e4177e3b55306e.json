@@ -1,0 +1,73 @@
+{
+  "document_id": "05b10a4862dcdeae69687e1a49a5cfa552cdd6175a2fb602c3e4177e3b55306e",
+  "layout_version": 6,
+  "filename": "12230013_Resume.pdf",
+  "document_type": "pdf",
+  "document_classification": "digital_pdf",
+  "ocr_engine": "paddleocr_vl",
+  "ocr_model": "PaddleOCR-VL-1.6",
+  "ocr_required": false,
+  "ocr_status": "not_required",
+  "page_count": 1,
+  "pages": [
+    {
+      "page_number": 1,
+      "text": "JIGME CHOEYING DOLKAR\n\nAI/Fullstack Developer\n\nComputer Science student specializing in AI and Data Science, passionate about turning ideas into practical solutions. Experienced in software development, machine learning and AI-driven applications, with proficiency in Python, Node.js and web development. A curious, adaptable and detail-oriented problem solver who enjoys learning and building.\n\nContact Education\n\n+975 17345341 Aug 2023- June 2027 Bsc in Computer Science (AI & Data Science) dolkarjigme0@mail.com Relevant courses: Algorithms and Data Structures, DevSecOps, Ethical Hacking, Advanced Deep Thimphu, Bhutan Learning\n\nhttps://www.linkedin.com/in/jigmecho Projects eyingdolkar/ Hard Skills Aug 2026- Dec 2026 RAG-Based AI Chatbot for ACC Developing an on-premise RAG chatbot with OCR Python and JavaScript(Node.js) pipelines and REST API integrations to help investigators retrieve information from case records. React.js, HTML, CSS REST API and backend development June 2026 - Jul 2026 Traffic Sign Detection System, BIMSTEC AI Road Safety Hackathon (Finalist) SQL, MongoDB and PostgreSQL Built a real-time traffic sign detector using YOLO and RAG, NLP, Computer Vision Faster R-CNN, integrated it into an Android app, and reached the finals as part of a team. Soft Skills\n\nAug 2025 - Dec 2025 MyMovieLog:Full-Stack Web Applicatiton Efficiency Built a movie tracking app with user accounts, reviews Teamwork and ratings using React.js, Node.js and MongoDB, following MVC and CI/CD practices. Structured Approach Experience Time Management Active Listening Jan 2025 - Aug 2026 Founder, DY Outfit Pick (E-commerce) Certifications Ran product selection, pricing, orders and customer communication for an online business. Google: Use AI Responsibly (2026) Google: Discover the Art of Prompting Dec 2025 - Jan 2026 Intern, Data Science & AI Division, GovTech Agency (2026) Reviewed the Bhutan Data Sharing Platform (BDSP) AWS Academy Cloud Foundation (2025) for usability and accessibility, researched open data platforms from other countries, and presented Cisco Introduction to Cybersecurity recommendations to the BDSP team. (2025) References Language Ms Pema Yangden Ms Dechen Dem English (Professional) Team Lead of AI & FS Department Co-Founder and Co-Owner Gyalpozhing College of Information Technology DY Outfit Pick Dzongkha (Native) +975 17721475 +975 77955659 or +66 0953850260 Sharshop (Mother Tongue) pemayangden.gcit@rub.edu.bt dechendem2004@gmail.com",
+      "extraction_method": "direct",
+      "quality_decision": "direct_extraction_accepted",
+      "raw_text": "JIGME CHOEYING DOLKAR\n                          AI/Fullstack Developer\n\n\n                                         Computer Science student specializing in AI and Data Science, passionate about turning\n                                                 ideas into practical solutions. Experienced in software development, machine learning and\n                                                   AI-driven applications, with proficiency in Python, Node.js and web development. A curious,\n                                               adaptable and detail-oriented problem solver who enjoys learning and building.\n\n   Contact                     Education\n\n    +975 17345341                    Aug 2023- June 2027      Bsc in Computer Science (AI & Data Science)\n    dolkarjigme0@mail.com                                                       Relevant courses: Algorithms and Data Structures,\n                                                                         DevSecOps,   Ethical   Hacking,  Advanced  Deep\n    Thimphu, Bhutan                                                               Learning\n\n     https://www.linkedin.com/in/jigmecho\n     eyingdolkar/               Projects\n\n                                Aug 2026- Dec 2026      RAG-Based AI Chatbot for ACC  Hard Skills\n                                                                                Developing an on-premise RAG chatbot with OCR\n                                                                                         pipelines  and  REST  API  integrations  to  help\nPython and JavaScript(Node.js)                                                                                          investigators retrieve information from case records.\nReact.js, HTML, CSS\nREST API and backend development         June 2026 - Jul 2026        Traffic Sign Detection System, BIMSTEC\n                                                                    AI Road Safety Hackathon (Finalist)\nSQL, MongoDB and PostgreSQL\n                                                                                                     Built a real-time traffic sign detector using YOLO and\nRAG, NLP, Computer Vision                                                          Faster R-CNN, integrated it into an Android app, and\n                                                                           reached the finals as part of a team.\n  Soft Skills\n                                Aug 2025 - Dec 2025       MyMovieLog:Full-Stack Web Applicatiton\nEfficiency                                                                                                      Built a movie tracking app with user accounts, reviews\n                                                                       and  ratings  using  React.js,  Node.js and MongoDB,Teamwork\n                                                                                           following MVC and CI/CD practices.\nStructured Approach\n                    ExperienceTime Management\n\nActive Listening\n                                    Jan 2025 - Aug 2026                                                              Founder, DY Outfit Pick (E-commerce)\n Certifications                                             Ran product selection, pricing, orders and customer\n                                                                          communication for an online business.\n\nGoogle: Use AI Responsibly (2026)\nGoogle: Discover the Art of Prompting       Dec 2025 - Jan 2026         Intern, Data Science &  AI  Division,\n                                                     GovTech Agency\n(2026)\n                                                                          Reviewed the Bhutan Data Sharing Platform (BDSP)\nAWS Academy Cloud Foundation (2025)                                                  for usability and accessibility, researched open data\n                                                                                   platforms  from  other  countries,  and  presented\n Cisco Introduction to Cybersecurity                                         recommendations to the BDSP team.\n(2025)                  References\n Language\n                         Ms Pema Yangden             Ms Dechen Dem\n                                      Team Lead of AI & FS Department                Co-Founder and Co-Owner\nEnglish (Professional)\n                                               Gyalpozhing College of Information Technology     DY Outfit Pick\nDzongkha (Native)\n                                         +975 17721475                                                                                   +975 77955659 or +66 0953850260\nSharshop (Mother Tongue)\n                                              pemayangden.gcit@rub.edu.bt                                                                                 dechendem2004@gmail.com",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "JIGME CHOEYING DOLKAR\n\nAI/Fullstack Developer\n\nComputer Science student specializing in AI and Data Science, passionate about turning ideas into practical solutions. Experienced in software development, machine learning and AI-driven applications, with proficiency in Python, Node.js and web development. A curious, adaptable and detail-oriented problem solver who enjoys learning and building.\n\nContact Education\n\n+975 17345341 Aug 2023- June 2027 Bsc in Computer Science (AI & Data Science) dolkarjigme0@mail.com Relevant courses: Algorithms and Data Structures, DevSecOps, Ethical Hacking, Advanced Deep Thimphu, Bhutan Learning\n\nhttps://www.linkedin.com/in/jigmecho Projects eyingdolkar/ Hard Skills Aug 2026- Dec 2026 RAG-Based AI Chatbot for ACC Developing an on-premise RAG chatbot with OCR Python and JavaScript(Node.js) pipelines and REST API integrations to help investigators retrieve information from case records. React.js, HTML, CSS REST API and backend development June 2026 - Jul 2026 Traffic Sign Detection System, BIMSTEC AI Road Safety Hackathon (Finalist) SQL, MongoDB and PostgreSQL Built a real-time traffic sign detector using YOLO and RAG, NLP, Computer Vision Faster R-CNN, integrated it into an Android app, and reached the finals as part of a team. Soft Skills\n\nAug 2025 - Dec 2025 MyMovieLog:Full-Stack Web Applicatiton Efficiency Built a movie tracking app with user accounts, reviews Teamwork and ratings using React.js, Node.js and MongoDB, following MVC and CI/CD practices. Structured Approach Experience Time Management Active Listening Jan 2025 - Aug 2026 Founder, DY Outfit Pick (E-commerce) Certifications Ran product selection, pricing, orders and customer communication for an online business. Google: Use AI Responsibly (2026) Google: Discover the Art of Prompting Dec 2025 - Jan 2026 Intern, Data Science & AI Division, GovTech Agency (2026) Reviewed the Bhutan Data Sharing Platform (BDSP) AWS Academy Cloud Foundation (2025) for usability and accessibility, researched open data platforms from other countries, and presented Cisco Introduction to Cybersecurity recommendations to the BDSP team. (2025) References Language Ms Pema Yangden Ms Dechen Dem English (Professional) Team Lead of AI & FS Department Co-Founder and Co-Owner Gyalpozhing College of Information Technology DY Outfit Pick Dzongkha (Native) +975 17721475 +975 77955659 or +66 0953850260 Sharshop (Mother Tongue) pemayangden.gcit@rub.edu.bt dechendem2004@gmail.com",
+          "rows": [],
+          "fields": [],
+          "cell_spans": null,
+          "column_widths": null,
+          "has_header": null
+        }
+      ],
+      "extracted_text": "JIGME CHOEYING DOLKAR\n\nAI/Fullstack Developer\n\nComputer Science student specializing in AI and Data Science, passionate about turning ideas into practical solutions. Experienced in software development, machine learning and AI-driven applications, with proficiency in Python, Node.js and web development. A curious, adaptable and detail-oriented problem solver who enjoys learning and building.\n\nContact Education\n\n+975 17345341 Aug 2023- June 2027 Bsc in Computer Science (AI & Data Science) dolkarjigme0@mail.com Relevant courses: Algorithms and Data Structures, DevSecOps, Ethical Hacking, Advanced Deep Thimphu, Bhutan Learning\n\nhttps://www.linkedin.com/in/jigmecho Projects eyingdolkar/ Hard Skills Aug 2026- Dec 2026 RAG-Based AI Chatbot for ACC Developing an on-premise RAG chatbot with OCR Python and JavaScript(Node.js) pipelines and REST API integrations to help investigators retrieve information from case records. React.js, HTML, CSS REST API and backend development June 2026 - Jul 2026 Traffic Sign Detection System, BIMSTEC AI Road Safety Hackathon (Finalist) SQL, MongoDB and PostgreSQL Built a real-time traffic sign detector using YOLO and RAG, NLP, Computer Vision Faster R-CNN, integrated it into an Android app, and reached the finals as part of a team. Soft Skills\n\nAug 2025 - Dec 2025 MyMovieLog:Full-Stack Web Applicatiton Efficiency Built a movie tracking app with user accounts, reviews Teamwork and ratings using React.js, Node.js and MongoDB, following MVC and CI/CD practices. Structured Approach Experience Time Management Active Listening Jan 2025 - Aug 2026 Founder, DY Outfit Pick (E-commerce) Certifications Ran product selection, pricing, orders and customer communication for an online business. Google: Use AI Responsibly (2026) Google: Discover the Art of Prompting Dec 2025 - Jan 2026 Intern, Data Science & AI Division, GovTech Agency (2026) Reviewed the Bhutan Data Sharing Platform (BDSP) AWS Academy Cloud Foundation (2025) for usability and accessibility, researched open data platforms from other countries, and presented Cisco Introduction to Cybersecurity recommendations to the BDSP team. (2025) References Language Ms Pema Yangden Ms Dechen Dem English (Professional) Team Lead of AI & FS Department Co-Founder and Co-Owner Gyalpozhing College of Information Technology DY Outfit Pick Dzongkha (Native) +975 17721475 +975 77955659 or +66 0953850260 Sharshop (Mother Tongue) pemayangden.gcit@rub.edu.bt dechendem2004@gmail.com"
+    }
+  ],
+  "average_confidence": null,
+  "average_layout_confidence": null,
+  "created_at": "2026-11-23T18:17:59.126086+00:00",
+  "processing_metadata": {
+    "render_dpi": null,
+    "preprocessing": {
+      "enabled": true,
+      "grayscale": true,
+      "denoise": true,
+      "contrast": true,
+      "threshold": true,
+      "threshold_method": "adaptive",
+      "deskew": true
+    },
+    "confidence_calculation": "PaddleOCR-VL confidence is unavailable and remains null.",
+    "confidence_available": false,
+    "minimum_page_confidence": null,
+    "vl_recognition_backend": "auto",
+    "paddle_pipeline_version": "v1.6",
+    "paddle_device": "cpu",
+    "paddleocr_variant": null,
+    "selection_rule": "PaddleOCR-VL confidence is unavailable; OCR output is retained for manual review and is not automatically indexed."
+  },
+  "extraction_method": "direct",
+  "quality_decision": "direct_extraction_accepted",
+  "page_decisions": [
+    {
+      "page_number": 1,
+      "meaningful_characters": 2021,
+      "printable_text_ratio": 1.0,
+      "alphanumeric_text_ratio": 0.8192,
+      "image_coverage": 0.0209,
+      "text_area_coverage": 0.2962,
+      "decision": "direct_extraction_accepted",
+      "reason": "text_quality_thresholds_met"
+    }
+  ],
+  "message": "Direct text extraction passed the configured page quality checks.",
+  "case_number": "101",
+  "reviewed_at": "2026-11-23T18:25:40.479194+00:00"
+}
