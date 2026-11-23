@@ -13,6 +13,18 @@ beforeEach(async () => {
 });
 
 describe("authenticated API client", () => {
+  it("uses the running backend port by default without environment overrides", async () => {
+    vi.stubEnv("VITE_API_BASE_URL", "");
+    vi.stubEnv("VITE_API_PORT", "");
+    vi.stubEnv("DEV", true);
+    vi.resetModules();
+    const localApi = await import("./api");
+    fetchMock.mockResolvedValue(response({}));
+    await localApi.apiFetch("/api/auth/login", { method: "POST" });
+    expect(fetchMock.mock.calls[0][0].hostname).toBe(window.location.hostname);
+    expect(fetchMock.mock.calls[0][0].port).toBe("8001");
+  });
+
   it("keeps the browser hostname when configuring a development API port", async () => {
     vi.stubEnv("VITE_API_BASE_URL", "");
     vi.stubEnv("VITE_API_PORT", "8001");
