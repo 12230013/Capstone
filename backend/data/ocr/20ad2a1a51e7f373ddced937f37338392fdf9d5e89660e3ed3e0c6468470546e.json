@@ -1,0 +1,95 @@
+{
+  "document_id": "20ad2a1a51e7f373ddced937f37338392fdf9d5e89660e3ed3e0c6468470546e",
+  "layout_version": 6,
+  "filename": "Screenshot 2026-11-23 at 4.02.57 PM.png",
+  "document_type": "image",
+  "document_classification": "image",
+  "ocr_engine": "paddleocr_vl",
+  "ocr_model": "PaddleOCR-VL-1.6",
+  "ocr_required": true,
+  "ocr_status": "completed",
+  "page_count": 1,
+  "pages": [
+    {
+      "page_number": 1,
+      "text": "Line No.\n\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n\nSTATEMENT\n\nI Kinga Norbo of Hua Tocow as Proprietor\nof Miss Kuenga Sawminn Established in\nHaa. I am Satired in Haa Dongkhes &\nStartled my business for more Hua 154rs\nin industry. I graduate from Dati University\nin the year of 2005.\n\nI owned my Sawthin, Hotel, Construction as family business as of Hotel 내밀리 Kruppen (Dewson Wood Industry, Sangaloo Construction).\n\nbusiness\nKuelga Sawmin/Stouted on 2015, as previous\nit was in the name of Today Sawmin.\nKvenphen Dhnjorg Sawmin Stouted in the\nyour of 2022, in the name of my wife.\n\nThe main source of Timbar we\npurchased from NDCL, Private Registered\nLand Timbar, Community Forest Timbar\n\nNRDCL for processing of AUCHON\nAs first all they conduct through I\nSocial media & with the lockup d'ip\nHuhoy Lots win divided to each individual\nOwners",
+      "confidence": null,
+      "preprocessing": {
+        "enabled": true,
+        "grayscale": true,
+        "denoise": true,
+        "contrast": true,
+        "threshold": true,
+        "threshold_method": "adaptive",
+        "deskew": false,
+        "deskew_applied": false,
+        "deskew_angle_degrees": null,
+        "selection": "preprocessed",
+        "table_geometry_source": "original_image",
+        "layout_deskew_applied": true
+      },
+      "extraction_method": "paddleocr_vl",
+      "quality_decision": "manual_review_recommended",
+      "quality_warning": null,
+      "raw_text": "Line No.\n\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n\nSTATEMENT\n\nI Kinga Norbo of Hua Tocow as Proprietor\nof Miss Kuenga Sawminn Established in\nHaa. I am Satired in Haa Dongkhes &\nStartled my business for more Hua 154rs\nin industry. I graduate from Dati University\nin the year of 2005.\n\nI owned my Sawthin, Hotel, Construction as family business as of Hotel 내밀리 Kruppen (Dewson Wood Industry, Sangaloo Construction).\n\nbusiness\nKuelga Sawmin/Stouted on 2015, as previous\nit was in the name of Today Sawmin.\nKvenphen Dhnjorg Sawmin Stouted in the\nyour of 2022, in the name of my wife.\n\nThe main source of Timbar we\npurchased from NDCL, Private Registered\nLand Timbar, Community Forest Timbar\n\nNRDCL for processing of AUCHON\nAs first all they conduct through I\nSocial media & with the lockup d'ip\nHuhoy Lots win divided to each individual\nOwners",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "Line No."
+        },
+        {
+          "type": "text",
+          "text": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26"
+        },
+        {
+          "type": "text",
+          "text": "STATEMENT"
+        },
+        {
+          "type": "text",
+          "text": "I Kinga Norbo of Hua Tocow as Proprietor\nof Miss Kuenga Sawminn Established in\nHaa. I am Satired in Haa Dongkhes &\nStartled my business for more Hua 154rs\nin industry. I graduate from Dati University\nin the year of 2005."
+        },
+        {
+          "type": "text",
+          "text": "I owned my Sawthin, Hotel, Construction as family business as of Hotel 내밀리 Kruppen (Dewson Wood Industry, Sangaloo Construction)."
+        },
+        {
+          "type": "text",
+          "text": "business\nKuelga Sawmin/Stouted on 2015, as previous\nit was in the name of Today Sawmin.\nKvenphen Dhnjorg Sawmin Stouted in the\nyour of 2022, in the name of my wife."
+        },
+        {
+          "type": "text",
+          "text": "The main source of Timbar we\npurchased from NDCL, Private Registered\nLand Timbar, Community Forest Timbar"
+        },
+        {
+          "type": "text",
+          "text": "NRDCL for processing of AUCHON\nAs first all they conduct through I\nSocial media & with the lockup d'ip\nHuhoy Lots win divided to each individual\nOwners"
+        }
+      ]
+    }
+  ],
+  "average_confidence": null,
+  "created_at": "2026-11-23T14:22:49.217996+00:00",
+  "processing_metadata": {
+    "render_dpi": null,
+    "preprocessing": {
+      "enabled": true,
+      "grayscale": true,
+      "denoise": true,
+      "contrast": true,
+      "threshold": true,
+      "threshold_method": "adaptive",
+      "deskew": true
+    },
+    "confidence_calculation": "PaddleOCR-VL confidence is unavailable and remains null.",
+    "confidence_available": false,
+    "minimum_page_confidence": null,
+    "paddle_pipeline_version": "v1.6",
+    "paddle_device": "cpu",
+    "paddleocr_variant": null,
+    "selection_rule": "PaddleOCR-VL confidence is unavailable; OCR output is retained for manual review and is not automatically indexed."
+  },
+  "extraction_method": "paddleocr_vl",
+  "quality_decision": "manual_review_recommended",
+  "case_number": null
+}

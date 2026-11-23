@@ -1,0 +1,17 @@
+{
+  "document_id": "20ad2a1a51e7f373ddced937f37338392fdf9d5e89660e3ed3e0c6468470546e",
+  "content_sha256": "20ad2a1a51e7f373ddced937f37338392fdf9d5e89660e3ed3e0c6468470546e",
+  "owner_user_id": "6b000ed069b96718764c1bb7",
+  "filename": "Screenshot 2026-11-23 at 4.02.57 PM.png",
+  "mime_type": "image/png",
+  "status": "completed",
+  "ocr_status": "completed",
+  "index_status": "not_indexed",
+  "created_at": "2026-11-23T10:03:12.157654+00:00",
+  "updated_at": "2026-11-23T14:24:33.540805+00:00",
+  "case_number": null,
+  "error_code": null,
+  "layout_version": 6,
+  "page_count": 1,
+  "extraction_method": "paddleocr_vl"
+}

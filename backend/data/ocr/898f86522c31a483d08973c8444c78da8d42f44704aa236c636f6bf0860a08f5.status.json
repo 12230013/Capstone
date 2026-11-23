@@ -8,9 +8,10 @@
   "ocr_status": "completed",
   "index_status": "not_indexed",
   "created_at": "2026-11-22T21:33:34.827707+00:00",
-  "updated_at": "2026-11-22T22:38:42.022072+00:00",
+  "updated_at": "2026-11-23T10:05:06.218862+00:00",
+  "case_number": null,
   "error_code": null,
   "extraction_method": "paddleocr",
   "page_count": 15,
-  "layout_version": 4
+  "layout_version": 6
 }
