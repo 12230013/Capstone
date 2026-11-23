@@ -11,7 +11,7 @@ DATA_DIR = Path(os.getenv("OCR_DATA_DIR", BACKEND_ROOT / "data")).resolve()
 DOCUMENTS_DIR = DATA_DIR / "documents"
 OCR_RESULTS_DIR = DATA_DIR / "ocr"
 TESSERACT_CMD = os.getenv("TESSERACT_CMD")
-OCR_ENGINE = os.getenv("OCR_ENGINE", "paddleocr").strip().lower()
+OCR_ENGINE = os.getenv("OCR_ENGINE", "paddleocr_vl").strip().lower()
 if OCR_ENGINE not in {"paddleocr", "paddleocr_vl", "tesseract"}:
     raise ValueError(
         "OCR_ENGINE must be 'paddleocr', 'paddleocr_vl', or 'tesseract'"
@@ -22,23 +22,24 @@ if PADDLEOCR_VARIANT != "mobile":
 OCR_MODEL_ID = os.getenv(
     "OCR_MODEL_ID",
     (
-        "PP-OCRv5-mobile" if OCR_ENGINE == "paddleocr" else "tesseract-default"
+        "PP-OCRv5-mobile" if OCR_ENGINE == "paddleocr" else ("PaddleOCR-VL-1.6" if OCR_ENGINE == "paddleocr_vl" else "tesseract-default")
     ),
 ).strip()
 if not OCR_MODEL_ID:
     raise ValueError("OCR_MODEL_ID cannot be blank")
-if OCR_ENGINE in {"paddleocr", "paddleocr_vl"} and OCR_MODEL_ID not in {
-    "PP-OCRv5-mobile",
-    "PP-OCRv5",
-    "paddleocr-v5-mobile",
-}:
-    raise ValueError(
-        "OCR_MODEL_ID must be a supported PP-OCRv5 model identifier for PaddleOCR"
-    )
+if OCR_ENGINE == "paddleocr" and OCR_MODEL_ID not in {"PP-OCRv5-mobile", "PP-OCRv5", "paddleocr-v5-mobile"}:
+    raise ValueError("OCR_MODEL_ID must be a supported PP-OCRv5 identifier")
+if OCR_ENGINE == "paddleocr_vl" and OCR_MODEL_ID != "PaddleOCR-VL-1.6":
+    raise ValueError("The VL adapter requires OCR_MODEL_ID=PaddleOCR-VL-1.6")
 PADDLEOCR_DEVICE = os.getenv("PADDLEOCR_DEVICE", "cpu").strip() or "cpu"
 PADDLE_LAYOUT_MODEL_DIR = os.getenv("PADDLE_LAYOUT_MODEL_DIR", "").strip() or None
 PADDLE_VL_MODEL_DIR = os.getenv("PADDLE_VL_MODEL_DIR", "").strip() or None
-PADDLE_DEVICE = os.getenv("PADDLE_DEVICE", "cpu").strip()
+PADDLE_DEVICE = os.getenv("PADDLE_DEVICE", "auto").strip()
+PADDLE_VL_BACKEND = os.getenv("PADDLE_VL_BACKEND", "auto").strip()
+PADDLE_VL_SERVER_URL = os.getenv("PADDLE_VL_SERVER_URL", "http://127.0.0.1:8111/").strip()
+PADDLE_VL_API_MODEL = os.getenv("PADDLE_VL_API_MODEL", "PaddlePaddle/PaddleOCR-VL-1.6").strip()
+OCR_CPU_THREADS = int(os.getenv("OCR_CPU_THREADS", str(os.cpu_count() or 1)))
+if OCR_CPU_THREADS < 1: raise ValueError("OCR_CPU_THREADS must be positive")
 PADDLEOCR_MOBILE_DET_MODEL_DIR = (
     os.getenv("PADDLEOCR_MOBILE_DET_MODEL_DIR", "").strip() or None
 )
@@ -89,5 +90,21 @@ def initialize_config() -> None:
     if _CONFIG_INITIALIZED:
         return
     load_dotenv(BACKEND_ROOT / ".env")
+    os.environ.setdefault("PADDLE_PDX_CACHE_HOME", str(BACKEND_ROOT / "data/ocr-vl-cache"))
     importlib.reload(sys.modules[__name__])
     _CONFIG_INITIALIZED = True
+
+
+def validate_runtime():
+    if OCR_ENGINE != 'paddleocr_vl': return
+    from importlib.metadata import PackageNotFoundError, version
+    from packaging.version import Version
+    try: installed = version('paddleocr')
+    except PackageNotFoundError: installed = '0'
+    if Version(installed) < Version('3.6.0'):
+        raise RuntimeError(f'PaddleOCR-VL 1.6 requires PaddleOCR >=3.6.0; {sys.prefix} has {installed}. Install backend/requirements.txt in the active environment.')
+    from app.ocr.hardware import select_hardware
+    selected = select_hardware(PADDLE_VL_BACKEND, PADDLE_DEVICE, cpu_threads=OCR_CPU_THREADS)
+    if selected.backend == 'mlx-vlm-server' and not (BACKEND_ROOT.parent / '.venv-mlx-ocr/bin/python').is_file():
+        raise RuntimeError('Apple GPU OCR requires .venv-mlx-ocr. See backend/OCR_RUNTIME.md to install the Metal service environment.')
+    print(f'OCR: PaddleOCR-VL 1.6; recognition={selected.recognition_device}; layout={selected.device}; backend={selected.backend}', flush=True)

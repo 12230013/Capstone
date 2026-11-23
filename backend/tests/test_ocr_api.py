@@ -109,6 +109,8 @@ def completed_result(document_id: str, filename: str) -> dict:
     return {
         "document_id": document_id,
         "layout_version": ocr_documents.LAYOUT_VERSION,
+        "ocr_engine": ocr_documents.config.OCR_ENGINE,
+        "ocr_model": ocr_documents.config.OCR_MODEL_ID,
         "filename": filename,
         "document_type": "pdf",
         "ocr_status": "completed",
@@ -559,6 +561,17 @@ class OCRDocumentAPITests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(document_id, second.json()["document_id"])
         self.assertIn(document_id, self.mongo_documents)
         self.assertIsNotNone(self.mongo_documents[document_id]["ocr_result"])
+        process.assert_called_once()
+
+    async def test_different_ocr_model_reprocesses_unreviewed_duplicate(self):
+        document_id = await self.completed_document()
+        path = self.results_dir / f"{document_id}.json"
+        result = json.loads(path.read_text())
+        result["ocr_model"] = "PP-OCRv5-mobile"
+        path.write_text(json.dumps(result))
+        with self.mock_pipeline() as process:
+            response = await self.upload("indexed.pdf", make_pdf(), "application/pdf")
+        self.assertEqual(response.status_code, 202)
         process.assert_called_once()
 
     async def test_outdated_unreviewed_duplicate_is_reextracted(self):

@@ -6,7 +6,7 @@ import OCRDocumentEditor from "./OCRDocumentEditor";
 import { textBlock } from "./ocrEditorDocument";
 import "./ocr-document-workflow.css";
 
-const TERMINAL = new Set(["completed", "not_required", "failed"]);
+const TERMINAL = new Set(["completed", "not_required", "manual_review", "failed"]);
 function errorMessage(data, fallback) {
   return typeof data?.detail === "string" ? data.detail : fallback;
 }
@@ -17,6 +17,7 @@ export default function OCRDocumentWorkflow({ onClose }) {
   const [status,setStatus] = useState(null);
   const [pages,setPages] = useState([]);
   const [averageConfidence,setAverageConfidence] = useState(null);
+  const [extractionInfo,setExtractionInfo] = useState({});
   const [busy,setBusy] = useState(false);
   const [processing,setProcessing] = useState(false);
   const [saving,setSaving] = useState(false);
@@ -70,6 +71,8 @@ export default function OCRDocumentWorkflow({ onClose }) {
       if (!resultResponse.ok) throw new Error(errorMessage(result,"Unable to load extracted text. Please upload the original again to retry."));
       if (!current(run)) return;
       setAverageConfidence(result.average_confidence ?? null);
+      setExtractionInfo({averageLayoutConfidence:result.average_layout_confidence ?? null,
+        hardware:result.processing_metadata?.hardware,ocrModel:result.ocr_model});
       setPages((result.pages || []).map(p => ({...p, blocks:p.blocks?.length ? p.blocks : [textBlock(p.text || "")]})));
       setProcessing(false);
       setEditorVersion(v=>v+1);
@@ -163,7 +166,7 @@ export default function OCRDocumentWorkflow({ onClose }) {
       {status && <dl className="ocr-status-summary" aria-label="Document status"><div><dt>OCR status:</dt><dd>{status.ocr_status || status.status || "queued"}</dd></div><div><dt>Index status:</dt><dd>{saving ? "indexing" : status.index_status || "not_indexed"}</dd></div><div><dt>Pages:</dt><dd>{status.page_count ?? (pages.length || "—")}</dd></div></dl>}
       {!saved && notice && <p className="ocr-notice" role="status">{notice}</p>}{error && <p className="ocr-error" role="alert">{error}</p>}
       {saved && <section className="ocr-success" role="status" aria-labelledby="ocr-success-title"><h3 id="ocr-success-title">Successfully saved and indexed</h3><p>{notice}</p>{caseNumber && <p><strong>Case number:</strong> {caseNumber}</p>}<div className="ocr-actions"><button type="button" className="ocr-secondary-button" onClick={closeWindow}>Close</button><button type="button" className="ocr-primary-button" onClick={startFresh}><Upload size={16}/>Upload another</button></div></section>}
-      {!saved && pages.length > 0 && <OCRExtractionQuality key={`${documentId}-${editorVersion}`} documentId={documentId} pages={pages} averageConfidence={averageConfidence}/>}
+      {!saved && pages.length > 0 && <OCRExtractionQuality key={`${documentId}-${editorVersion}`} documentId={documentId} pages={pages} averageConfidence={averageConfidence} {...extractionInfo}/>}
       {!saved && pages.length > 0 && <form className="ocr-review-form" onSubmit={handleIndex} onKeyDown={e => { if (e.key === "Enter" && e.target.tagName === "INPUT") e.preventDefault(); }}><h3>Review extracted text</h3><p className="ocr-help">Edit your document below. Text, tables and form fields are in one document. Check recognition and layout before saving.</p>
         {pages.some(p=>p.extraction_method === "paddleocr") && <p className="ocr-help">Scanned handwriting may be misread. Verify names, dates and numbers against the original before indexing.</p>}
         <button type="button" disabled={processingActive} onClick={()=>setConfirmReextract(true)}>Re-extract original</button>

@@ -28,9 +28,11 @@ PyMuPDF==1.26.6
 Pillow==10.4.0
 opencv-contrib-python==4.10.0.84
 
-# OCR runtime (PP-OCRv5 Mobile)
-paddleocr==3.5.0
-paddlepaddle==3.3.0
+# OCR runtime (PaddleOCR-VL 1.6)
+paddleocr[doc-parser]==3.7.0
+paddlex[ocr-core]==3.7.2
+# Windows installs its CUDA/CPU runtime separately; see OCR_RUNTIME.md.
+paddlepaddle==3.3.0; platform_system != "Windows"
 
 # Machine Learning / Numerical
 numpy==2.3.5

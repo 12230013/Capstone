@@ -3,13 +3,14 @@ import { apiFetch } from "../api";
 
 const score = value => typeof value === "number" && Number.isFinite(value) ? `${value.toFixed(1)}%` : "Unavailable";
 
-export default function OCRExtractionQuality({documentId, pages, averageConfidence}) {
+export default function OCRExtractionQuality({documentId, pages, averageConfidence, averageLayoutConfidence, hardware, ocrModel}) {
   const [pageNumber, setPageNumber] = useState(pages[0].page_number);
   const [reference, setReference] = useState("");
   const [metrics, setMetrics] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const ocrPages = pages.filter(p => p.extraction_method !== "direct");
+  const isVL = pages.some(p=>p.extraction_method === "paddleocr_vl");
   async function evaluate(event) {
     event.preventDefault();setBusy(true);setMetrics(null);setError("");
     try {
@@ -24,8 +25,10 @@ export default function OCRExtractionQuality({documentId, pages, averageConfiden
   }
   return <section className="ocr-extraction-quality" aria-label="Extraction quality">
     <h3>Extraction information</h3>
-    {ocrPages.length > 0 ? <><p><strong>OCR model confidence: {score(averageConfidence)}</strong></p><p className="ocr-help">Average recognition confidence before review. This is not measured accuracy and does not score table layout. Verify handwriting, names, dates and numbers.</p></> : <p>Text extracted directly from the PDF. OCR confidence does not apply.</p>}
-    <details><summary>Page confidence and preprocessing</summary><ul>{pages.map(p => <li key={p.page_number}>Page {p.page_number}: {p.extraction_method === "direct" ? "Direct PDF text · OCR not used" : `Confidence ${score(p.confidence)} · ${p.preprocessing?.selection === "original_rgb_fallback" ? "Preprocessing failed; original image used" : p.preprocessing?.enabled ? "Preprocessing enabled" : "Image cleanup not applied"}`}</li>)}</ul></details>
+    {ocrModel && <p><strong>OCR model: {ocrModel}</strong></p>}
+    {hardware && <p className="ocr-help">Recognition: {hardware.recognition_device === "metal" ? "Apple Metal GPU (MLX)" : hardware.recognition_device?.startsWith("gpu") ? `NVIDIA CUDA GPU (${hardware.recognition_device})` : "CPU"} · Layout: {hardware.device}</p>}
+    {isVL ? <><p><strong>Layout detection confidence: {score(averageLayoutConfidence)}</strong></p><p className="ocr-help">VL 1.6 does not return text-recognition confidence. This score measures detected document regions before review, not transcription accuracy or table correctness. Use reference-based CER/WER below to measure text errors.</p></> : ocrPages.length > 0 ? <><p><strong>OCR model confidence: {score(averageConfidence)}</strong></p><p className="ocr-help">Average recognition confidence before review. This is not measured accuracy and does not score table layout. Verify handwriting, names, dates and numbers.</p></> : <p>Text extracted directly from the PDF. OCR confidence does not apply.</p>}
+    <details><summary>Page confidence and preprocessing</summary><ul>{pages.map(p => <li key={p.page_number}>Page {p.page_number}: {p.extraction_method === "direct" ? "Direct PDF text · OCR not used" : `${p.extraction_method === "paddleocr_vl" ? "Layout confidence " + score(p.layout_confidence) : "Confidence " + score(p.confidence)} · ${p.preprocessing?.selection === "original_rgb_fallback" ? "Preprocessing failed; original image used" : p.preprocessing?.enabled ? "Preprocessing enabled" : "Image cleanup not applied"}`}</li>)}</ul></details>
     <details><summary>Evaluate against correct reference text (optional)</summary>
       <p className="ocr-help">Paste an accurate transcription of the entire selected page in reading order. This compares the original extracted text with your reference, not your review edits. Spaces and line wrapping are normalized; case and punctuation count.</p>
       <form onSubmit={evaluate}>

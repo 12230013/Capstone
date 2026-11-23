@@ -45,3 +45,8 @@ coverage.xml
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Local OCR inference environments and model cache
+.venv-new-ocr/
+.venv-mlx-ocr/
+/backend/data/ocr-vl-cache/

@@ -243,3 +243,29 @@ it("shows direct PDF extraction without inventing an OCR score",async()=>{
   expect(await screen.findByText("Text extracted directly from the PDF. OCR confidence does not apply.")).toBeVisible();
   expect(screen.queryByText(/OCR model confidence:/)).not.toBeInTheDocument();
 });
+
+it("shows VL layout confidence and actual hardware without inventing text confidence",async()=>{
+  vi.mocked(apiFetch).mockImplementation(async path=>{
+    if(path==="/api/ocr/documents")return response({document_id:docId,status:"queued"});
+    if(path.endsWith("/status"))return response({status:"completed",ocr_status:"completed"});
+    return response({ocr_model:"PaddleOCR-VL-1.6",average_confidence:null,average_layout_confidence:94.2,processing_metadata:{hardware:{recognition_device:"metal",device:"cpu"}},pages:[{page_number:1,text:"Evidence",extraction_method:"paddleocr_vl",layout_confidence:94.2,confidence:null,preprocessing:{enabled:true}}]});
+  });
+  const user=userEvent.setup();render(<OCRDocumentWorkflow onClose={vi.fn()}/>);await uploadImage(user);
+  expect(await screen.findByText("Layout detection confidence: 94.2%")).toBeVisible();
+  expect(screen.getByText("OCR model: PaddleOCR-VL-1.6")).toBeVisible();
+  expect(screen.getByText(/Recognition: Apple Metal GPU/)).toBeVisible();
+  expect(screen.getByText(/VL 1.6 does not return text-recognition confidence/)).toBeVisible();
+  expect(screen.queryByText("OCR model confidence: 94.2%")).not.toBeInTheDocument();
+  await user.click(screen.getByText("Page confidence and preprocessing"));
+  expect(screen.getByText(/Layout confidence 94.2% · Preprocessing enabled/)).toBeVisible();
+});
+
+it("shows NVIDIA CUDA as the selected Windows recognition device",async()=>{
+  vi.mocked(apiFetch).mockImplementation(async path=>{
+    if(path==="/api/ocr/documents")return response({document_id:docId,status:"queued"});
+    if(path.endsWith("/status"))return response({status:"completed",ocr_status:"completed"});
+    return response({ocr_model:"PaddleOCR-VL-1.6",average_layout_confidence:90,processing_metadata:{hardware:{recognition_device:"gpu:0",device:"gpu:0"}},pages:[{page_number:1,text:"Evidence",extraction_method:"paddleocr_vl",layout_confidence:90}]});
+  });
+  const user=userEvent.setup();render(<OCRDocumentWorkflow onClose={vi.fn()}/>);await uploadImage(user);
+  expect(await screen.findByText(/Recognition: NVIDIA CUDA GPU \(gpu:0\)/)).toBeVisible();
+});
