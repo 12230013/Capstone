@@ -23,6 +23,7 @@ from app.ocr.config import (
     OCR_RENDER_DPI,
     OCR_RESULTS_DIR,
     PADDLE_DEVICE,
+    PADDLE_VL_BACKEND,
     PADDLE_LAYOUT_MODEL_DIR,
     PADDLEOCR_DEVICE,
     PADDLEOCR_MOBILE_DET_MODEL_DIR,
@@ -238,7 +239,9 @@ def _preprocess_and_paddle_page(
             image_path = image_file.name
         ocr_image.save(image_path, format="PNG")
         with timed_ocr_stage(logger, "paddle_vl_prediction", correlation_id,
-                             page_number=source_page_number, device=PADDLE_DEVICE):
+                             page_number=source_page_number,
+                             device="metal" if PADDLE_VL_BACKEND == "mlx-vlm-server" else PADDLE_DEVICE,
+                             layout_device=PADDLE_DEVICE, recognition_backend=PADDLE_VL_BACKEND):
             page = engine.predict_page(image_path, source_page_number,
                 correlation_id=correlation_id, image_width=ocr_image.width,
                 image_height=ocr_image.height, table_regions=regions)
@@ -609,6 +612,7 @@ def _base_result(
             "minimum_page_confidence": (
                 MIN_PAGE_CONFIDENCE if has_confidence else None
             ),
+            "vl_recognition_backend": PADDLE_VL_BACKEND if OCR_ENGINE == "paddleocr_vl" else None,
             "paddle_pipeline_version": (
                 _paddle_pipeline_version() if OCR_ENGINE == "paddleocr_vl" else None
             ),

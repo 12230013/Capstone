@@ -37,6 +37,12 @@ PADDLEOCR_DEVICE = os.getenv("PADDLEOCR_DEVICE", "cpu").strip() or "cpu"
 PADDLE_LAYOUT_MODEL_DIR = os.getenv("PADDLE_LAYOUT_MODEL_DIR", "").strip() or None
 PADDLE_VL_MODEL_DIR = os.getenv("PADDLE_VL_MODEL_DIR", "").strip() or None
 PADDLE_DEVICE = os.getenv("PADDLE_DEVICE", "cpu").strip()
+PADDLE_VL_BACKEND = os.getenv("PADDLE_VL_BACKEND", "native").strip()
+PADDLE_VL_SERVER_URL = os.getenv("PADDLE_VL_SERVER_URL", "http://127.0.0.1:8111/").strip()
+PADDLE_VL_API_MODEL = os.getenv("PADDLE_VL_API_MODEL", "PaddlePaddle/PaddleOCR-VL-1.6").strip()
+if PADDLE_VL_BACKEND not in {"native", "mlx-vlm-server"}:
+    raise ValueError("PADDLE_VL_BACKEND must be native or mlx-vlm-server")
+
 PADDLEOCR_MOBILE_DET_MODEL_DIR = (
     os.getenv("PADDLEOCR_MOBILE_DET_MODEL_DIR", "").strip() or None
 )

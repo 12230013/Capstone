@@ -6,7 +6,7 @@ import OCRDocumentEditor from "./OCRDocumentEditor";
 import { textBlock } from "./ocrEditorDocument";
 import "./ocr-document-workflow.css";
 
-const TERMINAL = new Set(["completed", "not_required", "failed"]);
+const TERMINAL = new Set(["completed", "not_required", "manual_review", "failed"]);
 function errorMessage(data, fallback) {
   return typeof data?.detail === "string" ? data.detail : fallback;
 }

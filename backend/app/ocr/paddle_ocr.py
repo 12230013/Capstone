@@ -26,14 +26,22 @@ class PaddleOCRVLEngine:
     _models = {}
     _initialization_lock = threading.Lock()
 
-    def __init__(self, layout_model_dir=None, vl_model_dir=None, device='cpu'):
+    def __init__(self, layout_model_dir=None, vl_model_dir=None, device='cpu', backend=None, server_url=None, api_model=None):
+        from app.ocr import config
+        self.backend = backend or config.PADDLE_VL_BACKEND
+        self.server_url = server_url or config.PADDLE_VL_SERVER_URL
+        self.api_model = api_model or config.PADDLE_VL_API_MODEL
+        # Reuse the already downloaded official VL 1.6 weights locally.
+        cached = config.BACKEND_ROOT / "data/ocr-vl-cache/official_models/PaddleOCR-VL-1.6"
+        if self.backend == "mlx-vlm-server" and self.api_model == "PaddlePaddle/PaddleOCR-VL-1.6" and cached.is_dir():
+            self.api_model = str(cached)
         self.layout_model_dir = layout_model_dir
         self.vl_model_dir = vl_model_dir
         self.device = device
         self._engine = None
 
     def initialize(self):
-        key = (self.layout_model_dir, self.vl_model_dir, self.device)
+        key = (self.layout_model_dir, self.vl_model_dir, self.device, self.backend, self.server_url, self.api_model)
         with self._initialization_lock:
             if key in self._models:
                 self._engine = self._models[key]
@@ -42,7 +50,14 @@ class PaddleOCRVLEngine:
                 paddleocr = importlib.import_module('paddleocr')
                 options = dict(pipeline_version='v1.6', device=self.device,
                     use_doc_orientation_classify=False, use_doc_unwarping=False,
-                    use_queues=False, enable_mkldnn=False)
+                    use_queues=False, enable_mkldnn=False, use_ocr_for_image_block=True)
+                if self.backend == 'mlx-vlm-server':
+                    from app.ocr.mlx_service import ensure_mlx_service
+                    ensure_mlx_service(self.server_url)
+                    options.update(vl_rec_backend=self.backend,
+                        vl_rec_server_url=self.server_url,
+                        vl_rec_api_model_name=self.api_model,
+                        vl_rec_max_concurrency=1)
                 if self.layout_model_dir:
                     options['layout_detection_model_dir'] = self.layout_model_dir
                 if self.vl_model_dir:
@@ -83,7 +98,6 @@ class PaddleOCRVLEngine:
                 else:
                     blocks.append({'type':'text', 'text':content.strip()})
             text = blocks_text(blocks)
-            if not text.strip(): raise ValueError('VL returned no readable text.')
         except (ValueError, TypeError, KeyError, AttributeError) as exc:
             raise PaddleOutputSchemaError('VL structured output could not be interpreted.') from exc
         return dict(text=text, blocks=blocks, page_number=source_page_number,

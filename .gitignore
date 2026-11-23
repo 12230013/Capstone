@@ -6,6 +6,7 @@
 # Python environments and caches
 .venv/
 .venv-new-ocr/
+.venv-mlx-ocr/
 venv/
 __pycache__/
 *.py[cod]

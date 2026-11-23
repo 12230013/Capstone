@@ -243,3 +243,15 @@ it("shows direct PDF extraction without inventing an OCR score",async()=>{
   expect(await screen.findByText("Text extracted directly from the PDF. OCR confidence does not apply.")).toBeVisible();
   expect(screen.queryByText(/OCR model confidence:/)).not.toBeInTheDocument();
 });
+
+it("leaves working state when extraction requires manual review",async()=>{
+  vi.mocked(apiFetch).mockImplementation(async path=>{
+    if(path==="/api/ocr/documents")return response({document_id:docId,status:"queued"});
+    if(path.endsWith("/status"))return response({status:"manual_review",ocr_status:"manual_review",index_status:"not_indexed"});
+    return response({pages:[{page_number:1,text:"",extraction_method:"paddleocr_vl"}],average_confidence:null});
+  });
+  const user=userEvent.setup();render(<OCRDocumentWorkflow onClose={vi.fn()}/>);await uploadImage(user);
+  expect(await screen.findByRole("textbox",{name:"Document review editor"})).toBeVisible();
+  expect(screen.queryByRole("button",{name:"Working…"})).not.toBeInTheDocument();
+  expect(screen.getByLabelText("Document progress").querySelector('[aria-current="step"]')).toHaveTextContent("Review");
+});

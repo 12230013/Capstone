@@ -15,6 +15,7 @@ class VLAdapterTests(unittest.TestCase):
             second=paddle_ocr.PaddleOCRVLEngine(device='cpu');second.initialize()
         constructor.assert_called_once()
         self.assertEqual(constructor.call_args.kwargs['pipeline_version'],'v1.6')
+        self.assertTrue(constructor.call_args.kwargs['use_ocr_for_image_block'])
         self.assertIs(first._engine,second._engine)
 
     def test_factory_really_initializes_pipeline(self):
@@ -51,7 +52,7 @@ class VLAdapterTests(unittest.TestCase):
 
     def test_invalid_and_empty_outputs_fail_explicitly(self):
         engine=paddle_ocr.PaddleOCRVLEngine();engine._engine=Mock()
-        for payload in ({'res':{}},{'res':{'parsing_res_list':[]}}):
+        for payload in ({'res':{}},{'res':{'parsing_res_list':'invalid'}}):
             engine._engine.predict.return_value=[SimpleNamespace(json=payload)]
             with self.assertRaises(paddle_ocr.PaddleOutputSchemaError):engine.predict_page('image.png',1)
         with self.assertRaises(ValueError):table_block('<table><tr><td colspan="10000">bad</td></tr></table>')
@@ -65,3 +66,23 @@ class VLAdapterTests(unittest.TestCase):
         # Review and retrieval keep using the same canonical block schema.
         self.assertEqual(block['type'],'table')
         self.assertEqual(block['rows'][0],['Item','Amount'])
+
+    def test_mlx_routes_recognition_to_gpu_service_without_changing_layout_device(self):
+        constructor=Mock(return_value=Mock())
+        with patch('app.ocr.mlx_service.ensure_mlx_service') as service, patch.object(paddle_ocr.importlib,'import_module',return_value=SimpleNamespace(PaddleOCRVL=constructor)):
+            engine=paddle_ocr.PaddleOCRVLEngine(backend='mlx-vlm-server',server_url='http://127.0.0.1:8111/',device='cpu')
+            engine.initialize()
+        service.assert_called_once_with('http://127.0.0.1:8111/')
+        options=constructor.call_args.kwargs
+        self.assertEqual(options['vl_rec_backend'],'mlx-vlm-server')
+        self.assertEqual(options['vl_rec_max_concurrency'],1)
+        self.assertEqual(options['device'],'cpu')
+        self.assertTrue(options['vl_rec_api_model_name'].endswith('PaddleOCR-VL-1.6'))
+
+    def test_valid_blank_page_does_not_discard_other_pages(self):
+        engine=paddle_ocr.PaddleOCRVLEngine();engine._engine=Mock()
+        engine._engine.predict.return_value=[SimpleNamespace(json={'res':{'parsing_res_list':[]}})]
+        page=engine.predict_page('blank.png',12)
+        self.assertEqual(page['text'],'')
+        self.assertEqual(page['blocks'],[])
+        self.assertEqual(page['page_number'],12)
