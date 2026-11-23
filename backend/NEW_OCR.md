@@ -20,3 +20,5 @@ Stop the previous backend process, then start this branch with:
 Or activate `.venv-new-ocr`, enter `backend`, and run the usual Uvicorn command on port 8001. Keep the frontend running as before. The model is loaded lazily on the first scanned upload and reused within the process. CPU document parsing can be slower than PP-OCRv5 Mobile.
 
 Existing reviewed/indexed results are preserved. Choose **Re-extract original** to replace their extraction with VL output, then review and index again. Unreviewed duplicate uploads from another OCR model are re-extracted automatically. Because database and storage locations are shared, confirmed saves on this branch update the same document records and index as main. Model smoke checks should use temporary output files when a comparison must not change saved content.
+
+If this branch is started from the original `.venv` (PaddleOCR 3.5), startup fails with an explicit message pointing to `start-new-ocr.sh` instead of accepting uploads that cannot be extracted. Use the launcher or activate `.venv-new-ocr` before running Uvicorn.

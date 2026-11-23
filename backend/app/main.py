@@ -28,6 +28,7 @@ from app.api.routes.cims import router as cims_router
 
 @asynccontextmanager
 async def lifespan(app):
+    ocr_config.validate_runtime()
     from acc_statements.index import embed, close_client
     started = time.monotonic()
     print("Preparing document search: loading and warming the embedding model...", flush=True)

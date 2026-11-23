@@ -93,3 +93,22 @@ def initialize_config() -> None:
     os.environ.setdefault("PADDLE_PDX_CACHE_HOME", str(BACKEND_ROOT / "data" / "ocr-vl-cache"))
     importlib.reload(sys.modules[__name__])
     _CONFIG_INITIALIZED = True
+
+
+def validate_runtime() -> None:
+    """Fail at startup, before accepting uploads with an incompatible runtime."""
+    if OCR_ENGINE != "paddleocr_vl":
+        return
+    from importlib.metadata import PackageNotFoundError, version
+    from packaging.version import Version
+    try:
+        installed = version("paddleocr")
+    except PackageNotFoundError:
+        installed = "0"
+    if Version(installed) < Version("3.6.0"):
+        launcher = BACKEND_ROOT / "start-new-ocr.sh"
+        raise RuntimeError(
+            f"PaddleOCR-VL 1.6 needs PaddleOCR >=3.6.0; this Python environment "
+            f"({sys.prefix}) has {installed}. Start the backend with {launcher} "
+            "to use .venv-new-ocr. The original .venv is for main's classic OCR."
+        )

@@ -30,6 +30,25 @@ class OCRConfigTests(unittest.TestCase):
         )
         self.assertEqual(completed.stdout, "")
 
+    def test_runtime_guard_rejects_old_environment_with_launcher_instructions(self):
+        completed = self.run_config_script(
+            "from unittest.mock import patch; "
+            "from app.ocr import config; "
+            "config.initialize_config(); "
+            "guard = patch('importlib.metadata.version', return_value='3.5.0'); "
+            "guard.start(); "
+            "import unittest; "
+            "case = unittest.TestCase(); "
+            "case.assertRaisesRegex(RuntimeError, 'start-new-ocr.sh', config.validate_runtime)"
+        )
+        self.assertEqual(completed.stdout, "")
+
+    def test_runtime_guard_accepts_installed_new_environment(self):
+        completed = self.run_config_script(
+            "from app.ocr import config; config.initialize_config(); config.validate_runtime()"
+        )
+        self.assertEqual(completed.stdout, "")
+
     def test_import_does_not_load_dotenv(self):
         completed = self.run_config_script(
             "import dotenv; "
