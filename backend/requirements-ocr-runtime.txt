@@ -1,21 +1,5 @@
-# Verified local CPU runtime used for OCR/BGE smoke validation.
-# Keep this environment separate from the team's broader dependency set.
-accelerate==1.12.0
-numpy==2.0.2
-pandas==2.2.3
-pyarrow==17.0.0
-scipy==1.14.1
-scikit-learn==1.5.2
-scikit-image==0.24.0
-bottleneck==1.4.2
-numexpr==2.10.1
-faiss-cpu==1.9.0
-paddleocr==3.5.0
-paddlepaddle==3.3.0
-sentence-transformers==2.5.1
-torch==2.9.0
-transformers==4.46.2
-qdrant-client==1.19.1
-PyMuPDF==1.26.6
-Pillow==10.4.0
-opencv-contrib-python==4.10.0.84
+# Compatibility entry point for the current PaddleOCR-VL 1.6 backend runtime.
+# Keep one source of truth; old PP-OCRv5/Python scientific-stack pins are retired.
+# Mac GPU service: requirements-mlx-ocr.txt in its separate environment.
+# Windows CUDA: requirements-windows-gpu.txt (matching the installed driver).
+-r requirements.txt
