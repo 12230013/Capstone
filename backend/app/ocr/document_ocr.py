@@ -134,11 +134,13 @@ def create_paddle_engine(
 def _create_paddle_engine() -> Any:
     paddle_adapter = importlib.import_module("app.ocr.paddle_ocr")
     try:
-        return create_paddle_engine(
+        engine = create_paddle_engine(
             PADDLE_LAYOUT_MODEL_DIR,
             PADDLE_VL_MODEL_DIR,
             PADDLE_DEVICE,
         )
+        engine.initialize()
+        return engine
     except paddle_adapter.PaddleEngineUnavailableError as exc:
         raise OCREngineUnavailableError(str(exc)) from exc
 
@@ -215,55 +217,43 @@ def _paddle_pipeline_version() -> str:
 
 
 def _preprocess_and_paddle_page(
-    image: Image.Image,
-    engine: Any,
-    source_page_number: int,
-    correlation_id: str,
+    image: Image.Image, engine: Any, source_page_number: int, correlation_id: str,
 ) -> tuple[str, None, list[float], dict[str, Any]]:
     paddle_adapter = importlib.import_module("app.ocr.paddle_ocr")
-    try:
-        with timed_ocr_stage(
-            logger,
-            "page_preprocessing",
-            correlation_id,
-            page_number=source_page_number,
-            image_width=image.width,
-            image_height=image.height,
-        ):
-            ocr_image, preprocessing = preprocess_image(image)
-    except ImagePreprocessingError as exc:
-        raise OCRProcessingError(
-            "Image preprocessing failed. Check the preprocessing settings and input."
-        ) from exc
-
+    from app.ocr.table_geometry import ruled_cells
+    source, regions = ruled_cells(image)
+    ocr_image = source
+    preprocessing = preprocessing_settings()
     image_path = None
     try:
+        try:
+            ocr_image, preprocessing = preprocess_image(source, allow_deskew=not bool(regions))
+            preprocessing["selection"] = "preprocessed" if ocr_image is not source else "original_rgb"
+        except ImagePreprocessingError:
+            preprocessing["selection"] = "original_rgb_fallback"
+            preprocessing["fallback_reason"] = "preprocessing_failed"
+        preprocessing["table_geometry_source"] = "original_image"
+        preprocessing["layout_deskew_applied"] = source is not image
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as image_file:
             image_path = image_file.name
         ocr_image.save(image_path, format="PNG")
-        page = engine.predict_page(
-            image_path,
-            source_page_number,
-            correlation_id=correlation_id,
-            image_width=ocr_image.width,
-            image_height=ocr_image.height,
-        )
+        with timed_ocr_stage(logger, "paddle_vl_prediction", correlation_id,
+                             page_number=source_page_number, device=PADDLE_DEVICE):
+            page = engine.predict_page(image_path, source_page_number,
+                correlation_id=correlation_id, image_width=ocr_image.width,
+                image_height=ocr_image.height, table_regions=regions)
+        preprocessing["blocks"] = page["blocks"]
         return page["text"], None, [], preprocessing
-    except paddle_adapter.PaddleOutputSchemaError:
-        raise OCRProcessingError(
-            "PaddleOCR-VL returned page output that could not be aligned."
-        ) from None
+    except paddle_adapter.PaddleOutputSchemaError as exc:
+        raise OCRProcessingError("PaddleOCR-VL returned an invalid page layout.") from exc
     except paddle_adapter.PaddleInferenceError as exc:
-        raise OCRProcessingError(str(exc)) from None
+        raise OCRProcessingError(str(exc)) from exc
     except (OSError, ValueError) as exc:
-        raise OCRProcessingError(
-            "The page image could not be prepared for PaddleOCR-VL."
-        ) from None
+        raise OCRProcessingError("The image could not be prepared for PaddleOCR-VL.") from exc
     finally:
-        if image_path and os.path.exists(image_path):
-            os.remove(image_path)
-        if ocr_image is not image:
-            ocr_image.close()
+        if image_path and os.path.exists(image_path): os.remove(image_path)
+        if ocr_image is not image: ocr_image.close()
+        if source is not image and source is not ocr_image: source.close()
 
 
 def _classic_paddle_page_output(outputs: Any) -> tuple[str, float | None, list[float]]:

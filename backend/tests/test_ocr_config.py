@@ -21,6 +21,15 @@ class OCRConfigTests(unittest.TestCase):
             text=True,
         )
 
+    def test_branch_profile_selects_vl_without_modifying_shared_env(self):
+        completed = self.run_config_script(
+            "from app.ocr import config; "
+            "config.initialize_config(); "
+            "assert config.OCR_ENGINE == 'paddleocr_vl'; "
+            "assert config.OCR_MODEL_ID == 'PaddleOCR-VL-1.6'"
+        )
+        self.assertEqual(completed.stdout, "")
+
     def test_import_does_not_load_dotenv(self):
         completed = self.run_config_script(
             "import dotenv; "
@@ -38,7 +47,9 @@ class OCRConfigTests(unittest.TestCase):
             "dotenv.load_dotenv = Mock(); "
             "import app.ocr.config as config; "
             "config.initialize_config(); "
-            "dotenv.load_dotenv.assert_called_once_with(config.BACKEND_ROOT / '.env')"
+            "assert dotenv.load_dotenv.call_count == 2; "
+            "assert dotenv.load_dotenv.call_args_list[0].args[0] == config.BACKEND_ROOT / '.env'; "
+            "assert dotenv.load_dotenv.call_args_list[1].args[0] == config.BACKEND_ROOT / 'ocr-profile.env' "
         )
         self.assertEqual(completed.stdout, "")
 

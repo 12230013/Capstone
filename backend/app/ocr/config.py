@@ -22,19 +22,17 @@ if PADDLEOCR_VARIANT != "mobile":
 OCR_MODEL_ID = os.getenv(
     "OCR_MODEL_ID",
     (
-        "PP-OCRv5-mobile" if OCR_ENGINE == "paddleocr" else "tesseract-default"
+        "PP-OCRv5-mobile" if OCR_ENGINE == "paddleocr" else ("PaddleOCR-VL-1.6" if OCR_ENGINE == "paddleocr_vl" else "tesseract-default")
     ),
 ).strip()
 if not OCR_MODEL_ID:
     raise ValueError("OCR_MODEL_ID cannot be blank")
-if OCR_ENGINE in {"paddleocr", "paddleocr_vl"} and OCR_MODEL_ID not in {
-    "PP-OCRv5-mobile",
-    "PP-OCRv5",
-    "paddleocr-v5-mobile",
+if OCR_ENGINE == "paddleocr" and OCR_MODEL_ID not in {
+    "PP-OCRv5-mobile", "PP-OCRv5", "paddleocr-v5-mobile",
 }:
-    raise ValueError(
-        "OCR_MODEL_ID must be a supported PP-OCRv5 model identifier for PaddleOCR"
-    )
+    raise ValueError("OCR_MODEL_ID must be a supported PP-OCRv5 model identifier for PaddleOCR")
+if OCR_ENGINE == "paddleocr_vl" and OCR_MODEL_ID != "PaddleOCR-VL-1.6":
+    raise ValueError("The VL adapter requires OCR_MODEL_ID=PaddleOCR-VL-1.6")
 PADDLEOCR_DEVICE = os.getenv("PADDLEOCR_DEVICE", "cpu").strip() or "cpu"
 PADDLE_LAYOUT_MODEL_DIR = os.getenv("PADDLE_LAYOUT_MODEL_DIR", "").strip() or None
 PADDLE_VL_MODEL_DIR = os.getenv("PADDLE_VL_MODEL_DIR", "").strip() or None
@@ -89,5 +87,9 @@ def initialize_config() -> None:
     if _CONFIG_INITIALIZED:
         return
     load_dotenv(BACKEND_ROOT / ".env")
+    # Model-only profile belongs to this experimental branch. Main's .env stays
+    # unchanged so switching back restores the classic model configuration.
+    load_dotenv(BACKEND_ROOT / "ocr-profile.env", override=True)
+    os.environ.setdefault("PADDLE_PDX_CACHE_HOME", str(BACKEND_ROOT / "data" / "ocr-vl-cache"))
     importlib.reload(sys.modules[__name__])
     _CONFIG_INITIALIZED = True

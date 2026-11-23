@@ -1,0 +1,72 @@
+# new_ocr: same application dependencies, PaddleOCR-VL-capable runtime.
+# Web API
+uvicorn==0.54.0
+httpx==0.28.1
+requests==2.34.0
+
+# Configuration & Validation
+pydantic==2.13.5
+pydantic-settings==2.15.0
+
+# RAG / LlamaIndex
+llama-index==0.14.25
+llama-index-core==0.14.25
+llama-index-vector-stores-qdrant==0.10.3
+
+# Embedding Model
+accelerate==1.12.0
+sentence-transformers==6.1.0
+torch==2.14.1
+transformers==5.18.0
+
+# Vector Database
+qdrant-client==1.19.1
+
+# Document Processing
+pypdf==6.19.0
+python-docx==1.2.0
+PyMuPDF==1.26.6
+Pillow==10.4.0
+opencv-contrib-python==4.10.0.84
+
+# OCR runtime (PaddleOCR-VL 1.6)
+paddleocr[doc-parser]==3.7.0
+paddlex[ocr-core]==3.7.2
+paddlepaddle==3.3.0
+
+# Machine Learning / Numerical
+numpy==2.3.5
+scikit-learn==1.9.1
+scipy==1.18.1
+
+# NLP / Text Processing
+nltk==3.10.3
+tiktoken==0.14.0
+
+# Other Utilities
+PyYAML==6.0.2
+networkx==3.7
+
+email-validator
+pymongo
+pwdlib[argon2]
+dateparser>=1.2.0
+annotated-doc==0.0.5
+annotated-types==0.8.0
+anyio==4.15.1
+click==8.5.0
+dnspython==2.8.0
+exceptiongroup==1.3.1
+fastapi==0.142.4
+h11==0.16.0
+idna==3.20
+opentelemetry-api==1.45.1
+pydantic==2.13.5
+pydantic_core==2.46.5
+pymongo==4.18.2
+python-dotenv==1.2.4
+python-multipart==0.0.33
+starlette==1.7.0
+typing-inspection==0.4.4
+typing_extensions==4.16.0
+uvicorn==0.54.0

@@ -548,7 +548,7 @@ async def upload_document(
         if existing_status and existing_status.get("status") in {"completed", "not_required"} and existing_status.get("index_status") not in {"indexed", "indexing"}:
             previous = _read_ocr_result(document_id)
             reviewed = previous and (previous.get("reviewed_at") or any(p.get("editor_json") for p in previous.get("pages", [])))
-            refresh_existing = not reviewed and (previous is None or previous.get("layout_version") != LAYOUT_VERSION)
+            refresh_existing = not reviewed and (previous is None or previous.get("layout_version") != LAYOUT_VERSION or previous.get("ocr_engine") != config.OCR_ENGINE or previous.get("ocr_model") != config.OCR_MODEL_ID)
 
         if existing_status and existing_status.get("status") != "failed" and not refresh_existing:
             _authorize_document(existing_status, owner_user_id)
