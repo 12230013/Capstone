@@ -401,6 +401,19 @@ class OCRDocumentAPITests(unittest.IsolatedAsyncioTestCase):
             response = await self.client.post(f"/api/ocr/documents/{document_id}/evaluate", json=payload)
             self.assertEqual(response.status_code, expected)
 
+    async def test_legacy_saved_result_reports_active_model_without_relabeling(self):
+        document_id = await self.completed_document()
+        path = self.results_dir / f"{document_id}.json"
+        result = json.loads(path.read_text())
+        result.update(ocr_model="PP-OCRv5-mobile", ocr_engine="paddleocr")
+        path.write_text(json.dumps(result))
+        response = await self.client.get(f"/api/ocr/documents/{document_id}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["ocr_model"], "PP-OCRv5-mobile")
+        self.assertEqual(response.json()["active_ocr_model"], "PaddleOCR-VL-1.6")
+        self.assertTrue(response.json()["model_upgrade_available"])
+        self.assertEqual(json.loads(path.read_text())["ocr_model"], "PP-OCRv5-mobile")
+
     async def test_valid_pdf_runs_pipeline_and_preserves_page_metadata(self):
         pdf = make_pdf()
         with self.mock_pipeline() as process:

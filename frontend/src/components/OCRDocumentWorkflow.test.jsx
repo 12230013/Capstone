@@ -269,3 +269,18 @@ it("shows NVIDIA CUDA as the selected Windows recognition device",async()=>{
   const user=userEvent.setup();render(<OCRDocumentWorkflow onClose={vi.fn()}/>);await uploadImage(user);
   expect(await screen.findByText(/Recognition: NVIDIA CUDA GPU \(gpu:0\)/)).toBeVisible();
 });
+
+it("distinguishes the current VL model from a previously indexed classic extraction",async()=>{
+  vi.mocked(apiFetch).mockImplementation(async path=>{
+    if(path==="/api/ocr/documents")return response({document_id:docId,status:"completed"});
+    if(path.endsWith("/status"))return response({status:"completed",ocr_status:"completed",index_status:"indexed"});
+    return response({ocr_engine:"paddleocr",ocr_model:"PP-OCRv5-mobile",active_ocr_model:"PaddleOCR-VL-1.6",model_upgrade_available:true,average_confidence:84.7,pages:[{page_number:1,text:"Saved review",extraction_method:"paddleocr",confidence:84.7}]});
+  });
+  const user=userEvent.setup();render(<OCRDocumentWorkflow onClose={vi.fn()}/>);await uploadImage(user);
+  expect(await screen.findByText("Current OCR model: PaddleOCR-VL-1.6")).toBeVisible();
+  expect(screen.getByText("Saved extraction model: PP-OCRv5-mobile")).toBeVisible();
+  expect(screen.getByText(/Choose Re-extract original to run PaddleOCR-VL-1.6/)).toBeVisible();
+  expect(screen.getByText("Saved review")).toBeVisible();
+  await user.click(screen.getByRole("button",{name:"Re-extract original"}));
+  expect(screen.getByRole("alertdialog")).toHaveTextContent("using PaddleOCR-VL-1.6");
+});

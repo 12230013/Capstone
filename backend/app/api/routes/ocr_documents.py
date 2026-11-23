@@ -679,7 +679,14 @@ def get_document_result(
     result = _read_ocr_result(document_id)
     if result is None:
         raise HTTPException(status_code=202, detail=status)
-    return result
+    return {
+        **result,
+        "active_ocr_model": config.OCR_MODEL_ID,
+        "active_ocr_engine": config.OCR_ENGINE,
+        "model_upgrade_available": result.get("extraction_method") != "direct" and (
+            result.get("ocr_model") != config.OCR_MODEL_ID or result.get("ocr_engine") != config.OCR_ENGINE
+        ),
+    }
 
 
 

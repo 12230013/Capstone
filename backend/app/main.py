@@ -59,7 +59,7 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
-    return {"message": "ACC Investigation Chatbot API is running"}
+    return {"message": "ACC Investigation Chatbot API is running", "ocr_engine": ocr_config.OCR_ENGINE, "ocr_model": ocr_config.OCR_MODEL_ID}
 
 
 # Register all routers

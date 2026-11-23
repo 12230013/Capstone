@@ -72,12 +72,15 @@ export default function OCRDocumentWorkflow({ onClose }) {
       if (!current(run)) return;
       setAverageConfidence(result.average_confidence ?? null);
       setExtractionInfo({averageLayoutConfidence:result.average_layout_confidence ?? null,
-        hardware:result.processing_metadata?.hardware,ocrModel:result.ocr_model});
+        hardware:result.processing_metadata?.hardware,ocrModel:result.ocr_model,
+        activeOcrModel:result.active_ocr_model,modelUpgradeAvailable:result.model_upgrade_available});
       setPages((result.pages || []).map(p => ({...p, blocks:p.blocks?.length ? p.blocks : [textBlock(p.text || "")]})));
       setProcessing(false);
       setEditorVersion(v=>v+1);
       setSaved(false);setReviewConfirmed(false);
-      if (data.index_status === "indexed") {
+      if (result.model_upgrade_available) {
+        setNotice(`This saved extraction used ${result.ocr_model || "an older model"}. Choose Re-extract original to run ${result.active_ocr_model}.`);
+      } else if (data.index_status === "indexed") {
         setNotice("This document was previously saved. Review and edit it below, then confirm to save your changes.");
       } else setNotice("Text extraction is complete. Review the text below before indexing.");
     } catch (e) { if (current(run)) { setError(e.message); setNotice(""); setProcessing(false); } }
@@ -181,7 +184,7 @@ export default function OCRDocumentWorkflow({ onClose }) {
         <button type="submit" disabled={processingActive || saved || !reviewConfirmed}><FileText size={16}/>{saved ? "Saved for chat" : busy ? "Saving…" : "Confirm review and index"}</button>
         {saved && <p>Try asking: What does “{status.filename || "your uploaded filename"}” say about your topic?</p>}
       </form>}
-      {confirmReextract && <section className="ocr-close-confirmation" role="alertdialog" aria-labelledby="ocr-reextract-title"><h3 id="ocr-reextract-title">Re-extract the original?</h3><p>This replaces your current review with a new extraction. The document must be reviewed and saved again before chat can retrieve it.</p><div className="ocr-actions"><button type="button" className="ocr-secondary-button" onClick={()=>setConfirmReextract(false)}>Keep current review</button><button type="button" className="ocr-primary-button" onClick={reextract}>Re-extract now</button></div></section>}
+      {confirmReextract && <section className="ocr-close-confirmation" role="alertdialog" aria-labelledby="ocr-reextract-title"><h3 id="ocr-reextract-title">Re-extract the original?</h3><p>This replaces your current review with a new extraction{extractionInfo.activeOcrModel ? ` using ${extractionInfo.activeOcrModel}` : ""}. The document must be reviewed and saved again before chat can retrieve it.</p><div className="ocr-actions"><button type="button" className="ocr-secondary-button" onClick={()=>setConfirmReextract(false)}>Keep current review</button><button type="button" className="ocr-primary-button" onClick={reextract}>Re-extract now</button></div></section>}
       {confirmClose && <section className="ocr-close-confirmation" role="alertdialog" aria-labelledby="ocr-close-title"><h3 id="ocr-close-title">Close document review?</h3><p>{processingActive ? "Processing will continue in the background. Closing leaves this review; the next upload window will start fresh." : "Your review edits will be lost. The original extracted text is saved."}</p><div className="ocr-actions"><button type="button" className="ocr-primary-button" autoFocus onClick={() => setConfirmClose(false)}>Keep reviewing</button><button type="button" className="ocr-secondary-button" onClick={closeWindow}>Close window</button></div></section>}
     </div>
   </section></div>;
