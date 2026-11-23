@@ -819,8 +819,9 @@ class ChatService:
     async def _handle_unified_statement_ocr_query(
         self,
         query: str,
-        filename: str,
+        filename: str | None,
         owner_user_id: str,
+        uploaded_chunks: list | None = None,
     ) -> dict:
         """Combine existing statement behavior with owner-scoped OCR evidence."""
         from app.ocr.chat_retrieval import ocr_chat_retrieval
@@ -829,7 +830,9 @@ class ChatService:
         warnings = []
         # Deliberately reuse the existing statement path. Its current case-level
         # authorization limitation remains documented for ACC client clarification.
-        statement_result = self.statement_service.retrieve_statement_evidence(query=query)
+        statement_result = await run_in_threadpool(
+            self.statement_service.retrieve_statement_evidence, query=query,
+        )
         if statement_result.get("success"):
             for item in statement_result.get("evidence", []):
                 for sentence_id, text in numbered_sentences(item.get("text", "")).items():
@@ -848,11 +851,8 @@ class ChatService:
         else:
             warnings.append("Statement evidence could not be retrieved.")
 
-        ocr_chunks = await run_in_threadpool(
-            ocr_chat_retrieval.retrieve_evidence,
-            query,
-            filename,
-            owner_user_id,
+        ocr_chunks = uploaded_chunks if uploaded_chunks is not None else await run_in_threadpool(
+            ocr_chat_retrieval.retrieve_evidence, query, filename, owner_user_id,
         )
         if ocr_chunks is None:
             warnings.append("The requested OCR document is not available to this account.")
@@ -2587,6 +2587,16 @@ class ChatService:
         # ---------------------------------------------------------
         # Statement evidence RAG
         # ---------------------------------------------------------
+
+        owner_user_id = context.get("owner_user_id")
+        if ocr_filename is None and isinstance(owner_user_id, str) and owner_user_id.strip():
+            uploaded_chunks = await run_in_threadpool(
+                ocr_chat_retrieval.retrieve_all_evidence, query, owner_user_id.strip(),
+            )
+            if uploaded_chunks:
+                return await self._handle_unified_statement_ocr_query(
+                    query, None, owner_user_id.strip(), uploaded_chunks=uploaded_chunks,
+                )
 
         known_statement_names = (
             "kinga norbu",

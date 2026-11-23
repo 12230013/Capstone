@@ -157,12 +157,13 @@ def _validate_grayscale(image: np.ndarray) -> None:
         )
 
 
-def preprocess_image(image: Image.Image) -> tuple[Image.Image, dict[str, Any]]:
+def preprocess_image(image: Image.Image, *, allow_deskew: bool = True) -> tuple[Image.Image, dict[str, Any]]:
     """Preprocess an OCR image without changing the caller's source image."""
     if not isinstance(image, Image.Image) or image.width < 1 or image.height < 1:
         raise ImagePreprocessingError("A valid PIL image is required.")
 
     settings = preprocessing_settings()
+    settings["deskew"] = settings["deskew"] and allow_deskew
     details: dict[str, Any] = {
         **settings,
         "deskew_applied": False,

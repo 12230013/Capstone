@@ -12,6 +12,9 @@ from app.services.chat_service import ChatService
 
 class OCRChatIntegrationTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
+        self.global_search = patch("app.ocr.chat_retrieval.ocr_chat_retrieval.retrieve_all_evidence", return_value=[])
+        self.global_search.start()
+        self.addCleanup(self.global_search.stop)
         self.service = ChatService()
         self.service._rag_service = MagicMock()
         self.service._rag_service.query.return_value = {
@@ -149,6 +152,16 @@ class OCRChatIntegrationTests(unittest.IsolatedAsyncioTestCase):
         retrieve.assert_not_called()
         self.service._rag_service.query.assert_called_once()
         self.service._statement_service.query_statement_evidence.assert_not_called()
+
+
+    async def test_general_question_searches_owned_uploads_without_filename(self):
+        chunks = [{"text": "Amount: 500", "metadata": {"metadata": {"document_id":"a"*64,"filename":"form.png","page_number":1}}}]
+        with patch("app.ocr.chat_retrieval.ocr_chat_retrieval.retrieve_all_evidence", return_value=chunks) as search, patch.object(self.service, "_handle_unified_statement_ocr_query", new_callable=AsyncMock) as combined:
+            combined.return_value = {"success":True,"response":{"answer":"500"}}
+            result = await self.service.query("What is the recorded amount?", context={"owner_user_id":"session-owner"})
+        search.assert_called_once_with("What is the recorded amount?", "session-owner")
+        combined.assert_called_once_with("What is the recorded amount?", None, "session-owner", uploaded_chunks=chunks)
+        self.assertEqual(result["response"]["answer"],"500")
 
 
 if __name__ == "__main__":

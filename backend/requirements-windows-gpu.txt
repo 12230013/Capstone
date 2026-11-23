@@ -1,0 +1,4 @@
+# NVIDIA CUDA 12.6 example. Match the channel to your driver; see OCR_RUNTIME.md.
+--extra-index-url https://www.paddlepaddle.org.cn/packages/stable/cu126/
+-r requirements.txt
+paddlepaddle-gpu==3.3.0

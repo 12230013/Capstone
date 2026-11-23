@@ -1,0 +1,41 @@
+{
+  "document_id": "DOC-00006",
+  "filename": "google2.pdf",
+  "document_type": "pdf",
+  "document_classification": "scanned_pdf",
+  "ocr_engine": "paddleocr-vl-1.6",
+  "ocr_required": true,
+  "ocr_status": "completed",
+  "page_count": 1,
+  "pages": [
+    {
+      "page_number": 1,
+      "text": "# Six Little Stories With Deep Meanings\n\n• Once all villagers decided to pray for rain. On the day of prayer, all the people gathered, but only one boy came with an umbrella. That is faith.\n\n• When you throw babies in the air, they laugh because they know you will catch them. That is trust.\n\n• Every night we go to bed without any assurance of being alive the next morning, but still we set the alarms to wake up. That is hope.\n\n• We plan big things for tomorrow in spite of zero knowledge of the future. That is confidence.\n\n• We see the world suffering, but still, we get married and have children. That is love.\n\n• On an old man's shirt was written a sentence, \"I am not 80 years old; I am sweet 16 with 64 years of experience.\"\n\n## © ER/Buddhism Page ED",
+      "confidence": 0.9,
+      "preprocessing": {
+        "engine": "paddleocr-vl-1.6",
+        "device": "cpu",
+        "orientation_classification": true,
+        "document_unwarping": true,
+        "layout_detection": true,
+        "chart_recognition": true,
+        "seal_recognition": true,
+        "output_format": "markdown",
+        "estimated_confidence": 0.9
+      }
+    }
+  ],
+  "average_confidence": 0.9,
+  "created_at": "2026-10-14T20:58:21.743386+00:00",
+  "processing_metadata": {
+    "render_dpi": 250,
+    "device": "cpu",
+    "preprocessing": {
+      "engine": "paddleocr-vl-1.6",
+      "orientation_classification": true,
+      "document_unwarping": true,
+      "layout_detection": true
+    },
+    "confidence_calculation": "Heuristic VLM confidence estimation evaluating text yield, character variety, and spatial density."
+  }
+}

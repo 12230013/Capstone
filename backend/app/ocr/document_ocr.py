@@ -1,5 +1,7 @@
 """Configured page-level OCR adapters for Tesseract and PaddleOCR engines."""
 
+from app.ocr.layout import pdf_blocks, ocr_blocks, blocks_text, LAYOUT_VERSION
+
 import importlib
 import json
 import logging
@@ -21,6 +23,7 @@ from app.ocr.config import (
     OCR_RENDER_DPI,
     OCR_RESULTS_DIR,
     PADDLE_DEVICE,
+    PADDLE_VL_BACKEND,
     PADDLE_LAYOUT_MODEL_DIR,
     PADDLEOCR_DEVICE,
     PADDLEOCR_MOBILE_DET_MODEL_DIR,
@@ -132,11 +135,13 @@ def create_paddle_engine(
 def _create_paddle_engine() -> Any:
     paddle_adapter = importlib.import_module("app.ocr.paddle_ocr")
     try:
-        return create_paddle_engine(
+        engine = create_paddle_engine(
             PADDLE_LAYOUT_MODEL_DIR,
             PADDLE_VL_MODEL_DIR,
             PADDLE_DEVICE,
         )
+        engine.initialize()
+        return engine
     except paddle_adapter.PaddleEngineUnavailableError as exc:
         raise OCREngineUnavailableError(str(exc)) from exc
 
@@ -213,55 +218,48 @@ def _paddle_pipeline_version() -> str:
 
 
 def _preprocess_and_paddle_page(
-    image: Image.Image,
-    engine: Any,
-    source_page_number: int,
-    correlation_id: str,
+    image: Image.Image, engine: Any, source_page_number: int, correlation_id: str,
 ) -> tuple[str, None, list[float], dict[str, Any]]:
     paddle_adapter = importlib.import_module("app.ocr.paddle_ocr")
-    try:
-        with timed_ocr_stage(
-            logger,
-            "page_preprocessing",
-            correlation_id,
-            page_number=source_page_number,
-            image_width=image.width,
-            image_height=image.height,
-        ):
-            ocr_image, preprocessing = preprocess_image(image)
-    except ImagePreprocessingError as exc:
-        raise OCRProcessingError(
-            "Image preprocessing failed. Check the preprocessing settings and input."
-        ) from exc
-
+    from app.ocr.table_geometry import ruled_cells
+    source, regions = ruled_cells(image)
+    ocr_image = source
+    preprocessing = preprocessing_settings()
     image_path = None
     try:
+        try:
+            ocr_image, preprocessing = preprocess_image(source, allow_deskew=not bool(regions))
+            preprocessing["selection"] = "preprocessed" if ocr_image is not source else "original_rgb"
+        except ImagePreprocessingError:
+            preprocessing["selection"] = "original_rgb_fallback"
+            preprocessing["fallback_reason"] = "preprocessing_failed"
+        preprocessing["table_geometry_source"] = "original_image"
+        preprocessing["layout_deskew_applied"] = source is not image
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as image_file:
             image_path = image_file.name
         ocr_image.save(image_path, format="PNG")
-        page = engine.predict_page(
-            image_path,
-            source_page_number,
-            correlation_id=correlation_id,
-            image_width=ocr_image.width,
-            image_height=ocr_image.height,
-        )
+        with timed_ocr_stage(logger, "paddle_vl_prediction", correlation_id,
+                             page_number=source_page_number,
+                             device=engine.hardware["recognition_device"],
+                             layout_device=engine.device, recognition_backend=engine.backend):
+            page = engine.predict_page(image_path, source_page_number,
+                correlation_id=correlation_id, image_width=ocr_image.width,
+                image_height=ocr_image.height, table_regions=regions)
+        preprocessing["blocks"] = page["blocks"]
+        preprocessing["layout_confidence"] = page["layout_confidence"]
+        preprocessing["layout_confidence_values"] = page["layout_confidence_values"]
+        preprocessing["hardware"] = page["hardware"]
         return page["text"], None, [], preprocessing
-    except paddle_adapter.PaddleOutputSchemaError:
-        raise OCRProcessingError(
-            "PaddleOCR-VL returned page output that could not be aligned."
-        ) from None
+    except paddle_adapter.PaddleOutputSchemaError as exc:
+        raise OCRProcessingError("PaddleOCR-VL returned an invalid page layout.") from exc
     except paddle_adapter.PaddleInferenceError as exc:
-        raise OCRProcessingError(str(exc)) from None
+        raise OCRProcessingError(str(exc)) from exc
     except (OSError, ValueError) as exc:
-        raise OCRProcessingError(
-            "The page image could not be prepared for PaddleOCR-VL."
-        ) from None
+        raise OCRProcessingError("The image could not be prepared for PaddleOCR-VL.") from exc
     finally:
-        if image_path and os.path.exists(image_path):
-            os.remove(image_path)
-        if ocr_image is not image:
-            ocr_image.close()
+        if image_path and os.path.exists(image_path): os.remove(image_path)
+        if ocr_image is not image: ocr_image.close()
+        if source is not image and source is not ocr_image: source.close()
 
 
 def _classic_paddle_page_output(outputs: Any) -> tuple[str, float | None, list[float]]:
@@ -315,6 +313,10 @@ def _preprocess_and_classic_paddle_page(
     source_page_number: int,
     correlation_id: str,
 ) -> tuple[str, float | None, list[float], dict[str, Any]]:
+    # Preserve faint physical rules before filtering. All cell coordinates and
+    # recognition pixels must use the same aligned image frame.
+    from app.ocr.table_geometry import ruled_cells
+    source_image, regions = ruled_cells(image)
     preprocessing = _classic_paddle_preprocessing_settings()
     if PADDLEOCR_PREPROCESSING_ENABLED:
         try:
@@ -326,9 +328,9 @@ def _preprocess_and_classic_paddle_page(
                 image_width=image.width,
                 image_height=image.height,
             ):
-                ocr_image, preprocessing = preprocess_image(image)
+                ocr_image, preprocessing = preprocess_image(source_image, allow_deskew=not bool(regions))
             preprocessing["selection"] = (
-                "preprocessed" if ocr_image is not image else "original_rgb"
+                "preprocessed" if ocr_image is not source_image else "original_rgb"
             )
         except ImagePreprocessingError:
             logger.warning(
@@ -339,13 +341,15 @@ def _preprocess_and_classic_paddle_page(
                     "event": "classic_paddle_preprocessing_fallback",
                 },
             )
-            ocr_image = image
+            ocr_image = source_image
             preprocessing["selection"] = "original_rgb_fallback"
             preprocessing["fallback_reason"] = "preprocessing_failed"
     else:
-        ocr_image = image
+        ocr_image = source_image
         preprocessing["selection"] = "original_rgb"
 
+    preprocessing["layout_deskew_applied"] = source_image is not image
+    preprocessing["table_geometry_source"] = "original_image"
     image_path = None
     try:
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as image_file:
@@ -362,6 +366,20 @@ def _preprocess_and_classic_paddle_page(
         ):
             outputs = engine.predict(image_path)
         text, confidence, confidence_values = _classic_paddle_page_output(outputs)
+        try:
+            def read_cells(crops):
+                import numpy as np
+                readings = []
+                for start in range(0, len(crops), 24):
+                    batch = [np.asarray(crop)[:, :, ::-1].copy() for crop in crops[start:start+24]]
+                    predictions = list(engine.predict(batch))
+                    for prediction in predictions:
+                        cell_text, cell_confidence, _ = _classic_paddle_page_output([prediction])
+                        readings.append({"text":cell_text.replace("\n", " "),"confidence":cell_confidence})
+                return readings
+            preprocessing["blocks"] = ocr_blocks(outputs[0], ocr_image, regions=regions, cell_reader=read_cells)
+        except (ValueError, TypeError, KeyError, IndexError, RuntimeError):
+            logger.warning("Layout detection unavailable; retaining recognized text", exc_info=True)
         return text, confidence, confidence_values, preprocessing
     except (OSError, ValueError) as exc:
         raise OCRProcessingError(
@@ -372,6 +390,8 @@ def _preprocess_and_classic_paddle_page(
             os.remove(image_path)
         if ocr_image is not image:
             ocr_image.close()
+        if source_image is not image and source_image is not ocr_image:
+            source_image.close()
 
 
 def _confidence_values(data: dict[str, Any]) -> list[float]:
@@ -549,6 +569,20 @@ def _preprocess_and_ocr_page(
             ocr_image.close()
 
 
+def _finalize_vl_information(result):
+    if result.get("ocr_engine") != "paddleocr_vl": return
+    values = []
+    for page in result.get("pages", []):
+        preprocessing = page.get("preprocessing", {})
+        values.extend(preprocessing.pop("layout_confidence_values", []))
+        page["layout_confidence"] = preprocessing.get("layout_confidence")
+        if preprocessing.get("hardware"):
+            result["processing_metadata"]["hardware"] = preprocessing["hardware"]
+            result["processing_metadata"]["vl_recognition_backend"] = preprocessing["hardware"]["backend"]
+    result["average_layout_confidence"] = round(statistics.mean(values), 1) if values else None
+    result["processing_metadata"]["layout_confidence_calculation"] = "Mean of valid detected-region classification scores, 0–100. This is not text-recognition confidence or OCR accuracy."
+
+
 def _base_result(
     document_id: str,
     filename: str,
@@ -571,6 +605,7 @@ def _base_result(
     has_confidence = OCR_ENGINE != "paddleocr_vl"
     return {
         "document_id": document_id,
+        "layout_version": LAYOUT_VERSION,
         "filename": filename,
         "document_type": "pdf" if file_type == "application/pdf" else "image",
         "document_classification": document_classification,
@@ -581,6 +616,7 @@ def _base_result(
         "page_count": page_count,
         "pages": [],
         "average_confidence": None,
+        "average_layout_confidence": None,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "processing_metadata": {
             "render_dpi": dpi,
@@ -594,6 +630,7 @@ def _base_result(
             "minimum_page_confidence": (
                 MIN_PAGE_CONFIDENCE if has_confidence else None
             ),
+            "vl_recognition_backend": PADDLE_VL_BACKEND if OCR_ENGINE == "paddleocr_vl" else None,
             "paddle_pipeline_version": (
                 _paddle_pipeline_version() if OCR_ENGINE == "paddleocr_vl" else None
             ),
@@ -787,6 +824,11 @@ def run_document_ocr(
                     ],
                 }
             )
+            for item, source_page in zip(result["pages"], document):
+                item["raw_text"] = item["text"]
+                item["blocks"] = pdf_blocks(source_page)
+                if item["blocks"]:
+                    item["text"] = blocks_text(item["blocks"])
             document.close()
             return {
                 **result,
@@ -1020,6 +1062,7 @@ def run_document_ocr(
             raise OCRProcessingError(
                 "OCR output did not match the source document page sequence."
             )
+        _finalize_vl_information(result)
         if not any(page["text"] for page in result["pages"]):
             result["error_message"] = (
                 f"{OCR_ENGINE} completed but did not recognize any text."
@@ -1049,6 +1092,13 @@ def run_document_ocr(
             if confidence_values
             else None
         )
+        for item in result["pages"]:
+            item["raw_text"] = item["text"]
+            blocks = item.get("preprocessing", {}).pop("blocks", None)
+            if blocks is None and item["extraction_method"] == "direct" and document is not None:
+                blocks = pdf_blocks(document[item["page_number"]-1])
+            item["blocks"] = blocks or [{"type": "text", "text": item["text"]}]
+            item["text"] = blocks_text(item["blocks"])
         return result
     except (
         OCREngineUnavailableError,

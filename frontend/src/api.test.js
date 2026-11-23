@@ -13,9 +13,20 @@ beforeEach(async () => {
 });
 
 describe("authenticated API client", () => {
+  it("uses the documented backend port by default in development", async () => {
+    vi.stubEnv("VITE_API_BASE_URL", "");
+    vi.stubEnv("VITE_API_PORT", "");
+    vi.stubEnv("DEV", true);
+    vi.resetModules();
+    const localApi = await import("./api");
+    fetchMock.mockResolvedValue(response({}));
+    await localApi.apiFetch("/api/auth/login", { method: "POST" });
+    expect(String(fetchMock.mock.calls[0][0])).toBe(`${window.location.protocol}//${window.location.hostname}:8001/api/auth/login`);
+  });
+
   it("keeps the browser hostname when configuring a development API port", async () => {
     vi.stubEnv("VITE_API_BASE_URL", "");
-    vi.stubEnv("VITE_API_PORT", "8001");
+    vi.stubEnv("VITE_API_PORT", "8002");
     vi.stubEnv("DEV", true);
     vi.resetModules();
     const localApi = await import("./api");
@@ -23,7 +34,7 @@ describe("authenticated API client", () => {
     await localApi.apiFetch("/api/auth/login", { method: "POST" });
     const url = fetchMock.mock.calls[0][0];
     expect(url.hostname).toBe(window.location.hostname);
-    expect(url.port).toBe("8001");
+    expect(url.port).toBe("8002");
   });
 
   it("times out a stalled sign-in request with a useful error", async () => {

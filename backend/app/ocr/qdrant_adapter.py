@@ -10,6 +10,7 @@ from typing import Any, Mapping
 from uuid import NAMESPACE_URL, uuid5
 
 from app.document_processing.text_chunker import chunk_text
+from app.ocr.layout import structured_chunks
 from app.ocr.embedding import BGEEmbeddingAdapter
 
 
@@ -137,6 +138,13 @@ class OCRQdrantAdapter:
         if isinstance(limit, bool) or not isinstance(limit, int) or limit < 1:
             raise ValueError("OCR retrieval limit must be a positive integer.")
 
+        return self.retrieve_documents(query, [document_id], owner_user_id, limit)
+
+    def retrieve_documents(self, query: str, document_ids: list[str], owner_user_id: str, limit: int = 5) -> list[dict[str, Any]]:
+        owner_user_id = self._require_owner_user_id(owner_user_id)
+        document_ids = [self._validate_document_id(d) for d in document_ids]
+        if not document_ids:
+            return []
         client, collection = self._client_and_collection()
         query_vector = self._embedder.embed([query])[0]
         models = self._models()
@@ -152,7 +160,7 @@ class OCRQdrantAdapter:
                 ),
                 models.FieldCondition(
                     key="document_id",
-                    match=models.MatchValue(value=document_id),
+                    match=(models.MatchValue(value=document_ids[0]) if len(document_ids) == 1 else models.MatchAny(any=document_ids)),
                 ),
             ]
         )
@@ -175,7 +183,7 @@ class OCRQdrantAdapter:
             if (
                 payload.get("source_type") != OCR_SOURCE_TYPE
                 or payload.get("owner_user_id") != owner_user_id.strip()
-                or payload.get("document_id") != document_id
+                or payload.get("document_id") not in document_ids
             ):
                 continue
             text = payload.get("text_numbered")
@@ -303,6 +311,8 @@ class OCRQdrantAdapter:
                 chunk_size=1200,
                 overlap=50,
             )
+            if page.get("blocks"):
+                page_chunks = structured_chunks(page["blocks"])
             for page_chunk in page_chunks:
                 chunk_id = f"p{page_number}-c{page_chunk['chunk_id']}"
                 payload = {
@@ -316,6 +326,8 @@ class OCRQdrantAdapter:
                     "text_numbered": page_chunk["text"],
                     "ingestion_timestamp": ingestion_timestamp,
                 }
+                if isinstance(result.get("case_number"), str) and result["case_number"].strip():
+                    payload["case_number"] = result["case_number"].strip()
                 if owner_user_id is not None:
                     payload["owner_user_id"] = owner_user_id
 

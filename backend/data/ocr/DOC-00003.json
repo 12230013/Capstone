@@ -1,0 +1,41 @@
+{
+  "document_id": "DOC-00003",
+  "filename": "page_9.png",
+  "document_type": "image",
+  "document_classification": "image",
+  "ocr_engine": "paddleocr-vl-1.6",
+  "ocr_required": true,
+  "ocr_status": "completed",
+  "page_count": 1,
+  "pages": [
+    {
+      "page_number": 1,
+      "text": "<table border=1 style='margin: auto; word-wrap: break-word;'><tr><td style='text-align: center; word-wrap: break-word;'>SL.NO</td><td style='text-align: center; word-wrap: break-word;'>TRAN.DATE</td><td style='text-align: center; word-wrap: break-word;'>TIME_STAMP</td><td style='text-align: center; word-wrap: break-word;'>DEBIT</td><td style='text-align: center; word-wrap: break-word;'>CREDIT</td><td style='text-align: center; word-wrap: break-word;'>BALANCE</td><td style='text-align: center; word-wrap: break-word;'>TRAN_DESC</td><td style='text-align: center; word-wrap: break-word;'>NARRATION</td><td style='text-align: center; word-wrap: break-word;'>JRNLL NO</td><td style='text-align: center; word-wrap: break-word;'>ACCOUNT NO</td><td style='text-align: center; word-wrap: break-word;'>ACCOUNT NAME 1</td><td style='text-align: center; word-wrap: break-word;'>ACCOUNT NAME 2</td><td style='text-align: center; word-wrap: break-word;'>CID NO</td><td style='text-align: center; word-wrap: break-word;'>CONTACT NO</td></tr><tr><td style='text-align: center; word-wrap: break-word;'>1255</td><td style='text-align: center; word-wrap: break-word;'>31-DEC-2021</td><td style='text-align: center; word-wrap: break-word;'>12:30 PM</td><td style='text-align: center; word-wrap: break-word;'>1,000.00</td><td style='text-align: center; word-wrap: break-word;'>0.00</td><td style='text-align: center; word-wrap: break-word;'>6,871.39</td><td style='text-align: center; word-wrap: break-word;'>WITHDRAWAL</td><td style='text-align: center; word-wrap: break-word;'>ITMO Sawmill</td><td style='text-align: center; word-wrap: break-word;'>346769688</td><td style='text-align: center; word-wrap: break-word;'>100523845</td><td style='text-align: center; word-wrap: break-word;'>SONAM CHHODEN</td><td style='text-align: center; word-wrap: break-word;'>SONAM CHHODEN</td><td style='text-align: center; word-wrap: break-word;'>10502000773</td><td style='text-align: center; word-wrap: break-word;'>17475428</td></tr><tr><td style='text-align: center; word-wrap: break-word;'>1336</td><td style='text-align: center; word-wrap: break-word;'>18-FEB-2022</td><td style='text-align: center; word-wrap: break-word;'>10:56 AM</td><td style='text-align: center; word-wrap: break-word;'>3,000.00</td><td style='text-align: center; word-wrap: break-word;'>0.00</td><td style='text-align: center; word-wrap: break-word;'>41,179.60</td><td style='text-align: center; word-wrap: break-word;'>WITHDRAWAL</td><td style='text-align: center; word-wrap: break-word;'>Sawmill Incharge</td><td style='text-align: center; word-wrap: break-word;'>194802</td><td style='text-align: center; word-wrap: break-word;'>100523845</td><td style='text-align: center; word-wrap: break-word;'>SONAM CHHODEN</td><td style='text-align: center; word-wrap: break-word;'>SONAM CHHODEN</td><td style='text-align: center; word-wrap: break-word;'>10502000773</td><td style='text-align: center; word-wrap: break-word;'>17475428</td></tr></table>\n\n<div style=\"text-align: center;\"><img src=\"imgs/img_in_image_box_280_273_649_508.jpg\" alt=\"Image\" width=\"15%\" /></div>",
+      "confidence": 0.9,
+      "preprocessing": {
+        "engine": "paddleocr-vl-1.6",
+        "device": "cpu",
+        "orientation_classification": true,
+        "document_unwarping": true,
+        "layout_detection": true,
+        "chart_recognition": true,
+        "seal_recognition": true,
+        "output_format": "markdown",
+        "estimated_confidence": 0.9
+      }
+    }
+  ],
+  "average_confidence": 0.9,
+  "created_at": "2026-10-14T20:24:10.319020+00:00",
+  "processing_metadata": {
+    "render_dpi": null,
+    "device": "cpu",
+    "preprocessing": {
+      "engine": "paddleocr-vl-1.6",
+      "orientation_classification": true,
+      "document_unwarping": true,
+      "layout_detection": true
+    },
+    "confidence_calculation": "Heuristic VLM confidence estimation evaluating text yield, character variety, and spatial density."
+  }
+}

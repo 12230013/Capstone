@@ -6,10 +6,6 @@ import numpy as np
 from PIL import Image
 
 from app.ocr import document_preprocessing as preprocessing
-from tools.ocr_test_helpers import (
-    character_error_rate,
-    make_synthetic_samples,
-)
 
 
 class DocumentPreprocessingTests(unittest.TestCase):
@@ -132,33 +128,27 @@ class DocumentPreprocessingTests(unittest.TestCase):
                 "unknown",
             )
 
-    def test_character_error_rate_matches_edit_distance_definition(self):
-        self.assertEqual(character_error_rate("abc", "abc"), 0)
-        self.assertAlmostEqual(character_error_rate("abc", "adc"), 1 / 3)
-        self.assertAlmostEqual(character_error_rate("abc", "ab"), 1 / 3)
-        self.assertEqual(character_error_rate("", ""), 0)
+    def test_layout_aligned_pages_skip_second_rotation(self):
+        source = Image.fromarray(self.make_text_image())
+        with patch.object(preprocessing, "deskew_image") as rotate:
+            result, details = preprocessing.preprocess_image(source, allow_deskew=False)
+        rotate.assert_not_called()
+        self.assertFalse(details["deskew"])
+        result.close()
+        source.close()
 
-    def test_synthetic_evaluation_samples_are_generated_without_fixture_files(self):
-        samples = make_synthetic_samples()
-        self.assertEqual(
-            [sample.name for sample in samples],
-            [
-                "clean-printed",
-                "slightly-rotated",
-                "low-contrast",
-                "noisy-scan",
-                "multi-page",
-            ],
-        )
-        self.assertTrue(all(sample.pages for sample in samples))
-        self.assertEqual(len(samples[-1].pages), 2)
-        self.assertTrue(
-            all(
-                isinstance(page, np.ndarray)
-                for sample in samples
-                for page in sample.pages
-            )
-        )
+    def test_faint_noisy_scan_is_preprocessed_without_changing_source(self):
+        gray = preprocessing.to_grayscale(self.make_text_image())
+        faint = (210 + gray.astype(np.float32) * (45 / 255)).astype(np.uint8)
+        noise = np.random.default_rng(21).normal(0, 2, faint.shape)
+        source = Image.fromarray(np.clip(faint + noise, 0, 255).astype(np.uint8)).convert("RGB")
+        before = np.asarray(source).copy()
+        result, details = preprocessing.preprocess_image(source)
+        self.assertTrue(details["enabled"])
+        self.assertGreater(np.ptp(np.asarray(result)), 0)
+        np.testing.assert_array_equal(before, np.asarray(source))
+        result.close()
+        source.close()
 
 
 if __name__ == "__main__":

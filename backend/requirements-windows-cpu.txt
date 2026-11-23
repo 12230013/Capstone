@@ -1,0 +1,3 @@
+# Explicit CPU alternative for machines without a supported NVIDIA CUDA GPU.
+-r requirements.txt
+paddlepaddle==3.3.0

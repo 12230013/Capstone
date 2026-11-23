@@ -1,5 +1,5 @@
 const apiBase = import.meta.env.VITE_API_BASE_URL || (
-  import.meta.env.DEV ? `${window.location.protocol}//${window.location.hostname}:${import.meta.env.VITE_API_PORT || "8000"}` : window.location.origin
+  import.meta.env.DEV ? `${window.location.protocol}//${window.location.hostname}:${import.meta.env.VITE_API_PORT || "8001"}` : window.location.origin
 );
 
 let csrfToken = null;

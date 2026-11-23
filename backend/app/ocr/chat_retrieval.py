@@ -303,6 +303,28 @@ class OCRChatRetrievalService:
             logger.exception("Owner-scoped OCR chat retrieval failed.")
             raise HTTPException(status_code=503, detail="OCR retrieval is unavailable.") from exc
 
+    def retrieve_all_evidence(self, query: str, owner_user_id: str) -> list[dict[str, Any]]:
+        """Search only this account's completed, reviewed and indexed uploads."""
+        if not isinstance(owner_user_id, str) or not owner_user_id.strip():
+            raise HTTPException(401, "Authentication is required.")
+        owner_user_id = owner_user_id.strip()
+        collection = self._documents_collection if self._documents_collection is not None else ocr_documents_collection
+        if collection is None:
+            raise HTTPException(503, "OCR document metadata is unavailable.")
+        try:
+            records = list(collection.find({
+                "owner_user_id": owner_user_id,
+                "status": {"$in": ["completed", "not_required"]},
+                "ocr_status": {"$in": ["completed", "not_required"]},
+                "index_status": "indexed",
+            }, {"_id": 1}))
+            if not records:
+                return []
+            return self._adapter_factory().retrieve_documents(query, [r["_id"] for r in records], owner_user_id)
+        except Exception as exc:
+            logger.exception("OCR upload search failed")
+            raise HTTPException(503, "OCR retrieval is unavailable.") from exc
+
     def _find_owned_documents(
         self,
         filename: str,

@@ -28,6 +28,7 @@ from app.api.routes.cims import router as cims_router
 
 @asynccontextmanager
 async def lifespan(app):
+    ocr_config.validate_runtime()
     from acc_statements.index import embed, close_client
     started = time.monotonic()
     print("Preparing document search: loading and warming the embedding model...", flush=True)
@@ -58,7 +59,7 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
-    return {"message": "ACC Investigation Chatbot API is running"}
+    return {"message": "ACC Investigation Chatbot API is running", "ocr_engine": ocr_config.OCR_ENGINE, "ocr_model": ocr_config.OCR_MODEL_ID}
 
 
 # Register all routers
