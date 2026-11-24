@@ -2,21 +2,25 @@
 
 ## Ubuntu deployment behind Nginx
 
-OCR endpoints are disabled for remote requests by default. For an authenticated
-deployment, set the following in `backend/.env` and restart the backend:
+OCR endpoints are disabled for remote requests by default. For the current
+HTTP-only college VM, set the following in `backend/.env` and restart the backend:
 
 ```dotenv
 OCR_DEPLOYMENT_ENABLED=true
 APP_ENV=production
 ENVIRONMENT=production
-SESSION_COOKIE_SECURE=true
-FRONTEND_ORIGINS=https://your-frontend.example.edu
+SESSION_COOKIE_SECURE=false
+FRONTEND_ORIGINS=http://172.21.48.183
 PADDLE_VL_BACKEND=native
 PADDLE_DEVICE=cpu
 ```
 
-Replace the frontend origin with the exact browser origin (scheme and port,
-without a path). Keep HTTPS enabled so the session cookie is sent securely.
+`FRONTEND_ORIGINS` must exactly match the browser origin, including scheme and
+port if present, and must not include a path or trailing slash. Since this VM is
+served over HTTP, `SESSION_COOKIE_SECURE=false` is needed for the browser to
+send the session cookie. This exposes session traffic to the network; switch to
+HTTPS and `SESSION_COOKIE_SECURE=true` if TLS becomes available. Production
+cookies remain Secure by default when this setting is omitted.
 The deployment flag only lifts the loopback/development restriction for the
 normal OCR workflow. Session authentication, mutation Origin and CSRF checks,
 per-document ownership, upload type and size validation, review confirmation,

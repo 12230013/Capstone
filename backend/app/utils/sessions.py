@@ -34,9 +34,12 @@ def public_user(user):
 
 
 def cookie_options():
+    secure = settings.session_cookie_secure
+    if secure is None:
+        secure = settings.environment == "production"
     return {
         "httponly": True,
-        "secure": settings.session_cookie_secure or settings.environment == "production",
+        "secure": secure,
         "samesite": "lax",
         "path": "/api",
     }

@@ -3,7 +3,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict # type: ignore
 
 class Settings(BaseSettings):
     environment: str = "development"
-    session_cookie_secure: bool = False
+    # None keeps production cookies Secure by default; set explicitly to false
+    # only for deployments that are served over plain HTTP.
+    session_cookie_secure: bool | None = None
     session_hours: int = 24
     session_idle_minutes: int = 240
     frontend_origins: str = "http://localhost:5173,http://127.0.0.1:5173"

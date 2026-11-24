@@ -205,8 +205,17 @@ class SessionSecurityTests(ApiTestCase):
         self.collections["folders_collection"].find.assert_called_with({"user_id": self.user_id})
 
     def test_production_cookie_is_secure(self):
-        with patch.object(sessions.settings, "environment", "production"):
+        with patch.object(sessions.settings, "environment", "production"), patch.object(
+            sessions.settings, "session_cookie_secure", None
+        ):
             self.assertIn("secure", self.login().headers["set-cookie"].lower())
+
+    def test_http_deployment_can_explicitly_disable_secure_cookie(self):
+        with patch.object(sessions.settings, "environment", "production"), patch.object(
+            sessions.settings, "session_cookie_secure", False
+        ):
+            cookie = self.login().headers["set-cookie"].lower()
+            self.assertNotIn("; secure", cookie)
 
     def test_authenticated_chat_uses_server_identity_and_preserves_answer(self):
         self.login()
