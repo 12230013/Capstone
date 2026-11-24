@@ -144,11 +144,28 @@ QUESTION:
     for claim in result.claims:
         valid_citations = []
         for citation in claim.evidence:
-            for key in aliases.get(citation.evidence_id.strip("[]"), []):
+            matching_keys = aliases.get(citation.evidence_id.strip("[]"), [])
+            matched = False
+            for key in matching_keys:
                 item = records[key]
                 if normalize(citation.quote) and normalize(citation.quote) in normalize(item["text"]):
                     valid_citations.append(UnifiedCitation(evidence_id=key, quote=citation.quote))
+                    matched = True
                     break
+            if not matched:
+                # Some local models return an unknown evidence label even
+                # when they copied a valid quote. Resolve it only if that
+                # exact quote identifies one retrieved record unambiguously.
+                quote = normalize(citation.quote)
+                quote_matches = [
+                    key
+                    for key, item in records.items()
+                    if quote and quote in normalize(item["text"])
+                ]
+                if len(quote_matches) == 1:
+                    valid_citations.append(
+                        UnifiedCitation(evidence_id=quote_matches[0], quote=citation.quote)
+                    )
         if not valid_citations:
             continue
         ids = list(dict.fromkeys(citation.evidence_id for citation in valid_citations))

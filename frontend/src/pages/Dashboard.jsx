@@ -19,6 +19,8 @@ import {
   FileText,
   ArrowRight,
   ArrowLeft,
+  ChevronDown,
+  ChevronRight,
   CircleHelp,
   X,
 } from "lucide-react";
@@ -123,6 +125,7 @@ export function Sidebar({
   user,
 }) {
   const [showFolderInput, setShowFolderInput] = useState(false);
+  const [foldersExpanded, setFoldersExpanded] = useState(true);
   const [folderName, setFolderName] = useState("");
   const [activeTab, setActiveTab] = useState("history");
   const [openConversationMenu, setOpenConversationMenu] = useState(null);
@@ -306,10 +309,21 @@ export function Sidebar({
         </form>
       )}
 
-      {/* Folder list */}
-      {folders.length > 0 && (
-        <div className="sidebar-quick-folders">
-          {folders.map((item) => (
+      {/* Collapsible folder section */}
+      <div className="sidebar-folder-section">
+        <button
+          type="button"
+          className="sidebar-folder-heading"
+          aria-expanded={foldersExpanded}
+          onClick={() => setFoldersExpanded((expanded) => !expanded)}
+        >
+          {foldersExpanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+          <span>Folders</span>
+          <span className="sidebar-folder-count">{folders.length}</span>
+        </button>
+        {foldersExpanded && folders.length > 0 && (
+          <div className="sidebar-quick-folders">
+            {folders.map((item) => (
             <div
               key={item.id}
               className="sidebar-quick-folder"
@@ -390,9 +404,13 @@ export function Sidebar({
                 )}
               </div>
             </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+        {foldersExpanded && folders.length === 0 && (
+          <p className="sidebar-folder-empty">No folders yet</p>
+        )}
+      </div>
 
       <div className="sidebar-actions sidebar-new-conversation">
         <button

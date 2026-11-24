@@ -151,8 +151,8 @@ input:focus-visible {
   gap: 8px;
   margin-top: 12px;
   padding: 12px;
-  background: #193a5e;
-  border: 1px solid rgba(231, 169, 27, 0.4);
+  background: #374958;
+  border: 1px solid rgba(255, 255, 255, 0.24);
   border-radius: 8px;
 }
 
@@ -168,8 +168,8 @@ input:focus-visible {
   height: 35px;
   padding: 0 9px;
   color: white;
-  background: #102944;
-  border: 1px solid #45617e;
+  background: #293b4a;
+  border: 1px solid #718495;
   border-radius: 5px;
   font-size: 11px;
 }
@@ -1683,31 +1683,78 @@ input:focus-visible {
    SIDEBAR FOLDERS
 ========================= */
 
+.sidebar-folder-section {
+  width: 100%;
+  margin: 14px 0 4px;
+}
+
+.sidebar-folder-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 34px;
+  padding: 0 8px;
+  color: #e5edf5;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.sidebar-folder-heading:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-folder-heading > svg {
+  flex: 0 0 auto;
+  color: #b6c3d1;
+}
+
+.sidebar-folder-count {
+  margin-left: auto;
+  color: #aebdcb;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.sidebar-folder-empty {
+  margin: 4px 0 4px 31px;
+  color: #aebdcb;
+  font-size: 11px;
+}
+
 .sidebar-quick-folders {
   width: 100%;
-  margin: 7px 0;
+  max-height: min(30dvh, 240px);
+  margin: 3px 0 0;
   padding: 0;
 
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .sidebar-quick-folder {
   width: 100%;
   min-width: 0;
-  height: 46px;
+  height: 36px;
 
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
 
-  padding: 0 12px;
+  padding: 0 8px 0 29px;
   box-sizing: border-box;
 
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.32);
-  border-radius: 7px;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
 
   color: #ffffff;
   cursor: pointer;
@@ -1718,13 +1765,12 @@ input:focus-visible {
 }
 
 .sidebar-quick-folder:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.09);
 }
 
 .sidebar-quick-folder > svg {
   flex: 0 0 auto;
-  color: #dbe4ef;
+  color: #d9e2eb;
 }
 
 .sidebar-quick-folder > span {
