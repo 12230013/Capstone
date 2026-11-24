@@ -778,7 +778,16 @@ def index_document(
                 detail="A completed OCR result is required before indexing.",
             )
         if confirmation.reviewed_pages is not None:
-            _apply_reviewed_page_text(result, confirmation.reviewed_pages)
+            try:
+                _apply_reviewed_page_text(result, confirmation.reviewed_pages)
+            except HTTPException as exc:
+                logger.warning(
+                    "OCR review rejected for %s: %s (original pages=%s, submitted pages=%s)",
+                    document_id, exc.detail,
+                    [p.get("page_number") for p in result.get("pages", [])],
+                    [p.page_number for p in confirmation.reviewed_pages],
+                )
+                raise
         if not any(
             isinstance(page, dict)
             and isinstance(page.get("text"), str)

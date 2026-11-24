@@ -6,6 +6,9 @@ def paragraph(text): return {'type':'paragraph','content':[{'type':'text','text'
 def cell(text,**attrs): return {'type':'tableCell','attrs':attrs,'content':[paragraph(text)]}
 
 class EditorDocumentTests(unittest.TestCase):
+    def test_page_breaks_preserve_searchable_text_without_indexing_layout_markers(self):
+        blocks=editor_blocks({'type':'doc','content':[paragraph('Before'),{'type':'pageBreak'},paragraph('After')]})
+        self.assertEqual(blocks,[{'type':'text','text':'Before'},{'type':'text','text':'After'}])
     def test_mixed_document_serializes_text_table_and_form(self):
         document={'type':'doc','content':[paragraph('Reviewed paragraph.'),{'type':'table','content':[{'type':'tableRow','content':[cell('Item'),cell('Amount')]},{'type':'tableRow','content':[cell('Travel'),cell('850')]}]},{'type':'table','attrs':{'layoutKind':'form'},'content':[{'type':'tableRow','content':[cell('Name'),cell('Karma')]}]}]}
         blocks=editor_blocks(document)

@@ -1,5 +1,5 @@
 """Validate the review editor's JSON and derive authoritative searchable blocks."""
-ALLOWED = {'doc','paragraph','heading','text','hardBreak','bulletList','orderedList','listItem','table','tableRow','tableCell','tableHeader','blockquote','horizontalRule','codeBlock'}
+ALLOWED = {'doc','paragraph','heading','text','hardBreak','pageBreak','bulletList','orderedList','listItem','table','tableRow','tableCell','tableHeader','blockquote','horizontalRule','codeBlock'}
 
 
 def editor_blocks(document):
@@ -23,6 +23,8 @@ def editor_blocks(document):
         return separator.join(text(n) for n in node.get('content',[]))
     blocks=[]
     for node in document.get('content',[]):
+        if node['type'] == 'pageBreak':
+            continue
         if node['type'] != 'table':
             blocks.append({'type':'text','text':text(node)});continue
         rows=[]

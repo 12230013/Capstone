@@ -33,6 +33,10 @@ async def lifespan(app):
     started = time.monotonic()
     print("Preparing document search: loading and warming the embedding model...", flush=True)
     await run_in_threadpool(embed, ["Investigation document search warm-up"])
+    # Provision the dedicated upload index at startup, including after a reset.
+    # This validates existing schemas and never rebuilds the statement index.
+    from app.ocr.qdrant_adapter import OCRQdrantAdapter
+    await run_in_threadpool(OCRQdrantAdapter().provision_collection)
     print(f"Document search ready in {time.monotonic() - started:.1f}s. You can now submit questions.", flush=True)
     try:
         yield

@@ -4,8 +4,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict # type: ignore
 class Settings(BaseSettings):
     environment: str = "development"
     session_cookie_secure: bool = False
-    session_hours: int = 8
-    session_idle_minutes: int = 30
+    session_hours: int = 24
+    session_idle_minutes: int = 240
     frontend_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
     cdr_api_base_url: str = "http://localhost:5000"
     cdr_api_timeout: int = 15

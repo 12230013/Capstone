@@ -99,7 +99,8 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks, session:
             "sources": [], "conversation_id": conversation_id, "created_at": now,
         }).inserted_id
 
-        context_messages = [{"role": message["role"], "content": message.get("content", "")} for message in recent_messages]
+        context_messages = [{"role": message["role"], "content": message.get("content", ""),
+                             "sources": message.get("sources", [])} for message in recent_messages]
         context_messages.append({"role": "user", "content": query})
         result = await chat_service.query(
             query,

@@ -1,0 +1,21 @@
+{
+  "document_id": "300624568c02447c6f5dae65802c8d80b746836960aab77493b668a713f41254",
+  "content_sha256": "300624568c02447c6f5dae65802c8d80b746836960aab77493b668a713f41254",
+  "owner_user_id": "6b000ed069b96718764c1bb7",
+  "filename": "document2.pdf",
+  "mime_type": "application/pdf",
+  "status": "completed",
+  "ocr_status": "completed",
+  "index_status": "indexed",
+  "created_at": "2026-11-23T22:44:24.784912+00:00",
+  "updated_at": "2026-11-23T22:50:46.626438+00:00",
+  "case_number": null,
+  "error_code": null,
+  "extraction_method": "paddleocr_vl",
+  "page_count": 2,
+  "layout_version": 6,
+  "index_error_code": null,
+  "case_no": null,
+  "chunks_indexed": 9,
+  "collection": "ocr_documents"
+}

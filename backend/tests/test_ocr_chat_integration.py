@@ -109,7 +109,7 @@ class OCRChatIntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.service._rag_service.query.assert_not_called()
         self.service._statement_service.query_statement_evidence.assert_not_called()
 
-    async def test_unavailable_owned_ocr_document_preserves_normal_rag_fallback(self):
+    async def test_unavailable_named_upload_does_not_return_unrelated_rag_facts(self):
         with patch(
             "app.ocr.chat_retrieval.ocr_chat_retrieval.retrieve",
             return_value=None,
@@ -120,8 +120,9 @@ class OCRChatIntegrationTests(unittest.IsolatedAsyncioTestCase):
             )
 
         self.assertEqual(result["success"], True)
-        self.assertEqual(result["response"]["answer"], "Existing RAG answer.")
-        self.service._rag_service.query.assert_called_once()
+        self.assertIn("couldn't find an indexed upload", result["response"]["answer"])
+        self.assertEqual(result["response"]["sources"], [])
+        self.service._rag_service.query.assert_not_called()
 
     async def test_existing_statement_chat_does_not_enter_ocr_path(self):
         with patch(

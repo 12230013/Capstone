@@ -841,6 +841,7 @@ class ChatService:
                         "citation": sentence_id,
                         "source_type": "statement",
                         "statement_id": item.get("statement_id"),
+                        "filename": item.get("filename") or f"{item.get('statement_id', 'statement')}.txt",
                         "sentence_id": sentence_id,
                         "person_name": item.get("person_name"),
                         "statement_date": item.get("statement_date"),
@@ -2064,7 +2065,8 @@ class ChatService:
             if current_query and content == current_query:
                 continue
 
-            previous_user_messages.append(content)
+            if ChatService._social_reply(content) is None:
+                previous_user_messages.append(content)
 
         # Keep only the most recent 4 previous user messages.
         previous_user_messages = previous_user_messages[-4:]
@@ -2087,6 +2089,10 @@ class ChatService:
         query_lower = query.lower()
         context = context or {}
 
+        social = self._social_reply(query)
+        if social is not None:
+            return self._response(social, [])
+
         # OCR retrieval is explicit and owner-scoped. Keep it ahead of the
         # existing statement/RAG routing without changing those paths.
         from app.ocr.chat_retrieval import (
@@ -2098,7 +2104,7 @@ class ChatService:
         if ocr_filename is not None:
             owner_user_id = context.get("owner_user_id")
             if isinstance(owner_user_id, str) and owner_user_id.strip():
-                if "statements" in self._requested_evidence_systems(query_lower):
+                if re.search(r"\b(compare|cross[- ]?check|correlate|both|together with|alongside)\b", query_lower) and "statements" in self._requested_evidence_systems(query_lower):
                     return await self._handle_unified_statement_ocr_query(
                         query,
                         ocr_filename,
@@ -2115,6 +2121,7 @@ class ChatService:
                         "success": True,
                         "response": ocr_result,
                     }
+                return self._response("I couldn't find an indexed upload with that filename in your account. Check the filename and confirm that it was saved for chat.", [])
 
         context_identifiers = self._get_context_identifiers(context)
 
@@ -2590,12 +2597,13 @@ class ChatService:
 
         owner_user_id = context.get("owner_user_id")
         if ocr_filename is None and isinstance(owner_user_id, str) and owner_user_id.strip():
+            document_query = self._conversational_document_query(query, context)
             uploaded_chunks = await run_in_threadpool(
-                ocr_chat_retrieval.retrieve_all_evidence, query, owner_user_id.strip(),
+                ocr_chat_retrieval.retrieve_all_evidence, document_query, owner_user_id.strip(),
             )
             if uploaded_chunks:
                 return await self._handle_unified_statement_ocr_query(
-                    query, None, owner_user_id.strip(), uploaded_chunks=uploaded_chunks,
+                    document_query, None, owner_user_id.strip(), uploaded_chunks=uploaded_chunks,
                 )
 
         known_statement_names = (
@@ -2667,3 +2675,38 @@ class ChatService:
         ):
             if service and hasattr(service, "close"):
                 service.close()
+    @staticmethod
+    def _social_reply(query: str) -> str | None:
+        text = re.sub(r"[^a-z\s]", "", query.lower()).strip()
+        if re.fullmatch(r"(?:hi|hello|hey|good morning|good afternoon|good evening)(?: there)?(?: how are you(?: doing)?)?", text) or text in {"how are you", "how are you doing"}:
+            return "Hello! How can I help you with your documents or investigation?"
+        if text in {"thanks", "thank you", "thanks a lot", "thank you very much"}:
+            return "You're welcome! Let me know what else you'd like to check."
+        if text in {"bye", "goodbye", "see you"}:
+            return "Goodbye! You can return to this conversation whenever you need."
+        return None
+
+    @staticmethod
+    def _conversational_document_query(query: str, context: dict) -> str:
+        """Use history as retrieval hints; answers must still cite fresh evidence."""
+        previous = [str(m.get("content", "")).strip() for m in context.get("messages", [])
+                    if m.get("role") == "user" and str(m.get("content", "")).strip() != query
+                    and ChatService._social_reply(str(m.get("content", ""))) is None]
+        if not previous:
+            return query
+        followup = bool(re.search(r"\b(it|its|they|their|that|this|those|these|same|he|she|his|her)\b|^(and|also|what about|how about)\b", query, re.I))
+        short_question = len(query.split()) <= 12 and not re.search(r"\bcase\s+\d|\b[A-Z][a-z]+\s+[A-Z][a-z]+|\.(pdf|png|jpe?g)\b", query)
+        if not (followup or short_question):
+            return query
+        topics = "\n".join(previous[-2:])[-1200:]
+        source_context = ""
+        for message in reversed(context.get("messages", [])):
+            if message.get("role") != "assistant":
+                continue
+            filenames = list(dict.fromkeys(s.get("filename") for s in message.get("sources", [])
+                                          if isinstance(s, dict) and s.get("filename")))
+            if filenames:
+                source_context = "\nPreviously cited documents: " + ", ".join(filenames[:4])
+                source_context += "\nPrevious answer (resolve references only; verify again against retrieved evidence): " + str(message.get("content", ""))[:600]
+                break
+        return f"Current question: {query}\nPrevious user questions (subject context only): {topics}{source_context}"

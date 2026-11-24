@@ -1,0 +1,636 @@
+{
+  "document_id": "300624568c02447c6f5dae65802c8d80b746836960aab77493b668a713f41254",
+  "layout_version": 6,
+  "filename": "document2.pdf",
+  "document_type": "pdf",
+  "document_classification": "scanned_pdf",
+  "ocr_engine": "paddleocr_vl",
+  "ocr_model": "PaddleOCR-VL-1.6",
+  "ocr_required": true,
+  "ocr_status": "completed",
+  "page_count": 2,
+  "pages": [
+    {
+      "page_number": 1,
+      "text": "呂 D001 དཕལལྡན་འབྲུ་གཞུབ། ནུས་ཤུགས་དང་རང་བཞིན་ཐོན་སྐྱེད་ལྷ་ནས་ཀརྨ ནགས་ཚལ་དང་གླིང་ཀཞབ་ཕཏོགས་ཁུངས \n\nROYAL GOVERNMENT OF BHUTAN \n\nMINISTRY OF ENERGY AND NATURAL RESOURCES DEPARTMENT OF FORESTS AND PARK SERVICES \n\nTHIMPHU: BHUTAN  \n\nDoFPS/FRPMD/FSES-19/2025-2026/ 1684 \n\nJune 10, 2026 \n\nThe Acting Director\n\nAnti-Corruption Commission \n\nSubject: Submission of Clarification on Roles and Responsibilities of Forestry Officials stationed at Check Post \n\nDear Sir, In response to your Letter No. ACC/Dol-II/Case-19-2025-26/01398 dated 03 June 2026, the Department of Forests and Park Services (DoFPS) would like to clarify the following with regard to the legal status and functions of forest check gates and checkpoints under the Forest and Nature Conservation Act, 2023 (FNCA, 2023) and the Forest and Nature Conservation Rules and Regulations, 2023 (FNCRR, 2023). \n\nUnder the FNCA, 2023, the term \"forest check post\" has been replaced with \"forest check gate.\" Section 251(7) defines a \"forest check gate\" as an established check gate, while Section 251(8) defines a \"forest checkpoint\" as any strategic point along a motorable road or footpath designated for the inspection of forest produce by forestry officials. The forest check gates referred to in the Act are those that had already been established and were operational prior to the coming into force of the FNCA, 2023. \n\nDuring the drafting of the FNCA, 2023 and the FNCRR, 2023, it was the Government's policy to integrate existing forestry check posts into an Integrated Check Post (ICP) management system to be operated by the Royal Bhutan Police (RBP). As of date, 21 forestry check posts have been integrated into the ICP system, performing multi-sectoral regulatory functions of the Department of Immigration, the Department of Revenue and Customs, the Bhutan Food and Drug Authority, and the Department of Forests and Park Services. The objective of this initiative was to establish an integrated check post management system across the country, and the feasibility assessments for such integration were undertaken accordingly. \n\nIn line with this policy objective, Section 15(1) of the FNCRR, 2023 provides that all integrated Check Posts in the country shall be identified as forest check gates. Furthermore, the legislative intent was to supplement established check gates with strategically located forest checkpoints, rather than maintaining numerous physically established and permanently manned forestry check posts, thereby reducing administrative and regulatory burdens on the general public. This approach was also aligned with the Civil Service Reform initiatives aimed at improving the efficiency and effectiveness of public service delivery through institutional integration. \n\nPrior to the enactment of the FNCA, 2023, there were 51 forestry check posts across the country. Of these, 21 were integrated into the ICP management system under the RBP, while 23 forestry check posts were subsequently discontinued. At present, 7 internal forestry check gates remain operational, as the RBP has not assumed responsibility for these locations on the basis that they do not involve the integrated regulatory functions of other agencies, except DoFPS. \n\nThe mandates of forestry officials stationed at these forest check gates are to inspect and verify the trade and transport of forest produce and products, including the inspection of vehicles, persons, consignments, permits, and other supporting documents. These functions have been continuously performed since the establishment of the Department and remain consistent with the mandates prescribed under the existing Act and Rules. Likewise, similar regulatory functions are being performed by RBP personnel at the Integrated Check Posts \n\nPost Box No - 1345 Phone: 975 (02) 323055/321185/322487, EPABX: 334458/334487, FAX: 322395/322836 Hot line: 211 website: www.dofps.gov.br",
+      "confidence": null,
+      "preprocessing": {
+        "enabled": true,
+        "grayscale": true,
+        "denoise": true,
+        "contrast": true,
+        "threshold": true,
+        "threshold_method": "adaptive",
+        "deskew": true,
+        "deskew_applied": false,
+        "deskew_angle_degrees": null,
+        "selection": "preprocessed",
+        "table_geometry_source": "original_image",
+        "layout_deskew_applied": false,
+        "layout_confidence": 63.7,
+        "hardware": {
+          "backend": "mlx-vlm-server",
+          "device": "cpu",
+          "recognition_device": "metal",
+          "cpu_threads": 10
+        }
+      },
+      "extraction_method": "paddleocr_vl",
+      "quality_decision": "manual_review_recommended",
+      "direct_ocr_similarity": 0.1122,
+      "quality_warning": "embedded_and_ocr_text_disagree",
+      "layout_confidence": 63.7,
+      "raw_text": "呂\n\nD001\n\nདཕལལྡན་འབྲུ་གཞུབ། ནུས་ཤུགས་དང་རང་བཞིན་ཐོན་སྐྱེད་ལྷ་ནས་ཀརྨ\n\nནགས་ཚལ་དང་གླིང་ཀཞབ་ཕཏོགས་ཁུངས\n\nROYAL GOVERNMENT OF BIHUTAN\nMINISTRY OF ENERGY AND NATURAL RESOURCES\nDEPARTMENT OF FORESTS AND PARK SERVICES\nTHIMPHU: BIHUTAN\n\n呂氏春秋\n\nDoFPS/FRPMD/FSES-19/2025-2026/ 1684\n\nJune 10, 2026\n\nAnti-Corruption Commission\n\nSubject: Submission of Clarification on Roles and Responsibilities of Forestry Officials stationed at Check Post\n\nDear Sir,\n\nIn response to your Letter No. ACC/Dol-II/Case-19-2025-26/01398 dated 03 June 2026, the Department of Forests and Park Services (DoFPS) would like to clarify the following with regard to the legal status and functions of forest check gates and checkpoints under the Forest and Nature Conservation Act, 2023 (FNCA, 2023) and the Forest and Nature Conservation Rules and Regulations, 2023 (FNCRR, 2023).\n\nUnder the FNCA, 2023, the term \"forest check post\" has been replaced with \"forest check gate.\" Section 251(7) defines a \"forest check gate\" as an established check gate, while Section 251(8) defines a \"forest checkpoint\" as any strategic point along a motorable road or footpath designated for the inspection of forest produce by forestry officials. The forest check gates referred to in the Act are those that had already been established and were operational prior to the coming into force of the FNCA, 2023.\n\nDuring the drafting of the FNCA, 2023 and the FNCRR, 2023, it was the Government's policy to integrate existing forestry check posts into an Integrated Check Post (ICP) management system to be operated by the Royal Bhutan Police (RBP). As of date, 21 forestry check posts have been integrated into the ICP system, performing multi-sectoral regulatory functions of the Department of Immigration, the Department of Revenue and Customs, the Bhutan Food and Drug Authority, and the Department of Forests and Park Services. The objective of this initiative was to establish an integrated check post management system across the country, and the feasibility assessments for such integration were undertaken accordingly.\n\nIn line with this policy objective, Section 15(1) of the FNCRR, 2023 provides that all integrated Check Posts in the country shall be identified as forest check gates. Furthermore, the legislative intent was to supplement established check gates with strategically located forest checkpoints, rather than maintaining numerous physically established and permanently manned forestry check posts, thereby reducing administrative and regulatory burdens on the general public. This approach was also aligned with the Civil Service Reform initiatives aimed at improving the efficiency and effectiveness of public service delivery through institutional integration.\n\nPrior to the enactment of the FNCA, 2023, there were 51 forestry check posts across the country. Of these, 21 were integrated into the ICP management system under the RBP, while 23 forestry check posts were subsequently discontinued. At present, 7 internal forestry check gates remain operational, as the RBP has not assumed responsibility for these locations on the basis that they do not involve the integrated regulatory functions of other agencies, except DoFPS.\n\nThe mandates of forestry officials stationed at these forest check gates are to inspect and verify the trade and transport of forest produce and products, including the inspection of vehicles, persons, consignments, permits, and other supporting documents. These functions have been continuously performed since the establishment of the Department and remain consistent with the mandates prescribed under the existing Act and Rules. Likewise, similar regulatory functions are being performed by RBP personnel at the Integrated Check Posts\n\nPost Box No - 1345 Phone: 975 (02) 323055/321185/322487, EPABX: 334458/334487, FAX: 322395/322836\nHot line: 211 website: www.dofps.gov.br",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "呂 D001 དཕལལྡན་འབྲུ་གཞུབ། ནུས་ཤུགས་དང་རང་བཞིན་ཐོན་སྐྱེད་ལྷ་ནས་ཀརྨ ནགས་ཚལ་དང་གླིང་ཀཞབ་ཕཏོགས་ཁུངས ",
+          "rows": [],
+          "fields": [],
+          "cell_spans": null,
+          "column_widths": null,
+          "has_header": null
+        },
+        {
+          "type": "text",
+          "text": "ROYAL GOVERNMENT OF BHUTAN ",
+          "rows": [],
+          "fields": [],
+          "cell_spans": null,
+          "column_widths": null,
+          "has_header": null
+        },
+        {
+          "type": "text",
+          "text": "MINISTRY OF ENERGY AND NATURAL RESOURCES DEPARTMENT OF FORESTS AND PARK SERVICES ",
+          "rows": [],
+          "fields": [],
+          "cell_spans": null,
+          "column_widths": null,
+          "has_header": null
+        },
+        {
+          "type": "text",
+          "text": "THIMPHU: BHUTAN  ",
+          "rows": [],
+          "fields": [],
+          "cell_spans": null,
+          "column_widths": null,
+          "has_header": null
+        },
+        {
+          "type": "text",
+          "text": "DoFPS/FRPMD/FSES-19/2025-2026/ 1684 ",
+          "rows": [],
+          "fields": [],
+          "cell_spans": null,
+          "column_widths": null,
+          "has_header": null
+        },
+        {
+          "type": "text",
+          "text": "June 10, 2026 ",
+          "rows": [],
+          "fields": [],
+          "cell_spans": null,
+          "column_widths": null,
+          "has_header": null
+        },
+        {
+          "type": "text",
+          "text": "The Acting Director",
+          "rows": [],
+          "fields": [],
+          "cell_spans": null,
+          "column_widths": null,
+          "has_header": null
+        },
+        {
+          "type": "text",
+          "text": "Anti-Corruption Commission ",
+          "rows": [],
+          "fields": [],
+          "cell_spans": null,
+          "column_widths": null,
+          "has_header": null
+        },
+        {
+          "type": "text",
+          "text": "Subject: Submission of Clarification on Roles and Responsibilities of Forestry Officials stationed at Check Post ",
+          "rows": [],
+          "fields": [],
+          "cell_spans": null,
+          "column_widths": null,
+          "has_header": null
+        },
+        {
+          "type": "text",
+          "text": "Dear Sir, In response to your Letter No. ACC/Dol-II/Case-19-2025-26/01398 dated 03 June 2026, the Department of Forests and Park Services (DoFPS) would like to clarify the following with regard to the legal status and functions of forest check gates and checkpoints under the Forest and Nature Conservation Act, 2023 (FNCA, 2023) and the Forest and Nature Conservation Rules and Regulations, 2023 (FNCRR, 2023). ",
+          "rows": [],
+          "fields": [],
+          "cell_spans": null,
+          "column_widths": null,
+          "has_header": null
+        },
+        {
+          "type": "text",
+          "text": "Under the FNCA, 2023, the term \"forest check post\" has been replaced with \"forest check gate.\" Section 251(7) defines a \"forest check gate\" as an established check gate, while Section 251(8) defines a \"forest checkpoint\" as any strategic point along a motorable road or footpath designated for the inspection of forest produce by forestry officials. The forest check gates referred to in the Act are those that had already been established and were operational prior to the coming into force of the FNCA, 2023. ",
+          "rows": [],
+          "fields": [],
+          "cell_spans": null,
+          "column_widths": null,
+          "has_header": null
+        },
+        {
+          "type": "text",
+          "text": "During the drafting of the FNCA, 2023 and the FNCRR, 2023, it was the Government's policy to integrate existing forestry check posts into an Integrated Check Post (ICP) management system to be operated by the Royal Bhutan Police (RBP). As of date, 21 forestry check posts have been integrated into the ICP system, performing multi-sectoral regulatory functions of the Department of Immigration, the Department of Revenue and Customs, the Bhutan Food and Drug Authority, and the Department of Forests and Park Services. The objective of this initiative was to establish an integrated check post management system across the country, and the feasibility assessments for such integration were undertaken accordingly. ",
+          "rows": [],
+          "fields": [],
+          "cell_spans": null,
+          "column_widths": null,
+          "has_header": null
+        },
+        {
+          "type": "text",
+          "text": "In line with this policy objective, Section 15(1) of the FNCRR, 2023 provides that all integrated Check Posts in the country shall be identified as forest check gates. Furthermore, the legislative intent was to supplement established check gates with strategically located forest checkpoints, rather than maintaining numerous physically established and permanently manned forestry check posts, thereby reducing administrative and regulatory burdens on the general public. This approach was also aligned with the Civil Service Reform initiatives aimed at improving the efficiency and effectiveness of public service delivery through institutional integration. ",
+          "rows": [],
+          "fields": [],
+          "cell_spans": null,
+          "column_widths": null,
+          "has_header": null
+        },
+        {
+          "type": "text",
+          "text": "Prior to the enactment of the FNCA, 2023, there were 51 forestry check posts across the country. Of these, 21 were integrated into the ICP management system under the RBP, while 23 forestry check posts were subsequently discontinued. At present, 7 internal forestry check gates remain operational, as the RBP has not assumed responsibility for these locations on the basis that they do not involve the integrated regulatory functions of other agencies, except DoFPS. ",
+          "rows": [],
+          "fields": [],
+          "cell_spans": null,
+          "column_widths": null,
+          "has_header": null
+        },
+        {
+          "type": "text",
+          "text": "The mandates of forestry officials stationed at these forest check gates are to inspect and verify the trade and transport of forest produce and products, including the inspection of vehicles, persons, consignments, permits, and other supporting documents. These functions have been continuously performed since the establishment of the Department and remain consistent with the mandates prescribed under the existing Act and Rules. Likewise, similar regulatory functions are being performed by RBP personnel at the Integrated Check Posts ",
+          "rows": [],
+          "fields": [],
+          "cell_spans": null,
+          "column_widths": null,
+          "has_header": null
+        },
+        {
+          "type": "text",
+          "text": "Post Box No - 1345 Phone: 975 (02) 323055/321185/322487, EPABX: 334458/334487, FAX: 322395/322836 Hot line: 211 website: www.dofps.gov.br",
+          "rows": [],
+          "fields": [],
+          "cell_spans": null,
+          "column_widths": null,
+          "has_header": null
+        }
+      ],
+      "extracted_text": "呂\n\nD001\n\nདཕལལྡན་འབྲུ་གཞུབ། ནུས་ཤུགས་དང་རང་བཞིན་ཐོན་སྐྱེད་ལྷ་ནས་ཀརྨ\n\nནགས་ཚལ་དང་གླིང་ཀཞབ་ཕཏོགས་ཁུངས\n\nROYAL GOVERNMENT OF BIHUTAN\nMINISTRY OF ENERGY AND NATURAL RESOURCES\nDEPARTMENT OF FORESTS AND PARK SERVICES\nTHIMPHU: BIHUTAN\n\n呂氏春秋\n\nDoFPS/FRPMD/FSES-19/2025-2026/ 1684\n\nJune 10, 2026\n\nAnti-Corruption Commission\n\nSubject: Submission of Clarification on Roles and Responsibilities of Forestry Officials stationed at Check Post\n\nDear Sir,\n\nIn response to your Letter No. ACC/Dol-II/Case-19-2025-26/01398 dated 03 June 2026, the Department of Forests and Park Services (DoFPS) would like to clarify the following with regard to the legal status and functions of forest check gates and checkpoints under the Forest and Nature Conservation Act, 2023 (FNCA, 2023) and the Forest and Nature Conservation Rules and Regulations, 2023 (FNCRR, 2023).\n\nUnder the FNCA, 2023, the term \"forest check post\" has been replaced with \"forest check gate.\" Section 251(7) defines a \"forest check gate\" as an established check gate, while Section 251(8) defines a \"forest checkpoint\" as any strategic point along a motorable road or footpath designated for the inspection of forest produce by forestry officials. The forest check gates referred to in the Act are those that had already been established and were operational prior to the coming into force of the FNCA, 2023.\n\nDuring the drafting of the FNCA, 2023 and the FNCRR, 2023, it was the Government's policy to integrate existing forestry check posts into an Integrated Check Post (ICP) management system to be operated by the Royal Bhutan Police (RBP). As of date, 21 forestry check posts have been integrated into the ICP system, performing multi-sectoral regulatory functions of the Department of Immigration, the Department of Revenue and Customs, the Bhutan Food and Drug Authority, and the Department of Forests and Park Services. The objective of this initiative was to establish an integrated check post management system across the country, and the feasibility assessments for such integration were undertaken accordingly.\n\nIn line with this policy objective, Section 15(1) of the FNCRR, 2023 provides that all integrated Check Posts in the country shall be identified as forest check gates. Furthermore, the legislative intent was to supplement established check gates with strategically located forest checkpoints, rather than maintaining numerous physically established and permanently manned forestry check posts, thereby reducing administrative and regulatory burdens on the general public. This approach was also aligned with the Civil Service Reform initiatives aimed at improving the efficiency and effectiveness of public service delivery through institutional integration.\n\nPrior to the enactment of the FNCA, 2023, there were 51 forestry check posts across the country. Of these, 21 were integrated into the ICP management system under the RBP, while 23 forestry check posts were subsequently discontinued. At present, 7 internal forestry check gates remain operational, as the RBP has not assumed responsibility for these locations on the basis that they do not involve the integrated regulatory functions of other agencies, except DoFPS.\n\nThe mandates of forestry officials stationed at these forest check gates are to inspect and verify the trade and transport of forest produce and products, including the inspection of vehicles, persons, consignments, permits, and other supporting documents. These functions have been continuously performed since the establishment of the Department and remain consistent with the mandates prescribed under the existing Act and Rules. Likewise, similar regulatory functions are being performed by RBP personnel at the Integrated Check Posts\n\nPost Box No - 1345 Phone: 975 (02) 323055/321185/322487, EPABX: 334458/334487, FAX: 322395/322836\nHot line: 211 website: www.dofps.gov.br",
+      "editor_json": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "呂 D001 དཕལལྡན་འབྲུ་གཞུབ། ནུས་ཤུགས་དང་རང་བཞིན་ཐོན་སྐྱེད་ལྷ་ནས་ཀརྨ ནགས་ཚལ་དང་གླིང་ཀཞབ་ཕཏོགས་ཁུངས "
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "ROYAL GOVERNMENT OF BHUTAN "
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "MINISTRY OF ENERGY AND NATURAL RESOURCES DEPARTMENT OF FORESTS AND PARK SERVICES "
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "THIMPHU: BHUTAN  "
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "DoFPS/FRPMD/FSES-19/2025-2026/ 1684 "
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "June 10, 2026 "
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "The Acting Director"
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Anti-Corruption Commission "
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Subject: Submission of Clarification on Roles and Responsibilities of Forestry Officials stationed at Check Post "
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Dear Sir, In response to your Letter No. ACC/Dol-II/Case-19-2025-26/01398 dated 03 June 2026, the Department of Forests and Park Services (DoFPS) would like to clarify the following with regard to the legal status and functions of forest check gates and checkpoints under the Forest and Nature Conservation Act, 2023 (FNCA, 2023) and the Forest and Nature Conservation Rules and Regulations, 2023 (FNCRR, 2023). "
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Under the FNCA, 2023, the term \"forest check post\" has been replaced with \"forest check gate.\" Section 251(7) defines a \"forest check gate\" as an established check gate, while Section 251(8) defines a \"forest checkpoint\" as any strategic point along a motorable road or footpath designated for the inspection of forest produce by forestry officials. The forest check gates referred to in the Act are those that had already been established and were operational prior to the coming into force of the FNCA, 2023. "
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "During the drafting of the FNCA, 2023 and the FNCRR, 2023, it was the Government's policy to integrate existing forestry check posts into an Integrated Check Post (ICP) management system to be operated by the Royal Bhutan Police (RBP). As of date, 21 forestry check posts have been integrated into the ICP system, performing multi-sectoral regulatory functions of the Department of Immigration, the Department of Revenue and Customs, the Bhutan Food and Drug Authority, and the Department of Forests and Park Services. The objective of this initiative was to establish an integrated check post management system across the country, and the feasibility assessments for such integration were undertaken accordingly. "
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "In line with this policy objective, Section 15(1) of the FNCRR, 2023 provides that all integrated Check Posts in the country shall be identified as forest check gates. Furthermore, the legislative intent was to supplement established check gates with strategically located forest checkpoints, rather than maintaining numerous physically established and permanently manned forestry check posts, thereby reducing administrative and regulatory burdens on the general public. This approach was also aligned with the Civil Service Reform initiatives aimed at improving the efficiency and effectiveness of public service delivery through institutional integration. "
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Prior to the enactment of the FNCA, 2023, there were 51 forestry check posts across the country. Of these, 21 were integrated into the ICP management system under the RBP, while 23 forestry check posts were subsequently discontinued. At present, 7 internal forestry check gates remain operational, as the RBP has not assumed responsibility for these locations on the basis that they do not involve the integrated regulatory functions of other agencies, except DoFPS. "
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "The mandates of forestry officials stationed at these forest check gates are to inspect and verify the trade and transport of forest produce and products, including the inspection of vehicles, persons, consignments, permits, and other supporting documents. These functions have been continuously performed since the establishment of the Department and remain consistent with the mandates prescribed under the existing Act and Rules. Likewise, similar regulatory functions are being performed by RBP personnel at the Integrated Check Posts "
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Post Box No - 1345 Phone: 975 (02) 323055/321185/322487, EPABX: 334458/334487, FAX: 322395/322836 Hot line: 211 website: www.dofps.gov.br"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "page_number": 2,
+      "text": "乙巳 དཔལ་ལྡན་འབྲུག་གཟུག ནུས་ཤུགས་དང་རང་བཞིན་ཐོན་སྐྱེད་ལྷན་ཁག ནགས་ཚལ་དང་གླིང་ཀ་ཞབས་ཏོག་ལས་ཁུངས། \n\nROYAL GOVERNMENT OF BHUTAN \n\nMINISTRY OF ENERGY AND NATURAL RESOURCES DEPARTMENT OF FORESTS AND PARK SERVICES \n\nTHIMPHU: BHUTAN  \n\nsupported by regular capacity-building and technical training provided annually by the Department on verification; inspection and data input through FIRMS (Forest Information Reporting and Monitoring System) by RBP and forestry personnel stationed at Check Gates. The verification includes counting of numbers of pieces, volume calculation, measurement (if need), recording of vehicle and driver's details. \n\nThe legal authority for these functions is expressly provided under the FNCA, 2023. Section 13 empowers forestry officials to inspect and verify any forest produce or product, including permits and other relevant documents that any person is required to possess under the Act and its Rules. Section 19 authorizes forestry officials to stop and search any conveyance suspected of carrying forest produce or products at designated forest check gates or checkpoints. Further, Section 168 requires that the movement of any forest produce or product be declared at an established forest check gate for inspection. \n\nAccordingly, the operation of the existing forest check gates and the exercise of inspection and verification functions by forestry officials are firmly grounded in the provisions of the FNCA, 2023 and the FNCRR, 2023, and are consistent with the Government's policy of integrating regulatory functions while ensuring effective monitoring and regulatory of the both legal and illegal trade and transport of forest produce. In addition, these processes of inspections and routine activities are again expanded under legal documentation and investigation manuals for all forestry officials. Further, the management and operation of forest check gates form a part of the core mandates and professional curriculum of forestry officials. Over time, these functions have been integrated into the Forest Information and Resource Management System (FIRMS), for which forestry and police officials receive regular training and capacity-building on an annual basis. \n\nThe verification and reporting of transactions under FIRMS are carried out in real-time at all the check gates. The entire process has been streamlined through an online platform, facilitating the transition from a paper-based system to a digital management system. In view of the established legal mandates, standardized operational procedures embedded within FIRMS, and regular training, the Department considers that a separate Standard Operating Procedure (SOP) for the management of forest check gates is not necessary. \n\nThis is submitted for your clarification. \n\nYours sincerely, (Kama frenzin) Director 140 Anti-Corruption Commission \n\nCc: 1. The Chief Legal Officer for information and support. 2. The Chief Forestry Officer, FMID for information and support. 3. The Chief Forestry, FRPMD, DoFPS for follow-up. Post Box, No - 1345 Phone: 975 (02) 323055/321185/322487, EPABX: 334458/334487 FAX: 322395/322836 11ot line: 211 website: www.dofps.gov.bt",
+      "confidence": null,
+      "preprocessing": {
+        "enabled": true,
+        "grayscale": true,
+        "denoise": true,
+        "contrast": true,
+        "threshold": true,
+        "threshold_method": "adaptive",
+        "deskew": true,
+        "deskew_applied": false,
+        "deskew_angle_degrees": null,
+        "selection": "preprocessed",
+        "table_geometry_source": "original_image",
+        "layout_deskew_applied": false,
+        "layout_confidence": 72.9,
+        "hardware": {
+          "backend": "mlx-vlm-server",
+          "device": "cpu",
+          "recognition_device": "metal",
+          "cpu_threads": 10
+        }
+      },
+      "extraction_method": "paddleocr_vl",
+      "quality_decision": "manual_review_recommended",
+      "direct_ocr_similarity": 0.2855,
+      "quality_warning": null,
+      "layout_confidence": 72.9,
+      "raw_text": "乙巳\n\nདཔལ་ལྡན་འབྲུག་གཟུག ནུས་ཤུགས་དང་རང་བཞིན་ཐོན་སྐྱེད་ལྷན་ཁག\n\nནགས་ཚལ་དང་གླིང་ཀ་ཞབས་ཏོག་ལས་ཁུངས།\nROYAL GOVERNMENT OF BHUTAN\nMINISTRY OF ENERGY AND NATURAL RESOURCES\nDEPARTMENT OF FORESTS AND PARK SERVICES\nTHIMPHU: BHUTAN\n\n呂氏書記\n\nsupported by regular capacity-building and technical training provided annually by the Department on verification; inspection and data input through FIRMS (Forest Information Reporting and Monitoring System) by RBP and forestry personnel stationed at Check Gates. The verification includes counting of numbers of pieces, volume calculation, measurement (if need), recording of vehicle and driver's details.\n\nThe legal authority for these functions is expressly provided under the FNCA, 2023. Section 13 empowers forestry officials to inspect and verify any forest produce or product, including permits and other relevant documents that any person is required to possess under the Act and its Rules. Section 19 authorizes forestry officials to stop and search any conveyance suspected of carrying forest produce or products at designated forest check gates or checkpoints. Further, Section 168 requires that the movement of any forest produce or product be declared at an established forest check gate for inspection.\n\nAccordingly, the operation of the existing forest check gates and the exercise of inspection and verification functions by forestry officials are firmly grounded in the provisions of the FNCA, 2023 and the FNCRR, 2023, and are consistent with the Government's policy of integrating regulatory functions while ensuring effective monitoring and regulatory of the both legal and illegal trade and transport of forest produce. In addition, these processes of inspections and routine activities are again expanded under legal documentation and investigation manuals for all forestry officials. Further, the management and operation of forest check gates form a part of the core mandates and professional curriculum of forestry officials. Over time, these functions have been integrated into the Forest Information and Resource Management System (FIRMS), for which forestry and police officials receive regular training and capacity-building on an annual basis.\n\nThe verification and reporting of transactions under FIRMS are carried out in real-time at all the check gates. The entire process has been streamlined through an online platform, facilitating the transition from a paper-based system to a digital management system. In view of the established legal mandates, standardized operational procedures embedded within FIRMS, and regular training, the Department considers that a separate Standard Operating Procedure (SOP) for the management of forest check gates is not necessary.\n\nThis is submitted for your clarification.\n\nYours sincerely,\n\n(Kama frenzin)\nDirector\n\n140\nAnti-Corruption Commission\n\nCc:\n\n1. The Chief Legal Officer for information and support.\n\n2. The Chief Forestry Officer, FMID for information and support.\n\n3. The Chief Forestry, FRPMD, DoFPS for follow-up.\n\nPost Box, No - 1345 Phone: 975 (02) 323055/321185/322487, EPABX: 334458/334487 FAX: 322395/322836\n11ot line: 211 website: www.dofps.gov.bt",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "乙巳 དཔལ་ལྡན་འབྲུག་གཟུག ནུས་ཤུགས་དང་རང་བཞིན་ཐོན་སྐྱེད་ལྷན་ཁག ནགས་ཚལ་དང་གླིང་ཀ་ཞབས་ཏོག་ལས་ཁུངས། ",
+          "rows": [],
+          "fields": [],
+          "cell_spans": null,
+          "column_widths": null,
+          "has_header": null
+        },
+        {
+          "type": "text",
+          "text": "ROYAL GOVERNMENT OF BHUTAN ",
+          "rows": [],
+          "fields": [],
+          "cell_spans": null,
+          "column_widths": null,
+          "has_header": null
+        },
+        {
+          "type": "text",
+          "text": "MINISTRY OF ENERGY AND NATURAL RESOURCES DEPARTMENT OF FORESTS AND PARK SERVICES ",
+          "rows": [],
+          "fields": [],
+          "cell_spans": null,
+          "column_widths": null,
+          "has_header": null
+        },
+        {
+          "type": "text",
+          "text": "THIMPHU: BHUTAN  ",
+          "rows": [],
+          "fields": [],
+          "cell_spans": null,
+          "column_widths": null,
+          "has_header": null
+        },
+        {
+          "type": "text",
+          "text": "supported by regular capacity-building and technical training provided annually by the Department on verification; inspection and data input through FIRMS (Forest Information Reporting and Monitoring System) by RBP and forestry personnel stationed at Check Gates. The verification includes counting of numbers of pieces, volume calculation, measurement (if need), recording of vehicle and driver's details. ",
+          "rows": [],
+          "fields": [],
+          "cell_spans": null,
+          "column_widths": null,
+          "has_header": null
+        },
+        {
+          "type": "text",
+          "text": "The legal authority for these functions is expressly provided under the FNCA, 2023. Section 13 empowers forestry officials to inspect and verify any forest produce or product, including permits and other relevant documents that any person is required to possess under the Act and its Rules. Section 19 authorizes forestry officials to stop and search any conveyance suspected of carrying forest produce or products at designated forest check gates or checkpoints. Further, Section 168 requires that the movement of any forest produce or product be declared at an established forest check gate for inspection. ",
+          "rows": [],
+          "fields": [],
+          "cell_spans": null,
+          "column_widths": null,
+          "has_header": null
+        },
+        {
+          "type": "text",
+          "text": "Accordingly, the operation of the existing forest check gates and the exercise of inspection and verification functions by forestry officials are firmly grounded in the provisions of the FNCA, 2023 and the FNCRR, 2023, and are consistent with the Government's policy of integrating regulatory functions while ensuring effective monitoring and regulatory of the both legal and illegal trade and transport of forest produce. In addition, these processes of inspections and routine activities are again expanded under legal documentation and investigation manuals for all forestry officials. Further, the management and operation of forest check gates form a part of the core mandates and professional curriculum of forestry officials. Over time, these functions have been integrated into the Forest Information and Resource Management System (FIRMS), for which forestry and police officials receive regular training and capacity-building on an annual basis. ",
+          "rows": [],
+          "fields": [],
+          "cell_spans": null,
+          "column_widths": null,
+          "has_header": null
+        },
+        {
+          "type": "text",
+          "text": "The verification and reporting of transactions under FIRMS are carried out in real-time at all the check gates. The entire process has been streamlined through an online platform, facilitating the transition from a paper-based system to a digital management system. In view of the established legal mandates, standardized operational procedures embedded within FIRMS, and regular training, the Department considers that a separate Standard Operating Procedure (SOP) for the management of forest check gates is not necessary. ",
+          "rows": [],
+          "fields": [],
+          "cell_spans": null,
+          "column_widths": null,
+          "has_header": null
+        },
+        {
+          "type": "text",
+          "text": "This is submitted for your clarification. ",
+          "rows": [],
+          "fields": [],
+          "cell_spans": null,
+          "column_widths": null,
+          "has_header": null
+        },
+        {
+          "type": "text",
+          "text": "Yours sincerely, (Kama frenzin) Director 140 Anti-Corruption Commission ",
+          "rows": [],
+          "fields": [],
+          "cell_spans": null,
+          "column_widths": null,
+          "has_header": null
+        },
+        {
+          "type": "text",
+          "text": "Cc: 1. The Chief Legal Officer for information and support. 2. The Chief Forestry Officer, FMID for information and support. 3. The Chief Forestry, FRPMD, DoFPS for follow-up. Post Box, No - 1345 Phone: 975 (02) 323055/321185/322487, EPABX: 334458/334487 FAX: 322395/322836 11ot line: 211 website: www.dofps.gov.bt",
+          "rows": [],
+          "fields": [],
+          "cell_spans": null,
+          "column_widths": null,
+          "has_header": null
+        }
+      ],
+      "extracted_text": "乙巳\n\nདཔལ་ལྡན་འབྲུག་གཟུག ནུས་ཤུགས་དང་རང་བཞིན་ཐོན་སྐྱེད་ལྷན་ཁག\n\nནགས་ཚལ་དང་གླིང་ཀ་ཞབས་ཏོག་ལས་ཁུངས།\nROYAL GOVERNMENT OF BHUTAN\nMINISTRY OF ENERGY AND NATURAL RESOURCES\nDEPARTMENT OF FORESTS AND PARK SERVICES\nTHIMPHU: BHUTAN\n\n呂氏書記\n\nsupported by regular capacity-building and technical training provided annually by the Department on verification; inspection and data input through FIRMS (Forest Information Reporting and Monitoring System) by RBP and forestry personnel stationed at Check Gates. The verification includes counting of numbers of pieces, volume calculation, measurement (if need), recording of vehicle and driver's details.\n\nThe legal authority for these functions is expressly provided under the FNCA, 2023. Section 13 empowers forestry officials to inspect and verify any forest produce or product, including permits and other relevant documents that any person is required to possess under the Act and its Rules. Section 19 authorizes forestry officials to stop and search any conveyance suspected of carrying forest produce or products at designated forest check gates or checkpoints. Further, Section 168 requires that the movement of any forest produce or product be declared at an established forest check gate for inspection.\n\nAccordingly, the operation of the existing forest check gates and the exercise of inspection and verification functions by forestry officials are firmly grounded in the provisions of the FNCA, 2023 and the FNCRR, 2023, and are consistent with the Government's policy of integrating regulatory functions while ensuring effective monitoring and regulatory of the both legal and illegal trade and transport of forest produce. In addition, these processes of inspections and routine activities are again expanded under legal documentation and investigation manuals for all forestry officials. Further, the management and operation of forest check gates form a part of the core mandates and professional curriculum of forestry officials. Over time, these functions have been integrated into the Forest Information and Resource Management System (FIRMS), for which forestry and police officials receive regular training and capacity-building on an annual basis.\n\nThe verification and reporting of transactions under FIRMS are carried out in real-time at all the check gates. The entire process has been streamlined through an online platform, facilitating the transition from a paper-based system to a digital management system. In view of the established legal mandates, standardized operational procedures embedded within FIRMS, and regular training, the Department considers that a separate Standard Operating Procedure (SOP) for the management of forest check gates is not necessary.\n\nThis is submitted for your clarification.\n\nYours sincerely,\n\n(Kama frenzin)\nDirector\n\n140\nAnti-Corruption Commission\n\nCc:\n\n1. The Chief Legal Officer for information and support.\n\n2. The Chief Forestry Officer, FMID for information and support.\n\n3. The Chief Forestry, FRPMD, DoFPS for follow-up.\n\nPost Box, No - 1345 Phone: 975 (02) 323055/321185/322487, EPABX: 334458/334487 FAX: 322395/322836\n11ot line: 211 website: www.dofps.gov.bt",
+      "editor_json": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "乙巳 དཔལ་ལྡན་འབྲུག་གཟུག ནུས་ཤུགས་དང་རང་བཞིན་ཐོན་སྐྱེད་ལྷན་ཁག ནགས་ཚལ་དང་གླིང་ཀ་ཞབས་ཏོག་ལས་ཁུངས། "
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "ROYAL GOVERNMENT OF BHUTAN "
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "MINISTRY OF ENERGY AND NATURAL RESOURCES DEPARTMENT OF FORESTS AND PARK SERVICES "
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "THIMPHU: BHUTAN  "
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "supported by regular capacity-building and technical training provided annually by the Department on verification; inspection and data input through FIRMS (Forest Information Reporting and Monitoring System) by RBP and forestry personnel stationed at Check Gates. The verification includes counting of numbers of pieces, volume calculation, measurement (if need), recording of vehicle and driver's details. "
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "The legal authority for these functions is expressly provided under the FNCA, 2023. Section 13 empowers forestry officials to inspect and verify any forest produce or product, including permits and other relevant documents that any person is required to possess under the Act and its Rules. Section 19 authorizes forestry officials to stop and search any conveyance suspected of carrying forest produce or products at designated forest check gates or checkpoints. Further, Section 168 requires that the movement of any forest produce or product be declared at an established forest check gate for inspection. "
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Accordingly, the operation of the existing forest check gates and the exercise of inspection and verification functions by forestry officials are firmly grounded in the provisions of the FNCA, 2023 and the FNCRR, 2023, and are consistent with the Government's policy of integrating regulatory functions while ensuring effective monitoring and regulatory of the both legal and illegal trade and transport of forest produce. In addition, these processes of inspections and routine activities are again expanded under legal documentation and investigation manuals for all forestry officials. Further, the management and operation of forest check gates form a part of the core mandates and professional curriculum of forestry officials. Over time, these functions have been integrated into the Forest Information and Resource Management System (FIRMS), for which forestry and police officials receive regular training and capacity-building on an annual basis. "
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "The verification and reporting of transactions under FIRMS are carried out in real-time at all the check gates. The entire process has been streamlined through an online platform, facilitating the transition from a paper-based system to a digital management system. In view of the established legal mandates, standardized operational procedures embedded within FIRMS, and regular training, the Department considers that a separate Standard Operating Procedure (SOP) for the management of forest check gates is not necessary. "
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "This is submitted for your clarification. "
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Yours sincerely, (Kama frenzin) Director 140 Anti-Corruption Commission "
+              }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Cc: 1. The Chief Legal Officer for information and support. 2. The Chief Forestry Officer, FMID for information and support. 3. The Chief Forestry, FRPMD, DoFPS for follow-up. Post Box, No - 1345 Phone: 975 (02) 323055/321185/322487, EPABX: 334458/334487 FAX: 322395/322836 11ot line: 211 website: www.dofps.gov.bt"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "average_confidence": null,
+  "average_layout_confidence": 68.0,
+  "created_at": "2026-11-23T22:44:24.957271+00:00",
+  "processing_metadata": {
+    "render_dpi": 250,
+    "preprocessing": {
+      "enabled": true,
+      "grayscale": true,
+      "denoise": true,
+      "contrast": true,
+      "threshold": true,
+      "threshold_method": "adaptive",
+      "deskew": true
+    },
+    "confidence_calculation": "PaddleOCR-VL confidence is unavailable and remains null.",
+    "confidence_available": false,
+    "minimum_page_confidence": null,
+    "vl_recognition_backend": "mlx-vlm-server",
+    "paddle_pipeline_version": "v1.6",
+    "paddle_device": "auto",
+    "paddleocr_variant": null,
+    "selection_rule": "PaddleOCR-VL confidence is unavailable; OCR output is retained for manual review and is not automatically indexed.",
+    "hardware": {
+      "backend": "mlx-vlm-server",
+      "device": "cpu",
+      "recognition_device": "metal",
+      "cpu_threads": 10
+    },
+    "layout_confidence_calculation": "Mean of valid detected-region classification scores, 0–100. This is not text-recognition confidence or OCR accuracy."
+  },
+  "page_decisions": [
+    {
+      "page_number": 1,
+      "meaningful_characters": 2611,
+      "printable_text_ratio": 1.0,
+      "alphanumeric_text_ratio": 0.7646,
+      "image_coverage": 1.0,
+      "text_area_coverage": 0.4773,
+      "decision": "ocr_fallback_recommended",
+      "reason": "image_dominated_page"
+    },
+    {
+      "page_number": 2,
+      "meaningful_characters": 2415,
+      "printable_text_ratio": 1.0,
+      "alphanumeric_text_ratio": 0.7701,
+      "image_coverage": 1.0,
+      "text_area_coverage": 0.3722,
+      "decision": "ocr_fallback_recommended",
+      "reason": "image_dominated_page"
+    }
+  ],
+  "extraction_method": "paddleocr_vl",
+  "quality_decision": "manual_review_recommended",
+  "case_number": null,
+  "reviewed_at": "2026-11-23T22:50:42.437662+00:00"
+}

@@ -1,4 +1,5 @@
 import unittest
+import json
 from unittest.mock import Mock, patch
 
 from fastapi import HTTPException
@@ -102,6 +103,9 @@ class OCRFilenameRoutingTests(unittest.TestCase):
 
 
 class OCRChatRetrievalTests(unittest.TestCase):
+    @staticmethod
+    def model_response(*claims):
+        return json.dumps({"has_information":True,"claims":[{"statement":statement,"evidence":[{"evidence_id":key,"quote":quote}]} for statement,key,quote in claims],"missing_information":[]})
     def setUp(self):
         self.documents = FakeDocumentsCollection([indexed_document()])
         self.adapter = FakeOCRAdapter(
@@ -130,11 +134,7 @@ class OCRChatRetrievalTests(unittest.TestCase):
     def test_owned_exact_filename_retrieval_preserves_page_citation(self):
         with patch(
             "app.services.llm_service.LLMService.generate",
-            return_value=(
-                "The note says [sic], [item 1], and [see appendix]. "
-                "The transfer appears on [owned.pdf, page 3] "
-                "[owned.pdf, page 3]."
-            ),
+            return_value=self.model_response(("The note says [sic], [item 1], and [see appendix]. The transfer appears here.","ocr:owned-document:p3-c1","Transfer appears on this page.")),
         ):
             response = self.service.retrieve(
                 query="Summarize owned.pdf",
@@ -171,14 +171,15 @@ class OCRChatRetrievalTests(unittest.TestCase):
 
     def test_plain_filename_mention_is_not_treated_as_a_citation(self):
         answer = "The document owned.pdf contains a transfer."
-        with patch("app.services.llm_service.LLMService.generate", return_value=answer):
+        with patch("app.services.llm_service.LLMService.generate", return_value=self.model_response((answer,"ocr:owned-document:p3-c1","Transfer appears on this page."))):
             response = self.service.retrieve(
                 query="Summarize owned.pdf",
                 filename="owned.pdf",
                 owner_user_id="user-1",
             )
 
-        self.assertEqual(response["answer"], answer)
+        self.assertIn(answer, response["answer"])
+        self.assertIn("[owned.pdf, page 3]", response["answer"])
         self.assertEqual(response["warnings"], [])
         self.assertEqual(response["sources"][0]["filename"], "owned.pdf")
 
@@ -202,10 +203,7 @@ class OCRChatRetrievalTests(unittest.TestCase):
         ]
         with patch(
             "app.services.llm_service.LLMService.generate",
-            return_value=(
-                "The transfer is shown [owned.pdf, page 3]. "
-                "The audit appears [year_end,[audit]-2026.v2-final.pdf, page 12]."
-            ),
+            return_value=self.model_response(("The transfer is shown.","ocr:owned-document:p3-c1","Transfer appears on this page."),("The audit appears.","ocr:second-document:p12-c4","Year-end audit evidence.")),
         ):
             response = OCRChatRetrievalService._build_answer(
                 "Compare the OCR evidence.", chunks

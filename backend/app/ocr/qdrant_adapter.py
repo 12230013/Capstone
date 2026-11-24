@@ -3,6 +3,7 @@
 import importlib
 import json
 import math
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from threading import RLock
@@ -175,8 +176,40 @@ class OCRQdrantAdapter:
             ),
         )
 
+        # Semantic neighbours alone can miss short field labels and identifiers.
+        # Search the same authorized subset for literal matches as well.
+        terms = set(re.findall(r"[a-z0-9]+", query.lower())) - {
+            "what", "is", "the", "of", "in", "a", "an", "and", "to", "it",
+            "was", "are", "for", "this", "that", "document", "pdf", "question",
+            "current", "previous", "context", "please", "tell", "me", "about",
+        }
+        lexical = []
+        offset = None
+        for _ in range(10):
+            batch, offset = self._run_qdrant(
+                "search authorized OCR text",
+                lambda: client.scroll(collection_name=collection, scroll_filter=query_filter,
+                                      limit=200, offset=offset, with_payload=True, with_vectors=False),
+            )
+            for point in batch:
+                words = set(re.findall(r"[a-z0-9]+", (point.payload or {}).get("text_numbered", "").lower()))
+                overlap = len(terms & words)
+                if re.search(r"\bcase\s+(?:number|no\.?|id)\b", query.split("\n",1)[0], re.I) and re.search(r"\bcase\s*(?:no\.?|number|id)\b", (point.payload or {}).get("text_numbered", ""), re.I):
+                    overlap += len(terms) + 1
+                if overlap:
+                    lexical.append((overlap / max(1, len(terms)), point))
+            if offset is None:
+                break
+        lexical.sort(key=lambda item: item[0], reverse=True)
+        candidates = list(response.points)
+        # Keep semantic matches and exact-field matches; deduplicate by point ID.
+        candidates.extend(point for _, point in lexical[:limit])
         chunks = []
-        for point in response.points:
+        seen = set()
+        for point in candidates:
+            if point.id in seen:
+                continue
+            seen.add(point.id)
             payload = getattr(point, "payload", None)
             if not isinstance(payload, dict):
                 continue

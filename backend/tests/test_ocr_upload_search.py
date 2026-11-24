@@ -7,6 +7,20 @@ from qdrant_client import QdrantClient, models
 from types import SimpleNamespace
 
 class UploadSearchTests(unittest.TestCase):
+    def test_literal_case_field_is_found_even_when_semantic_top_hit_misses_it(self):
+        client=QdrantClient(':memory:')
+        config=SimpleNamespace(OCR_COLLECTION='ocr_documents',COLLECTION='statements',EMBED_MODEL='BAAI/bge-m3',EMBED_DIM=1024)
+        def embed(texts):
+            return [[-1.0 if '19/25-26' in t else 1.0]+[0.0]*1023 for t in texts]
+        adapter=OCRQdrantAdapter(client=client,embedder=BGEEmbeddingAdapter(embed_batch=embed),index_module=SimpleNamespace(config=config),qdrant_models=models)
+        adapter.provision_collection()
+        for doc,text in [('a'*64,'Case No: 19/25-26'),('b'*64,'A bank withdrawal record'),('c'*64,'Case No: 99/25-26')]:
+            adapter.upsert_document({'document_id':doc,'filename':'evidence.pdf','pages':[{'page_number':1,'text':text}]},owner_user_id='other' if doc.startswith('c') else 'owner')
+        chunks=adapter.retrieve_documents('What is the case number?', ['a'*64,'b'*64,'c'*64], 'owner', limit=1)
+        self.assertTrue(any('19/25-26' in c['text'] for c in chunks))
+        self.assertFalse(any('99/25-26' in c['text'] for c in chunks))
+        client.close()
+
     def test_metadata_query_allows_only_completed_indexed_owner_documents(self):
         documents=Mock();documents.find.return_value=[{'_id':'a'*64}]
         adapter=Mock();adapter.retrieve_documents.return_value=[{'text':'Amount: 750'}]
