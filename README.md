@@ -117,6 +117,8 @@ Document answers use evidence checks and should report insufficient information 
 
 Authentication uses server-side sessions with HttpOnly cookies, CSRF protection, expiry, and account ownership checks. HTTPS deployments require secure cookies and matching allowed frontend origins.
 
+OCR endpoints remain loopback-only unless `OCR_DEPLOYMENT_ENABLED=true` is explicitly set. Ubuntu/Nginx deployment settings and OCR runtime requirements are documented in [backend/OCR_RUNTIME.md](backend/OCR_RUNTIME.md).
+
 ## Project structure
 
 | Path | Purpose |

@@ -1,8 +1,4 @@
-"""Local-development OCR upload and review endpoints.
-
-These endpoints require an authenticated user and remain loopback-only while
-the OCR workflow is in local development.
-"""
+"""Authenticated OCR upload, review, and indexing endpoints."""
 
 import hashlib
 import ipaddress
@@ -45,7 +41,7 @@ from app.utils.sessions import require_session
 
 router = APIRouter(
     prefix="/api/ocr/documents",
-    tags=["OCR documents (development only)"],
+    tags=["OCR documents"],
 )
 
 logger = logging.getLogger(__name__)
@@ -166,6 +162,13 @@ def require_local_development(request: Request) -> None:
         or not _is_loopback_host(client.host)
     ):
         raise HTTPException(status_code=404, detail="Not found.")
+
+
+def require_ocr_access(request: Request) -> None:
+    """Allow loopback development or explicitly enabled authenticated deployment."""
+    if config.OCR_DEPLOYMENT_ENABLED:
+        return
+    require_local_development(request)
 
 
 def _is_loopback_host(host: str | None) -> bool:
@@ -512,7 +515,7 @@ def _read_ocr_result(document_id: str) -> dict[str, Any] | None:
 @router.post(
     "",
     status_code=202,
-    dependencies=[Depends(require_local_development)],
+    dependencies=[Depends(require_ocr_access)],
 )
 async def upload_document(
     background_tasks: BackgroundTasks,
@@ -619,7 +622,7 @@ async def upload_document(
     return status
 
 
-@router.post("/{document_id}/reprocess", dependencies=[Depends(require_local_development)])
+@router.post("/{document_id}/reprocess", dependencies=[Depends(require_ocr_access)])
 def reprocess_document(document_id: str, background_tasks: BackgroundTasks, session: dict[str, Any] = Depends(require_session)):
     """Explicitly re-extract a retained original with the current layout detector."""
     owner = _session_owner_id(session)
@@ -641,7 +644,7 @@ def reprocess_document(document_id: str, background_tasks: BackgroundTasks, sess
 
 @router.get(
     "/{document_id}/status",
-    dependencies=[Depends(require_local_development)],
+    dependencies=[Depends(require_ocr_access)],
 )
 def get_document_status(
     document_id: str,
@@ -658,7 +661,7 @@ def get_document_status(
 
 @router.get(
     "/{document_id}",
-    dependencies=[Depends(require_local_development)],
+    dependencies=[Depends(require_ocr_access)],
 )
 def get_document_result(
     document_id: str,
@@ -727,7 +730,7 @@ def _create_qdrant_adapter() -> Any:
 
 @router.post(
     "/{document_id}/index",
-    dependencies=[Depends(require_local_development)],
+    dependencies=[Depends(require_ocr_access)],
 )
 def index_document(
     document_id: str,

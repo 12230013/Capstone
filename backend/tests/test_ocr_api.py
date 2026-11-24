@@ -136,6 +136,7 @@ class OCRDocumentAPITests(unittest.IsolatedAsyncioTestCase):
         self.documents_dir = self.data_root / "documents"
         self.patches = [
             patch.object(ocr_documents.config, "APP_ENV", "development"),
+            patch.object(ocr_documents.config, "OCR_DEPLOYMENT_ENABLED", False),
             patch.object(ocr_documents.config, "OCR_RESULTS_DIR", self.results_dir),
             patch.object(ocr_documents.config, "DOCUMENTS_DIR", self.documents_dir),
             patch.object(ocr_documents.config, "OCR_MAX_UPLOAD_BYTES", 2 * 1024 * 1024),
@@ -377,6 +378,113 @@ class OCRDocumentAPITests(unittest.IsolatedAsyncioTestCase):
             response = await self.upload(filename, make_pdf(), "application/pdf")
         self.assertIn(response.status_code, {200, 202})
         return response.json()["document_id"]
+
+    async def test_deployment_flag_controls_remote_ocr_access_and_preserves_ownership(self):
+        document_id = await self.completed_document()
+        remote_transport = httpx.ASGITransport(
+            app=self.app,
+            client=("198.51.100.25", 43210),
+        )
+        async with httpx.AsyncClient(
+            transport=remote_transport,
+            base_url="https://api.example.test",
+        ) as remote_client:
+            with (
+                patch.object(ocr_documents.config, "APP_ENV", "production"),
+                patch.object(ocr_documents.config, "OCR_DEPLOYMENT_ENABLED", False),
+            ):
+                disabled = await remote_client.get(
+                    f"/api/ocr/documents/{document_id}/status"
+                )
+                disabled_upload = await remote_client.post(
+                    "/api/ocr/documents",
+                    files={"file": ("remote.png", make_png(), "image/png")},
+                )
+            self.assertEqual(disabled.status_code, 404)
+            self.assertEqual(disabled_upload.status_code, 404)
+
+            with (
+                patch.object(ocr_documents.config, "APP_ENV", "production"),
+                patch.object(ocr_documents.config, "OCR_DEPLOYMENT_ENABLED", True),
+            ):
+                with self.mock_pipeline():
+                    uploaded = await remote_client.post(
+                        "/api/ocr/documents",
+                        files={"file": ("remote.png", make_png(), "image/png")},
+                    )
+                self.assertEqual(uploaded.status_code, 202)
+                remote_document_id = uploaded.json()["document_id"]
+                enabled = await remote_client.get(
+                    f"/api/ocr/documents/{remote_document_id}/status"
+                )
+                result = await remote_client.get(
+                    f"/api/ocr/documents/{remote_document_id}"
+                )
+                with self.mock_pipeline():
+                    reprocessed = await remote_client.post(
+                        f"/api/ocr/documents/{remote_document_id}/reprocess"
+                    )
+                with patch.object(
+                    ocr_documents,
+                    "_create_qdrant_adapter",
+                    return_value=SimpleNamespace(
+                        upsert_document=Mock(return_value={
+                            "chunks_upserted": 1,
+                            "collection": "ocr_documents",
+                        })
+                    ),
+                ):
+                    indexed = await remote_client.post(
+                        f"/api/ocr/documents/{remote_document_id}/index",
+                        json={"review_confirmed": True},
+                    )
+                    case_linked = await remote_client.post(
+                        f"/api/ocr/documents/{remote_document_id}/index",
+                        json={"review_confirmed": True, "case_no": "ACC/2026/001"},
+                    )
+                evaluation = await remote_client.post(
+                    f"/api/ocr/documents/{remote_document_id}/evaluate",
+                    json={"page_number": 1, "reference_text": "Synthetic page-level text."},
+                )
+                self.assertEqual(enabled.status_code, 200)
+                self.assertEqual(result.status_code, 200)
+                self.assertEqual(reprocessed.status_code, 202)
+                self.assertEqual(indexed.status_code, 200)
+                self.assertEqual(case_linked.status_code, 403)
+                self.assertEqual(evaluation.status_code, 404)
+
+                self.session["user_id"] = self.other_owner_id
+                self.session["user"] = {"id": self.other_owner_id}
+                wrong_owner = await remote_client.get(
+                    f"/api/ocr/documents/{remote_document_id}/status"
+                )
+                self.assertEqual(wrong_owner.status_code, 404)
+                self.session["user_id"] = self.owner_id
+                self.session["user"] = {"id": self.owner_id}
+
+    async def test_enabled_remote_ocr_access_still_requires_a_session(self):
+        remote_transport = httpx.ASGITransport(
+            app=self.app,
+            client=("198.51.100.25", 43210),
+        )
+        self.app.dependency_overrides.pop(ocr_documents.require_session)
+        try:
+            async with httpx.AsyncClient(
+                transport=remote_transport,
+                base_url="https://api.example.test",
+            ) as remote_client:
+                with (
+                    patch.object(ocr_documents.config, "APP_ENV", "production"),
+                    patch.object(ocr_documents.config, "OCR_DEPLOYMENT_ENABLED", True),
+                ):
+                    response = await remote_client.get(
+                        "/api/ocr/documents/" + "a" * 64 + "/status"
+                    )
+        finally:
+            self.app.dependency_overrides[ocr_documents.require_session] = (
+                lambda: self.session
+            )
+        self.assertEqual(response.status_code, 401)
 
     async def test_evaluation_uses_original_text_and_enforces_ownership(self):
         document_id = await self.completed_document()

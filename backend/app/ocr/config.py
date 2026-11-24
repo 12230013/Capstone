@@ -67,6 +67,7 @@ def _environment_bool(name: str, default: bool) -> bool:
     raise ValueError(f"{name} must be a boolean value")
 
 
+OCR_DEPLOYMENT_ENABLED = _environment_bool("OCR_DEPLOYMENT_ENABLED", False)
 OCR_DEV_REVIEW_ENABLED = _environment_bool("OCR_DEV_REVIEW_ENABLED", False)
 if OCR_DEV_REVIEW_ENABLED and APP_ENV not in {"development", "dev", "local"}:
     raise ValueError(

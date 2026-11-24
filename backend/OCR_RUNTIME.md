@@ -1,5 +1,50 @@
 # PaddleOCR-VL 1.6 runtime on main
 
+## Ubuntu deployment behind Nginx
+
+OCR endpoints are disabled for remote requests by default. For an authenticated
+deployment, set the following in `backend/.env` and restart the backend:
+
+```dotenv
+OCR_DEPLOYMENT_ENABLED=true
+APP_ENV=production
+ENVIRONMENT=production
+SESSION_COOKIE_SECURE=true
+FRONTEND_ORIGINS=https://your-frontend.example.edu
+PADDLE_VL_BACKEND=native
+PADDLE_DEVICE=cpu
+```
+
+Replace the frontend origin with the exact browser origin (scheme and port,
+without a path). Keep HTTPS enabled so the session cookie is sent securely.
+The deployment flag only lifts the loopback/development restriction for the
+normal OCR workflow. Session authentication, mutation Origin and CSRF checks,
+per-document ownership, upload type and size validation, review confirmation,
+and the case-linked indexing restriction remain active. Reference-based OCR
+evaluation remains loopback-only and is not exposed by this flag.
+
+Nginx must proxy `/api/ocr/` to the FastAPI service, preserve browser cookies
+and the `Origin` header, and allow request bodies up to the configured
+`OCR_MAX_UPLOAD_BYTES` (25 MiB by default), for example with
+`client_max_body_size 27m;`. The backend needs write access to its persistent
+`backend/data/documents/` and `backend/data/ocr/` directories; MongoDB must be
+reachable for session and document metadata. On a CPU-only VM, explicitly set
+`PADDLE_DEVICE=cpu`; `PADDLE_VL_BACKEND=native` selects the regular Paddle
+runtime rather than the Apple-only MLX service.
+
+At startup, the app provisions the dedicated OCR collection if it is absent
+and validates its schema if it already exists. Do not run the manual
+`provision_collection()` command while the backend is open on the same local
+Qdrant directory: local Qdrant storage permits only one process at a time.
+Use one backend process with local file storage, or configure a Qdrant server
+for concurrent workers. Existing collections and stored documents are not
+recreated or deleted by this deployment setting.
+
+If OCR endpoints still return 404 after enabling the flag and restarting,
+check that Nginx forwards the `/api/ocr/` path to FastAPI. A CSRF or Origin
+configuration problem returns 403, while a missing/expired session returns
+401.
+
 The default OCR engine is the actual `PaddleOCRVL(pipeline_version="v1.6")` pipeline. Upload, review, original-file storage, MongoDB, BGE-M3 embeddings and Qdrant remain the same. Digital PDFs still extract their embedded text directly. Scanned pages retain grayscale cleanup, denoising, contrast enhancement, thresholding and conservative angle correction. Physical table geometry is measured before cleanup. Image-region OCR includes screenshots; blank pages do not discard other pages' results.
 
 ## This Mac / Apple Silicon
