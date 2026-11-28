@@ -17,6 +17,10 @@ router = APIRouter(
 )
 
 
+from app.services.cims_service import authorize_conversation_scope, case_visible
+from app.services.cims_documents import conversation_message_scope
+
+
 class ConversationCreate(BaseModel):
     user_id: str | None = None
     title: str = "New Conversation"
@@ -37,6 +41,8 @@ def serialize_conversation(conversation: dict) -> dict:
         "user_id": conversation["user_id"],
         "title": conversation.get("title", "New Conversation"),
         "title_status": conversation.get("title_status"),
+        "case_id": conversation.get("case_id"),
+        "case_mode": conversation.get("case_mode"),
         "folder_id": conversation.get("folder_id"),
         "created_at": serialize_datetime(conversation.get("created_at")),
         "updated_at": serialize_datetime(conversation.get("updated_at")),
@@ -101,6 +107,7 @@ def list_conversations(user_id: str = None, session: dict = Depends(require_sess
         "conversations": [
             serialize_conversation(conversation)
             for conversation in conversations
+            if case_visible(session, conversation)
         ],
     }
 
@@ -128,6 +135,8 @@ def get_conversation(conversation_id: str, session: dict = Depends(require_sessi
             status_code=404,
             detail="Conversation not found.",
         )
+
+    authorize_conversation_scope(session, conversation)
 
     return {
         "success": True,
@@ -158,8 +167,10 @@ def get_conversation_messages(conversation_id: str, session: dict = Depends(requ
             detail="Conversation not found.",
         )
 
+    authorize_conversation_scope(session, conversation)
+
     messages = messages_collection.find(
-        {"conversation_id": conversation_id}
+        {"conversation_id": conversation_id, **conversation_message_scope(session, conversation)}
     ).sort("created_at", 1)
 
     return {
@@ -194,6 +205,8 @@ def delete_conversation(conversation_id: str, session: dict = Depends(require_se
             status_code=404,
             detail="Conversation not found.",
         )
+
+    authorize_conversation_scope(session, conversation)
 
     # Delete all messages belonging to this conversation first
     message_result = messages_collection.delete_many(

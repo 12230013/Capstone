@@ -1,5 +1,7 @@
+from app.services.presentation_access import HAA_CASE_NUMBER, HAA_SCOPE
 from app.services.evidence_grounding import answer_from_evidence, numbered_sentences
 from app.services.unified_evidence import answer_from_unified_evidence
+from fastapi import HTTPException
 from starlette.concurrency import run_in_threadpool
 from datetime import date, datetime
 from pyexpat.errors import messages
@@ -985,7 +987,7 @@ class ChatService:
             return {"success": True, "response": response}
 
         except Exception as exc:
-            print(f"Relationship query error: {exc}")
+            print(f"Relationship query error: {type(exc).__name__}")
             return {
                 "success": False,
                 "response": {
@@ -1361,11 +1363,6 @@ class ChatService:
             direction_stats = analyze_communication_direction(
                 period_records, number
             )
-
-            print("Target number:", repr(number))
-            print("Date range:", start_date, "to", end_date)
-            print("Records in period:", len(period_records))
-            print("Direction statistics:", direction_stats)
 
             analysis_type = "period_statistics"
             analysis_data = analyze_period_statistics(
@@ -2089,6 +2086,96 @@ class ChatService:
         query_lower = query.lower()
         context = context or {}
 
+        if context.get("case_id") == HAA_SCOPE:
+            from app.services.cims_service import authorize_conversation_scope
+
+            authorize_conversation_scope(context["session"], {
+                "case_id": HAA_SCOPE, "case_mode": context.get("case_mode"),
+            })
+            result = await run_in_threadpool(
+                self.statement_service.query_statement_evidence, query, case_nos=[HAA_CASE_NUMBER],
+            )
+            return self._response(result.get("answer") or "No HAA evidence was found.", result.get("sources"))
+
+        if context.get("case_id") is not None:
+            mode = context.get("case_mode", "metadata")
+            if mode in {"cdr", "relationships"}:
+                from app.services.cims_service import authorize_subject, relationship_scope
+
+                subject = context.get("case_subject")
+                allowed = await run_in_threadpool(
+                    authorize_subject, context["session"], context["case_id"], mode, subject,
+                )
+                identifiers = re.findall(r"(?<![0-9])(?:[0-9]{8}|[0-9]{11})(?![0-9])", query)
+                if any(identifier != subject for identifier in identifiers):
+                    return self._response("This conversation is limited to its selected subject.")
+                if mode == "cdr":
+                    return await self._handle_cdr_query(query, query_lower, subject)
+                with relationship_scope(allowed):
+                    return await self._handle_relationship_query(query, query_lower, subject)
+
+            from app.services.cims_documents import is_case_overview, search_case_documents
+            from app.services.cims_service import case_metadata_passages
+
+            case_id = context["case_id"]
+            session = context["session"]
+            metadata = await run_in_threadpool(case_metadata_passages, session, case_id, query)
+            retrieval_query = self._conversational_document_query(query, context)
+            try:
+                hits = await run_in_threadpool(search_case_documents, session, case_id, retrieval_query)
+            except HTTPException as exc:
+                if exc.status_code != 403 or mode == "documents":
+                    raise
+                hits = []
+
+            passages = {}
+            sources_by_id = {}
+            metadata_limit = max(1, 2800 // max(1, len(metadata)))
+            for index, excerpt in enumerate(metadata.values(), 1):
+                reference = f"cims-record-s{index}"
+                passages[reference] = excerpt[:metadata_limit]
+                sources_by_id[reference] = {
+                    "type": "CIMS case record", "case_id": case_id, "excerpt": passages[reference],
+                }
+            for index, hit in enumerate(hits, 1):
+                reference = f"cims-s{index}"
+                passages[reference] = hit["text"][:650]
+                sources_by_id[reference] = {
+                    "type": "CIMS document", "source_type": "cims_document",
+                    "doc_id": hit["point_id"], "case_id": case_id,
+                    "locator": hit["locator"], "version": hit["version"],
+                }
+            if not passages:
+                return self._response("There is no available case evidence for this question yet.")
+
+            overview = is_case_overview(query)
+            guidance = (
+                "Citations starting with cims-record refer to the structured CIMS case record. "
+                "Citations starting with cims-s refer to indexed document excerpts for the same case. "
+                "Use both sources when they contribute relevant information. Explain the answer in clear "
+                "paragraphs, beginning with a direct answer. Attribute allegations to the record or report "
+                "that states them and distinguish allegations, reported observations, and findings. "
+                "If the sources disagree, describe the difference and cite both. Do not infer intent or "
+                "findings from an isolated transaction or a gap in the record. For a question about a "
+                "specific report, use the document excerpts for what the report says. Use the case record "
+                "only for clearly attributed background."
+            )
+            if overview:
+                guidance += (
+                    " Cover the scope and main allegations first, then explain the key people, events, "
+                    "or findings where supported. Omit incidental details and leave missing_information empty. "
+                    "Offer useful detail without repeating the same claim."
+                )
+            grounded = await run_in_threadpool(
+                answer_from_evidence, retrieval_query, passages, self.llm_service.generate,
+                document_context=guidance, include_missing_information=not overview,
+            )
+            sources = [
+                sources_by_id[reference] for reference in grounded["sentence_ids"]
+                if reference in sources_by_id
+            ]
+            return self._response(grounded["answer"], sources)
+
         social = self._social_reply(query)
         if social is not None:
             return self._response(social, [])
@@ -2146,10 +2233,11 @@ class ChatService:
         # ---------------------------------------------------------
 
         requested_systems = self._requested_evidence_systems(query_lower)
-        print("QUERY RECEIVED:", repr(query))
         print("REQUESTED SYSTEMS:", requested_systems)
 
         if len(requested_systems) >= 2 and not is_document_timeline_query:
+            if context.get("enforce_external_case_scope"):
+                raise HTTPException(403, "Case-scoped access is required for external investigation data.")
             print("ROUTE: COMBINED EVIDENCE")
             return await self._handle_combined_query(query)
 
@@ -2203,6 +2291,8 @@ class ChatService:
             )
 
             if resolved_cid:
+                if context.get("enforce_external_case_scope"):
+                    raise HTTPException(403, "Case-scoped access is required for Relationship Mapping.")
                 return await self._handle_relationship_query(
                     query,
                     query_lower,
@@ -2252,6 +2342,8 @@ class ChatService:
             )
 
             if resolved_number:
+                if context.get("enforce_external_case_scope"):
+                    raise HTTPException(403, "Case-scoped access is required for CDR.")
                 return await self._handle_cdr_query(
                     query,
                     query_lower,

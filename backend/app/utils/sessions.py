@@ -101,6 +101,7 @@ def require_session(request: Request):
     if not updated.matched_count:
         raise HTTPException(401, "Your session has ended. Please sign in again.")
     session["user"] = public_user(user)
+    session["presentation_access"] = user.get("presentation_access")
     request.state.session = session
     return session
 

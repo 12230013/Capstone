@@ -1,5 +1,7 @@
 """Vendor-facing CIMS synchronization intake endpoint."""
+import hashlib
 import hmac
+import json
 import os
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -9,6 +11,8 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.database.connection import cims_sync_collection
 from app.schemas.cims import CIMSSyncRequest
+from app.services.cims_service import list_cases
+from app.utils.sessions import require_session
 
 router = APIRouter(prefix="/api/cims", tags=["CIMS Integration"])
 bearer = HTTPBearer(auto_error=False)
@@ -22,6 +26,11 @@ def require_cims_token(
     supplied = credentials.credentials if credentials else ""
     if not expected or not supplied or not hmac.compare_digest(supplied, expected):
         raise HTTPException(status_code=401, detail="Missing or invalid API token.", headers={"WWW-Authenticate": "Bearer"})
+
+
+@router.get("/cases")
+def get_cases(session: dict = Depends(require_session)):
+    return {"cases": list_cases(session)}
 
 
 @router.post("/sync", dependencies=[Depends(require_cims_token)])
@@ -49,6 +58,10 @@ async def sync_cims_data(
         "users": [item.model_dump(mode="json") for item in payload.users or []],
         "cases": [item.model_dump(mode="json") for item in payload.cases or []],
     }
+    record["case_fingerprints"] = [
+        hashlib.sha256(json.dumps(case, sort_keys=True).encode()).hexdigest()
+        for case in record["cases"]
+    ]
     try:
         cims_sync_collection.insert_one(record)
     except Exception:

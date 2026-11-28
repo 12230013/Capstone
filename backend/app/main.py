@@ -1,11 +1,16 @@
-from fastapi import Depends, FastAPI, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pymongo.errors import ConnectionFailure
 from app.utils.sessions import require_session, allowed_origins
+from app.services.presentation_access import presentation_scope
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from starlette.concurrency import run_in_threadpool
+import asyncio
+import logging
+import os
 import time
+from pathlib import Path
 
 # ACC chatbot API routes
 from app.api.routes.chat import router as chat_router
@@ -24,6 +29,22 @@ from app.ocr import config as ocr_config
 ocr_config.initialize_config()
 from app.api.routes.ocr_documents import router as ocr_documents_router
 from app.api.routes.cims import router as cims_router
+from app.api.routes.case_access import require_cdr_case, require_relationship_case
+
+
+async def reconcile_cims_drop(root, interval, stop):
+    from app.services.cims_documents import reconcile
+
+    observed = {}
+    while not stop.is_set():
+        try:
+            observed = await run_in_threadpool(reconcile, root, observed)
+        except Exception as exc:
+            logging.getLogger(__name__).warning("CIMS scan failed (%s)", type(exc).__name__)
+        try:
+            await asyncio.wait_for(stop.wait(), timeout=interval)
+        except TimeoutError:
+            pass
 
 
 @asynccontextmanager
@@ -38,9 +59,19 @@ async def lifespan(app):
     from app.ocr.qdrant_adapter import OCRQdrantAdapter
     await run_in_threadpool(OCRQdrantAdapter().provision_collection)
     print(f"Document search ready in {time.monotonic() - started:.1f}s. You can now submit questions.", flush=True)
+    root = os.getenv("CIMS_DROP_ROOT")
+    stop = asyncio.Event()
+    worker = None
+    if root:
+        worker = asyncio.create_task(
+            reconcile_cims_drop(Path(root), max(10, int(os.getenv("CIMS_DROP_INTERVAL", "60"))), stop)
+        )
     try:
         yield
     finally:
+        stop.set()
+        if worker is not None:
+            await worker
         close_client()
 
 
@@ -68,11 +99,16 @@ async def root():
 
 # Register all routers
 app.include_router(chat_router, dependencies=[Depends(require_session)])
-app.include_router(cdr_router, dependencies=[Depends(require_session)])
-app.include_router(relationship_router, dependencies=[Depends(require_session)])
+app.include_router(cdr_router, dependencies=[Depends(require_cdr_case)])
+app.include_router(relationship_router, dependencies=[Depends(require_relationship_case)])
 app.include_router(auth_router)
 app.include_router(cims_router)
-app.include_router(statements_router, dependencies=[Depends(require_session)])
+def require_legacy_statement_access(session: dict = Depends(require_session)):
+    if presentation_scope(session) is not None:
+        raise HTTPException(403, "Use case chat to access presentation statements.")
+
+
+app.include_router(statements_router, dependencies=[Depends(require_legacy_statement_access)])
 app.include_router(conversations_router, dependencies=[Depends(require_session)])
 app.include_router(folders_router, dependencies=[Depends(require_session)])
 app.include_router(activity_router, dependencies=[Depends(require_session)])

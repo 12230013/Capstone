@@ -17,6 +17,9 @@ router = APIRouter(
 )
 
 
+from app.services.cims_service import authorize_conversation_scope
+
+
 class FolderCreate(BaseModel):
     user_id: str | None = None
     name: str
@@ -151,6 +154,8 @@ def add_conversation_to_folder(
             status_code=404,
             detail="Conversation not found.",
         )
+
+    authorize_conversation_scope(session, conversation)
 
     # Prevent assigning another user's conversation to this folder.
     if conversation.get("user_id") != folder.get("user_id"):

@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from app.services.cims_service import case_visible
 from app.utils.sessions import require_session, clear_session_cookie
 from fastapi import APIRouter, Depends, Response, Query
 from app.database.connection import activity_collection, sessions_collection
@@ -11,6 +12,8 @@ def list_activity(limit: int = Query(100, ge=1, le=200), session: dict = Depends
     events = activity_collection.find({"user_id": session["user_id"]}).sort("created_at", -1).limit(limit)
     result = []
     for event in events:
+        if not case_visible(session, event):
+            continue
         date = event["created_at"]
         if date.tzinfo is None:
             date = date.replace(tzinfo=timezone.utc)

@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 import hashlib
-from typing import Optional
+import re
+from typing import Literal, Optional
 
 from bson import ObjectId
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
@@ -10,8 +11,11 @@ import requests
 
 from app.database.connection import activity_collection, conversations_collection, messages_collection, folders_collection
 from app.services.chat_service import ChatService
+from app.services.cims_service import authorize_conversation_scope, infer_case_mode, resolve_case_reference
+from app.services.cims_documents import conversation_message_scope
 from app.services.llm_service import LLMService
 from app.services.message_history import successful_exchanges
+from app.services.presentation_access import HAA_SCOPE, TOOL_SCOPE, is_haa_reference, presentation_request, presentation_scope
 from app.utils.sessions import require_session, check_user_id
 
 router = APIRouter(prefix="/api", tags=["Chat"])
@@ -23,9 +27,32 @@ class ChatRequest(BaseModel):
     user_id: Optional[str] = None
     folder_id: Optional[str] = None
     request_id: Optional[str] = None
+    case_id: Optional[str] = None
+    case_mode: Literal["metadata", "documents", "cdr", "relationships"] | None = None
+    case_subject: str | None = None
 
 
 chat_service = ChatService()
+
+
+def case_conversation_title(case_id, mode, question):
+    from app.services.cims_documents import is_case_overview
+
+    if case_id == TOOL_SCOPE:
+        return {"cdr": "Call records", "relationships": "Relationship mapping"}[mode]
+    case_label = "HAA case" if case_id == HAA_SCOPE else f"Case {case_id}"
+    if is_case_overview(question) or re.search(r"\btell me about (?:the )?haa case\b", question, re.I):
+        topic = "Overview"
+    elif re.search(r"\b(?:timeline|chronology|sequence of events)\b", question, re.I):
+        topic = "Timeline"
+    elif re.search(r"\b(?:report|document|file)\b", question, re.I):
+        topic = re.sub(r"^(?:please\s+)?(?:tell me about|summarize|explain)\s+(?:the\s+)?", "", question, flags=re.I)
+    elif re.search(r"\b(?:people|involved|witnesses|suspects)\b", question, re.I):
+        topic = "People involved"
+    else:
+        topic = question
+    topic = " ".join(topic.split()).strip(" ?.!") or "Overview"
+    return f"{case_label} · {topic[0].upper()}{topic[1:]}"[:80].rstrip()
 
 
 def generate_conversation_title(conversation_id: str, query: str):
@@ -58,25 +85,67 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks, session:
         if not query:
             raise HTTPException(400, "Query cannot be empty.")
 
-        if request.request_id and user_id:
-            previous = messages_collection.find_one({
-                "request_id": request.request_id, "user_id": user_id, "role": "assistant",
-            })
-            if previous and previous.get("result"):
-                return previous["result"]
-
         now = datetime.now(timezone.utc)
         conversation_id = request.conversation_id
+        case_id = request.case_id
+        case_mode = request.case_mode or "metadata"
+        case_subject = request.case_subject
+        demo = presentation_scope(session)
+        inferred_case = None
+        if request.case_id is None and not (demo is not None and is_haa_reference(query)):
+            inferred_case = resolve_case_reference(session, query)
+        demo_request = presentation_request(session, query, inferred_case) if demo is not None else None
+        if demo_request is not None:
+            inferred_case = demo_request[0]
         recent_messages = []
+        history_scope = {}
+        existing_conversation = None
         if conversation_id:
             if not ObjectId.is_valid(conversation_id):
                 raise HTTPException(400, "Invalid conversation ID.")
             conversation = conversations_collection.find_one({"_id": ObjectId(conversation_id), "user_id": user_id})
             if conversation is None:
                 raise HTTPException(404, "Conversation not found.")
-            history = messages_collection.find({"conversation_id": conversation_id}).sort("created_at", 1)
+            existing_conversation = conversation
+            if demo_request is not None and demo_request != (
+                conversation.get("case_id"), conversation.get("case_mode"), conversation.get("case_subject")
+            ):
+                conversation_id = None
+            elif inferred_case is not None and not conversation.get("case_id"):
+                conversation_id = None
+            elif inferred_case is not None and inferred_case != conversation.get("case_id"):
+                raise HTTPException(403, "Start a new conversation to ask about a different case.")
+        if conversation_id:
+            case_id = existing_conversation.get("case_id")
+            if request.case_id is not None and request.case_id != case_id:
+                raise HTTPException(403, "Case access denied.")
+            case_mode = conversation.get("case_mode", "metadata")
+            if request.case_mode is not None and request.case_mode != case_mode:
+                raise HTTPException(403, "Case access denied.")
+            case_subject = conversation.get("case_subject")
+            if request.case_subject is not None and request.case_subject != case_subject:
+                raise HTTPException(403, "Case access denied.")
+            authorize_conversation_scope(session, conversation)
+            history_scope = conversation_message_scope(session, conversation)
+            history = messages_collection.find({
+                "conversation_id": conversation_id, **history_scope,
+            }).sort("created_at", 1)
             recent_messages = successful_exchanges(history)[-10:]
         else:
+            if demo_request is not None:
+                case_id, case_mode, case_subject = demo_request
+            elif inferred_case is not None:
+                case_id = inferred_case
+                case_mode, case_subject = infer_case_mode(query)
+            if demo is not None and case_id is None:
+                case_id = demo["case_id"]
+                case_mode, case_subject = infer_case_mode(query)
+                if case_id == HAA_SCOPE:
+                    case_mode = "metadata"
+            if case_id is not None:
+                authorize_conversation_scope(session, {
+                    "case_id": case_id, "case_mode": case_mode, "case_subject": case_subject,
+                })
             if request.folder_id:
                 if not ObjectId.is_valid(request.folder_id):
                     raise HTTPException(400, "Invalid folder ID.")
@@ -94,8 +163,36 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks, session:
                 "updated_at": now,
             }
 
+        if case_id is not None:
+            conversation["case_id"] = case_id
+            conversation["case_mode"] = case_mode
+            if case_mode in {"cdr", "relationships"}:
+                conversation["case_subject"] = case_subject
+            if not conversation_id:
+                conversation["title"] = case_conversation_title(case_id, case_mode, query)
+                conversation["title_status"] = "ready"
+
+        if request.request_id:
+            if not conversation_id:
+                history_scope = conversation_message_scope(session, conversation)
+            replay_key = {"request_id": request.request_id, "user_id": user_id, "role": "assistant"}
+            replay_scope = {**replay_key, "case_id": case_id, **history_scope}
+            if case_id is not None:
+                replay_scope["case_mode"] = case_mode
+                replay_scope["case_subject"] = case_subject
+            if conversation_id:
+                replay_scope["conversation_id"] = conversation_id
+            previous = messages_collection.find_one(replay_scope)
+            if previous and previous.get("result"):
+                return previous["result"]
+            if case_id is not None and messages_collection.find_one(replay_key, {"_id": 1}):
+                raise HTTPException(403, "Case access denied.")
+
         activity_id = activity_collection.insert_one({
-            "user_id": conversation["user_id"], "type": "query", "query": query,
+            "user_id": conversation["user_id"], "type": "query", "query": query if case_id is None else None,
+            "case_mode": case_mode,
+            "case_subject": case_subject,
+            "case_id": case_id,
             "sources": [], "conversation_id": conversation_id, "created_at": now,
         }).inserted_id
 
@@ -108,6 +205,11 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks, session:
                 "current_query": query,
                 "messages": context_messages,
                 "owner_user_id": session["user_id"],
+                "enforce_external_case_scope": True,
+                **({
+                    "case_id": case_id, "case_mode": case_mode,
+                    "case_subject": case_subject, "session": session,
+                } if case_id is not None else {}),
             },
         )
         if result.get("success") is False:
@@ -135,13 +237,19 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks, session:
         exchange_id = str(ObjectId())
         common = {
             "conversation_id": conversation_id, "exchange_id": exchange_id,
-            "user_id": conversation["user_id"], "request_id": request.request_id,
+            "user_id": conversation["user_id"], "request_id": request.request_id, "case_id": case_id, "case_mode": case_mode,
+            "case_subject": case_subject,
         }
         user_message = {**common, "role": "user", "content": query, "sources": [], "created_at": now}
         assistant_message = {
             **common, "role": "assistant", "content": answer, "sources": sources,
             "visualization": visualization, "created_at": assistant_time, "result": result,
         }
+        if case_id is not None:
+            assistant_message["source_versions"] = sorted({
+                source["version"] for source in sources
+                if source.get("source_type") == "cims_document" and source.get("version")
+            })
         if request.request_id:
             request_key = hashlib.sha256(
                 f"{conversation['user_id']}:{request.request_id}".encode()
@@ -157,12 +265,14 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks, session:
             raise
 
         updates = {"updated_at": assistant_time}
-        needs_title = conversation.get("title_status") not in ("ready", "pending")
+        needs_title = case_id is None and conversation.get("title_status") not in ("ready", "pending")
         title_seed = next((message["content"] for message in recent_messages if message["role"] == "user"), query)
+        if case_id is not None and conversation.get("title") == "Case conversation":
+            updates.update({"title": case_conversation_title(case_id, case_mode, title_seed), "title_status": "ready"})
         if needs_title:
             updates.update({"title_status": "pending", "title_seed": title_seed})
         conversations_collection.update_one({"_id": ObjectId(conversation_id)}, {"$set": updates})
-        activity_collection.update_one({"_id": activity_id}, {"$set": {"sources": sources, "conversation_id": conversation_id}})
+        activity_collection.update_one({"_id": activity_id}, {"$set": {"sources": sources if case_id is None else [], "conversation_id": conversation_id}})
         if needs_title:
             background_tasks.add_task(generate_conversation_title, conversation_id, title_seed)
         return result
@@ -198,7 +308,7 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks, session:
         ) from exc
 
     except Exception as exc:
-        print(f"Chat route error: {exc}")
+        print(f"Chat route error: {type(exc).__name__}")
 
         raise HTTPException(
             status_code=500,

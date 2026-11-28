@@ -116,7 +116,10 @@ class SessionSecurityTests(ApiTestCase):
     def test_all_investigation_routes_require_a_session(self):
         checked = 0
         for path, operations in app.openapi()["paths"].items():
-            if not path.startswith("/api/") or path in ("/api/auth/login", "/api/auth/signup"):
+            if not path.startswith("/api/") or path in {
+                "/api/auth/login", "/api/auth/signup", "/api/auth/forgot-password",
+                "/api/auth/verify-otp", "/api/auth/reset-password",
+            }:
                 continue
             path = re.sub(r"\{[^}]+\}", "12345678", path)
             method = next(method.upper() for method in operations if method in {"get", "post", "delete", "put", "patch"})
@@ -243,7 +246,7 @@ class SessionSecurityTests(ApiTestCase):
         self.collections["conversations_collection"].find.return_value = [{"_id": ObjectId()}]
         response = self.client.get("/api/sources/stmt_01")
         self.assertEqual(response.status_code, 404)
-        self.collections["conversations_collection"].find.assert_called_with({"user_id": self.user_id}, {"_id": 1})
+        self.collections["conversations_collection"].find.assert_called_with({"user_id": self.user_id, "case_id": None}, {"_id": 1})
 
     def test_old_bearer_tokens_do_not_authenticate(self):
         self.assertEqual(self.client.get("/api/auth/me", headers={"Authorization": "Bearer old-token"}).status_code, 401)

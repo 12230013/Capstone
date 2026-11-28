@@ -217,8 +217,8 @@ function Signup() {
                 Admin
               </option>
 
-              <option value="Director">
-                Director
+              <option value="Chief">
+                Chief
               </option>
 
               <option value="Investigator">

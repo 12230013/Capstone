@@ -419,7 +419,8 @@ export default function Chat() {
       setChatError("");
       setCanRetry(false);
 
-      const validationError = getFrontendValidationError(question);
+      const validationError = /\bcase\s+(?:(?:no\.?|number|id)\s*)?#?\s*[^\s]*[0-9]/i.test(question) || conversations.some((item) => item.id === activeConversationId && item.case_id)
+        ? null : getFrontendValidationError(question);
 
       if (validationError) {
         setChatError(validationError);
@@ -525,7 +526,7 @@ export default function Chat() {
         setLoading(false);
       }
     },
-    [loading, initialFolderId, activeConversationId, failedAttempt],
+    [loading, initialFolderId, activeConversationId, failedAttempt, conversations],
   );
 
   // Automatically submit a question selected on the dashboard only once.

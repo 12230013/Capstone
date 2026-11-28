@@ -43,7 +43,7 @@ class UserCreate(BaseModel):
 
         allowed_roles = {
             "Admin",
-            "Director",
+            "Chief",
             "Investigator",
             "Team Members"
         }

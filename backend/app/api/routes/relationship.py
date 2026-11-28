@@ -4,6 +4,8 @@ import os
 from urllib.parse import quote
 
 import httpx
+
+from app.services.cims_service import relationship_case_subjects
 from fastapi import APIRouter, HTTPException, Path, Query
 
 RELATIONSHIP_API = os.getenv(
@@ -126,6 +128,10 @@ def format_person(person: dict) -> dict:
 async def fetch_citizen(cid: str) -> dict | None:
     """Retrieve citizen information from the external API."""
 
+    allowed = relationship_case_subjects.get()
+    if allowed is not None and cid not in allowed:
+        return None
+
     url = (
         f"{RELATIONSHIP_API}/api/familytree/citizen/"
         f"{quote(cid, safe='')}"
@@ -136,11 +142,24 @@ async def fetch_citizen(cid: str) -> dict | None:
         response.raise_for_status()
 
         data = response.json()
-        return data.get("citizen")
+        citizen = data.get("citizen")
+        if allowed is None or not citizen:
+            return citizen
+        if get_person_id(citizen) not in {"", cid}:
+            return None
+        return {
+            **format_person(citizen),
+            "cid": cid,
+            "fatherCID": get_father_id(citizen) if get_father_id(citizen) in allowed else "",
+            "motherCID": get_mother_id(citizen) if get_mother_id(citizen) in allowed else "",
+        }
 
 
 async def fetch_household(household_no: str) -> list:
     """Retrieve all members of a household."""
+
+    if relationship_case_subjects.get() is not None:
+        return []
 
     url = (
         f"{RELATIONSHIP_API}/api/familytree/household/"
@@ -486,7 +505,7 @@ async def relationship_visualization(
         )
 
     except Exception as error:
-        print("VISUALIZATION ERROR:", repr(error))
+        print("Relationship visualization failed:", type(error).__name__)
 
         raise HTTPException(
             status_code=502,
@@ -1139,17 +1158,14 @@ async def get_relationships(
         raise
 
     except httpx.TimeoutException as error:
-        print("RELATIONSHIP TIMEOUT:", repr(error))
+        print("Relationship API timed out")
         raise HTTPException(
             status_code=504,
             detail="Relationship API request timed out.",
         )
 
     except httpx.HTTPStatusError as error:
-        print("RELATIONSHIP HTTP ERROR:")
-        print("URL:", error.request.url)
-        print("STATUS:", error.response.status_code)
-        print("BODY:", error.response.text[:1000])
+        print("Relationship API error:", error.response.status_code)
 
         raise HTTPException(
             status_code=502,
@@ -1160,8 +1176,7 @@ async def get_relationships(
         )
 
     except httpx.RequestError as error:
-        print("RELATIONSHIP CONNECTION ERROR:", repr(error))
-        print("URL:", error.request.url if error.request else "Unknown")
+        print("Relationship API connection failed")
 
         raise HTTPException(
             status_code=502,
@@ -1169,8 +1184,7 @@ async def get_relationships(
         )
 
     except Exception as error:
-        import traceback
-        traceback.print_exc()
+        print("Relationship request failed:", type(error).__name__)
 
         raise HTTPException(
             status_code=502,

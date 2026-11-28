@@ -169,3 +169,52 @@ Errors use FastAPI's `detail` response shape:
 4. In Postman, create a `POST` request to `http://127.0.0.1:8001/api/cims/sync`, set **Authorization → Bearer Token**, set **Body → raw → JSON**, and submit the example.
 
 Use `{"users":[{"user_id":"U001","username":"investigator01"}]}` for a user-only request, or `{"cases":[{"case_id":"CASE_001"}]}` for case-only. Multiple items may be sent in either array.
+
+## Case access and document reconciliation
+
+The vendor POST continues to write to `cims_sync_records`. Browser sessions
+can request their assigned cases from `GET /api/cims/cases`. Before a pilot,
+an administrator must verify each account's investigator identifier and
+provision its access document in MongoDB's `cims_access_grants` collection.
+Use the string representation of the ACC account's MongoDB ID as `_id`.
+Set `active: true`, `investigator_id` to the exact stable identifier used in
+`assigned_investigators`, and `role` to `case_reader`, `document_reader`, or
+`investigator`. These roles respectively permit metadata, metadata and
+documents, or all four capabilities. Every capability must also appear in
+the account's explicit `permissions` list. Use values from:
+
+- `cims.case.read` for listing cases and case metadata chat
+- `cims.document.read` for case document chat and opening indexed passages
+- `cims.cdr.read` for CDR for phone numbers in the case's entity list
+- `cims.relationship.read` for Relationship Mapping for IDs in that list
+
+Case chat requires the case read permission plus the corresponding capability
+for non-metadata modes. Direct CDR and Relationship Mapping requests require a
+`case_id` query parameter and the corresponding capability. Chat resolves an explicit case reference in the question against the user’s authorized cases, then binds the case, inferred mode, and applicable subject to the conversation. Relationship
+Mapping restricts citizen reads to case entities and skips household-wide
+queries because household membership is outside the current CIMS schema.
+
+Assignments are evaluated against the current intake record on each request.
+The current implementation assumes case snapshots. Exact duplicate new
+snapshots are recognized by fingerprint. Same-day revisions use receipt order only if their investigator lists agree.
+Assignment conflicts and ambiguous undated updates deny access until reconciled. Confirm vendor assignment
+identifiers and revision semantics before enabling the pilot. CIMS user payloads
+do not automatically provision grants. Maintaining, deactivating, and
+reactivating grants remains an administrator responsibility. Recommended
+MongoDB indexes for larger deployments cover `cases.case_id`,
+`cases.assigned_investigators`, and `cims_documents.case_id`.
+
+Set `CIMS_DROP_ROOT` to the read-only mounted cases directory and optionally
+set `CIMS_DROP_INTERVAL` (seconds). The backend process that owns the local Qdrant
+store performs the scan. Run a single process against that store. The scanner
+waits for two consistent observations, matches files to case metadata, detects
+PDF and DOCX by content, and publishes completed versions to
+`cims_case_documents`. Unmatched and ambiguous files remain in reconciliation
+state in MongoDB's `cims_documents`; re-scanning allows late metadata to match
+them. The source viewer opens indexed passages under current case authorization.
+
+Presentation access is provisioned on individual user records through the
+server-managed `presentation_access` field. It fixes chat to one case and
+can grant the two standalone tools independently. The HAA presentation
+scope searches only the legacy statement index's HAA case number. Remove
+these presentation grants before handover.

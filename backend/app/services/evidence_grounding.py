@@ -72,7 +72,10 @@ def normalize(text):
     return " ".join(text.split()).casefold()
 
 
-def answer_from_evidence(question: str, sentences: dict[str, str], generate: Callable, document_context: str = ""):
+def answer_from_evidence(
+    question: str, sentences: dict[str, str], generate: Callable, document_context: str = "",
+    *, include_missing_information: bool = True,
+):
     unavailable = {"answer": NO_INFORMATION, "sentence_ids": [], "has_information": False}
     sentences = {key: text for key, text in sentences.items() if text.strip()}
     if not sentences:
@@ -134,8 +137,9 @@ QUESTION:
     if not claims:
         return {**unavailable, "answer": UNVERIFIED_ANSWER}
     answer = "\n\n".join(claims)
-    if result.missing_information:
-        missing = "; ".join(dict.fromkeys(item.strip() for item in result.missing_information if item.strip()))
+    if include_missing_information and result.missing_information:
+        details = (item.strip().rstrip(".?!").rstrip() for item in result.missing_information)
+        missing = "; ".join(dict.fromkeys(item for item in details if item))
         if missing:
             answer += f"\n\nThe available documents do not provide: {missing}."
     return {"answer": answer, "sentence_ids": list(dict.fromkeys(cited_ids)), "has_information": True}

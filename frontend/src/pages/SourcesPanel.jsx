@@ -30,7 +30,9 @@ export default function SourcesPanel({ sources, onClose }) {
     setLoading(true);
     const endpoint = isOCRSource
       ? "/api/ocr/documents/" + encodeURIComponent(sourceId)
-      : "/api/sources/" + encodeURIComponent(sourceId);
+      : selected.source_type === "cims_document"
+        ? "/api/sources/cims/" + encodeURIComponent(sourceId) + "?case_id=" + encodeURIComponent(selected.case_id)
+        : "/api/sources/" + encodeURIComponent(sourceId);
     apiFetch(endpoint, {
       signal: controller.signal,
     }).then(async response => {
@@ -77,7 +79,7 @@ export default function SourcesPanel({ sources, onClose }) {
         {loading && <p role="status">Opening document...</p>}
         {error && <p className="source-notice" role="status">{error}</p>}
         {selected.excerpt && <section className="source-passage"><h4>Referenced passage</h4><p>{selected.excerpt}</p></section>}
-        {document && <section className="source-document"><h4>{isOCRSource ? "OCR page text" : "Original document"}</h4><pre>{document.text || (isOCRSource ? "No text was returned for this OCR page." : "")}</pre>
+        {document && <section className="source-document"><h4>{isOCRSource ? "OCR page text" : selected.source_type === "cims_document" ? "Indexed passage" : "Original document"}</h4><pre>{document.text || (isOCRSource ? "No text was returned for this OCR page." : "")}</pre>
           {!isOCRSource && document.sentences?.length > 0 && <><h4>Sentence references</h4><p className="source-meta">Cited sentences are highlighted below.</p>
             {document.sentences.map(sentence => <p className="source-sentence" key={sentence.id} ref={sentence.id === firstId ? firstMatch : null}>
               <small>{sentence.id}</small>{ids.has(sentence.id) ? <mark>{sentence.text}</mark> : sentence.text}
